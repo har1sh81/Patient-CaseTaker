@@ -1,0 +1,8 @@
+[
+  {
+    "id": "rf_cardiac",
+    "keyword": "chest pain",
+    "severity": "CRITICAL",
+    "alertText": "Immediate cardiac assessment required."
+  }
+]

@@ -1,0 +1,311 @@
+import { Question } from '../../types';
+
+export const PHASE6_DEMO_QUESTIONS: Question[] = [
+  // SECTION A — REASON FOR VISIT
+  {
+    id: 'reason_for_visit',
+    section: 'chief_complaint',
+    displayOrder: 1,
+    question: {
+      en: 'Please describe the main reason for your visit today.',
+      hi: 'कृपया आज आने का मुख्य कारण बताएं।',
+      ta: 'இன்று நீங்கள் வந்ததற்கான முக்கிய காரணத்தை விவரிக்கவும்.',
+    },
+    inputType: 'text',
+    informationFields: ['chief_complaint'],
+    required: true,
+    allowVoice: true,
+    allowTouch: true,
+    helpText: {
+      en: 'You can use the on-screen keyboard or speak your answer.',
+    },
+  },
+  {
+    id: 'symptom_duration',
+    section: 'chief_complaint',
+    displayOrder: 2,
+    question: {
+      en: 'Approximately how long have you had this problem?',
+      hi: 'लगभग कितने समय से आपको यह समस्या है?',
+      ta: 'சுமார் எவ்வளவு காலமாக உங்களுக்கு இந்தப் பிரச்சனை இருக்கிறது?',
+    },
+    inputType: 'single_choice',
+    informationFields: ['duration'],
+    required: true,
+    allowVoice: true,
+    allowTouch: true,
+    options: [
+      { id: 'lt1', value: 'lt1', label: 'Less than 1 day' },
+      { id: '1to3', value: '1to3', label: '1–3 days' },
+      { id: '4to7', value: '4to7', label: '4–7 days' },
+      { id: 'gt7', value: 'gt7', label: 'More than 1 week' },
+    ],
+  },
+  // SECTION B — SIMPLE FOLLOW-UP
+  {
+    id: 'symptom_progression',
+    section: 'hpi',
+    displayOrder: 3,
+    question: {
+      en: 'Is the problem getting better, worse, or staying about the same?',
+      hi: 'क्या समस्या बेहतर हो रही है, बदतर हो रही है, या लगभग वैसी ही है?',
+      ta: 'பிரச்சனை குணமாகிறதா, மோசமாகிறதா அல்லது அப்படியே இருக்கிறதா?',
+    },
+    inputType: 'single_choice',
+    informationFields: ['progression'],
+    required: true,
+    allowVoice: true,
+    allowTouch: true,
+    options: [
+      { id: 'better', value: 'better', label: 'Getting better' },
+      { id: 'worse', value: 'worse', label: 'Getting worse' },
+      { id: 'same', value: 'same', label: 'About the same' },
+      { id: 'not_sure', value: 'not_sure', label: 'Not sure' },
+    ],
+  },
+  // SECTION C — BASIC SAFETY DEMONSTRATION (Conditional Routing)
+  {
+    id: 'safety_check',
+    section: 'review_of_systems',
+    displayOrder: 4,
+    question: {
+      en: 'Are you currently experiencing any severe pain?',
+      hi: 'क्या आपको वर्तमान में कोई गंभीर दर्द हो रहा है?',
+      ta: 'தற்போது உங்களுக்கு ஏதேனும் கடுமையான வலி உள்ளதா?',
+    },
+    inputType: 'yes_no',
+    informationFields: ['pain_presence'],
+    required: true,
+    allowVoice: true,
+    allowTouch: true,
+    followUpRules: [
+      {
+        condition: {
+          fieldId: 'safety_check',
+          operator: 'equals',
+          value: 'yes',
+        },
+        nextQuestionId: 'pain_location',
+      },
+      {
+        condition: {
+          fieldId: 'safety_check',
+          operator: 'equals',
+          value: 'no',
+        },
+        nextQuestionId: 'pain_scale', // skip pain_location, go to scale just to show routing
+      }
+    ],
+  },
+  {
+    id: 'pain_location',
+    section: 'review_of_systems',
+    displayOrder: 5,
+    question: {
+      en: 'Where is the pain located?',
+      hi: 'दर्द कहाँ हो रहा है?',
+      ta: 'வலி எங்கே இருக்கிறது?',
+    },
+    inputType: 'text',
+    informationFields: ['location'],
+    required: true,
+    allowVoice: true,
+    allowTouch: true,
+  },
+  {
+    id: 'pain_scale',
+    section: 'review_of_systems',
+    displayOrder: 6,
+    question: {
+      en: 'On a scale of 1 to 10, how would you rate your general comfort level right now?',
+      hi: '1 से 10 के पैमाने पर, अभी आप अपनी सामान्य आराम के स्तर को क्या रेटिंग देंगे?',
+      ta: '1 முதல் 10 வரையிலான அளவில், இப்போது உங்கள் பொதுவான வசதி நிலையை எப்படி மதிப்பிடுவீர்கள்?',
+    },
+    inputType: 'number',
+    informationFields: ['severity'],
+    required: true,
+    allowVoice: false, // Number keypad only
+    allowTouch: true,
+  },
+];
+
+export const PHASE13_AYUSH_QUESTIONS: Question[] = [
+  // SECTION A — REASON FOR VISIT (Same as allopathic but could be tailored, we use standard chief complaint)
+  {
+    id: 'reason_for_visit',
+    section: 'chief_complaint',
+    displayOrder: 1,
+    question: {
+      en: 'Please describe the main reason for your visit today.',
+      hi: 'कृपया आज आने का मुख्य कारण बताएं।',
+      ta: 'இன்று நீங்கள் வந்ததற்கான முக்கிய காரணத்தை விவரிக்கவும்.',
+    },
+    inputType: 'text',
+    informationFields: ['chief_complaint'],
+    required: true,
+    allowVoice: true,
+    allowTouch: true,
+    helpText: {
+      en: 'You can use the on-screen keyboard or speak your answer.',
+    },
+  },
+  {
+    id: 'symptom_duration',
+    section: 'chief_complaint',
+    displayOrder: 2,
+    question: {
+      en: 'Approximately how long have you had this problem?',
+      hi: 'लगभग कितने समय से आपको यह समस्या है?',
+      ta: 'சுமார் எவ்வளவு காலமாக உங்களுக்கு இந்தப் பிரச்சனை இருக்கிறது?',
+    },
+    inputType: 'single_choice',
+    informationFields: ['duration'],
+    required: true,
+    allowVoice: true,
+    allowTouch: true,
+    options: [
+      { id: 'lt1', value: 'lt1', label: 'Less than 1 day' },
+      { id: '1to3', value: '1to3', label: '1–3 days' },
+      { id: '4to7', value: '4to7', label: '4–7 days' },
+      { id: 'gt7', value: 'gt7', label: 'More than 1 week' },
+    ],
+  },
+  // AYUSH SPECIFIC - DASHAVIDHA PARIKSHA
+  {
+    id: 'ayush_prakriti',
+    section: 'ayush',
+    displayOrder: 3,
+    question: {
+      en: 'How would you describe your general body constitution or body type? (e.g., thin, medium, heavy build, or specific dosha if known)',
+      hi: 'आप अपने सामान्य शारीरिक गठन का वर्णन कैसे करेंगे?',
+      ta: 'உங்கள் உடல் அமைப்பை எவ்வாறு விவரிப்பீர்கள்?',
+    },
+    inputType: 'text',
+    informationFields: ['prakriti'],
+    required: false,
+    allowVoice: true,
+    allowTouch: true,
+  },
+  {
+    id: 'ayush_digestion',
+    section: 'ayush',
+    displayOrder: 4,
+    question: {
+      en: 'How is your digestion (Agni)?',
+      hi: 'आपका पाचन कैसा है?',
+      ta: 'உங்கள் செரிமானம் எப்படி உள்ளது?',
+    },
+    inputType: 'single_choice',
+    informationFields: ['agni'],
+    required: true,
+    allowVoice: true,
+    allowTouch: true,
+    options: [
+      { id: 'good', value: 'good', label: 'Good and regular' },
+      { id: 'irregular', value: 'irregular', label: 'Irregular or varying' },
+      { id: 'weak', value: 'weak', label: 'Weak or slow' },
+      { id: 'intense', value: 'intense', label: 'Very intense / often hungry' },
+    ],
+  },
+  {
+    id: 'ayush_bowel',
+    section: 'ayush',
+    displayOrder: 5,
+    question: {
+      en: 'How are your bowel movements (Koshtha)?',
+      hi: 'आपका मलत्याग कैसा है?',
+      ta: 'உங்கள் குடல் இயக்கம் எப்படி உள்ளது?',
+    },
+    inputType: 'single_choice',
+    informationFields: ['koshtha'],
+    required: true,
+    allowVoice: true,
+    allowTouch: true,
+    options: [
+      { id: 'regular', value: 'regular', label: 'Regular and soft' },
+      { id: 'hard', value: 'hard', label: 'Hard or constipated' },
+      { id: 'loose', value: 'loose', label: 'Loose or frequent' },
+      { id: 'variable', value: 'variable', label: 'Variable' },
+    ],
+  },
+  {
+    id: 'ayush_sleep',
+    section: 'ayush',
+    displayOrder: 6,
+    question: {
+      en: 'How would you describe your sleep quality?',
+      hi: 'आपकी नींद कैसी है?',
+      ta: 'உங்கள் தூக்கம் எப்படி உள்ளது?',
+    },
+    inputType: 'single_choice',
+    informationFields: ['sleep_quality'],
+    required: true,
+    allowVoice: true,
+    allowTouch: true,
+    options: [
+      { id: 'deep', value: 'deep', label: 'Deep and uninterrupted' },
+      { id: 'disturbed', value: 'disturbed', label: 'Disturbed / broken sleep' },
+      { id: 'light', value: 'light', label: 'Light sleep / hard to fall asleep' },
+      { id: 'excessive', value: 'excessive', label: 'Excessive or feeling sleepy all day' },
+    ],
+  },
+  {
+    id: 'ayush_diet',
+    section: 'ayush',
+    displayOrder: 7,
+    question: {
+      en: 'What type of food do you usually consume? (Ahara)',
+      hi: 'आप आमतौर पर किस प्रकार का भोजन करते हैं?',
+      ta: 'நீங்கள் வழக்கமாக என்ன வகையான உணவை உட்கொள்கிறீர்கள்?',
+    },
+    inputType: 'text',
+    informationFields: ['ahara'],
+    required: false,
+    allowVoice: true,
+    allowTouch: true,
+    helpText: {
+      en: 'Describe your daily diet, preferred tastes, and whether you eat mostly hot/cold foods.',
+    },
+  },
+  {
+    id: 'ayush_exercise',
+    section: 'ayush',
+    displayOrder: 8,
+    question: {
+      en: 'How much physical activity do you get daily? (Vyayama Shakti)',
+      hi: 'आप प्रतिदिन कितनी शारीरिक गतिविधि करते हैं?',
+      ta: 'தினசரி நீங்கள் எவ்வளவு உடற்பயிற்சி செய்கிறீர்கள்?',
+    },
+    inputType: 'single_choice',
+    informationFields: ['vyayama_shakti'],
+    required: true,
+    allowVoice: true,
+    allowTouch: true,
+    options: [
+      { id: 'none', value: 'none', label: 'None / Sedentary' },
+      { id: 'light', value: 'light', label: 'Light (walking, yoga)' },
+      { id: 'moderate', value: 'moderate', label: 'Moderate' },
+      { id: 'heavy', value: 'heavy', label: 'Heavy / Strenuous' },
+    ],
+  },
+  {
+    id: 'ayush_mind',
+    section: 'ayush',
+    displayOrder: 9,
+    question: {
+      en: 'How would you describe your mental state currently? (Satva)',
+      hi: 'आप अपनी वर्तमान मानसिक स्थिति का वर्णन कैसे करेंगे?',
+      ta: 'தற்போது உங்கள் மன நிலையை எவ்வாறு விவரிப்பீர்கள்?',
+    },
+    inputType: 'single_choice',
+    required: true,
+    allowVoice: true,
+    allowTouch: true,
+    options: [
+      { id: 'calm', value: 'calm', label: 'Calm and clear' },
+      { id: 'anxious', value: 'anxious', label: 'Anxious or restless' },
+      { id: 'angry', value: 'angry', label: 'Irritable or angry' },
+      { id: 'dull', value: 'dull', label: 'Dull or unmotivated' },
+    ],
+  },
+];

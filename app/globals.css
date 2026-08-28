@@ -1,26 +1,199 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Brand colors */
+  --color-primary: #0F766E;
+  --color-primary-hover: #115E59;
+  --color-primary-light: #CCFBF1;
+  --color-primary-pale: #F0FDFA;
+
+  --color-secondary: #123047;
+  --color-secondary-dark: #0B1F2A;
+
+  --color-clinical-blue: #2563EB;
+  --color-clinical-blue-light: #DBEAFE;
+
+  /* Neutral colors */
+  --color-background: #F7FAFA;
+  --color-surface: #FFFFFF;
+  --color-surface-secondary: #F1F5F5;
+
+  --color-border: #D9E2E2;
+  --color-border-strong: #B8C5C5;
+
+  /* Text colors */
+  --color-text-primary: #102A33;
+  --color-text-secondary: #52636B;
+  --color-text-muted: #7A8A91;
+  --color-text-disabled: #A8B3B7;
+
+  /* Status colors */
+  --color-success: #15803D;
+  --color-success-light: #DCFCE7;
+  --color-success-border: #86EFAC;
+
+  --color-information: #2563EB;
+  --color-information-light: #EFF6FF;
+  --color-information-border: #BFDBFE;
+
+  --color-warning: #B45309;
+  --color-warning-light: #FEF3C7;
+  --color-warning-border: #FCD34D;
+
+  --color-priority: #C2410C;
+  --color-priority-light: #FFF7ED;
+  --color-priority-border: #FDBA74;
+
+  --color-error: #B91C1C;
+  --color-error-light: #FEF2F2;
+  --color-error-border: #FCA5A5;
+
+  /* AYUSH colors */
+  --color-ayush: #3F7D4A;
+  --color-ayush-light: #EAF4EA;
+  --color-ayush-border: #B7D4BB;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(16, 42, 51, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(16, 42, 51, 0.08), 0 2px 4px -1px rgba(16, 42, 51, 0.04);
+  --shadow-lg: 0 10px 15px -3px rgba(16, 42, 51, 0.1), 0 4px 6px -2px rgba(16, 42, 51, 0.05);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+@theme {
+  --font-sans: 'Plus Jakarta Sans', sans-serif;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  /* Theme mappings */
+  --color-primary: var(--color-primary);
+  --color-primary-hover: var(--color-primary-hover);
+  --color-primary-light: var(--color-primary-light);
+  --color-primary-pale: var(--color-primary-pale);
+
+  --color-secondary: var(--color-secondary);
+  --color-secondary-dark: var(--color-secondary-dark);
+
+  --color-clinical-blue: var(--color-clinical-blue);
+  --color-clinical-blue-light: var(--color-clinical-blue-light);
+
+  --color-background-main: var(--color-background);
+  --color-surface-card: var(--color-surface);
+  --color-surface-muted: var(--color-surface-secondary);
+
+  --color-border-light: var(--color-border);
+  --color-border-strong: var(--color-border-strong);
+
+  --color-text-main: var(--color-text-primary);
+  --color-text-secondary: var(--color-text-secondary);
+  --color-text-muted: var(--color-text-muted);
+  --color-text-disabled: var(--color-text-disabled);
+
+  --color-success: var(--color-success);
+  --color-success-light: var(--color-success-light);
+  --color-success-border: var(--color-success-border);
+
+  --color-information: var(--color-information);
+  --color-information-light: var(--color-information-light);
+  --color-information-border: var(--color-information-border);
+
+  --color-warning: var(--color-warning);
+  --color-warning-light: var(--color-warning-light);
+  --color-warning-border: var(--color-warning-border);
+
+  --color-priority: var(--color-priority);
+  --color-priority-light: var(--color-priority-light);
+  --color-priority-border: var(--color-priority-border);
+
+  --color-error: var(--color-error);
+  --color-error-light: var(--color-error-light);
+  --color-error-border: var(--color-error-border);
+
+  --color-ayush: var(--color-ayush);
+  --color-ayush-light: var(--color-ayush-light);
+  --color-ayush-border: var(--color-ayush-border);
+
+  /* Animation keyframes and utilities */
+  --animate-fade-in: fade-in 0.2s ease-out;
+  --animate-scale-up: scale-up 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-slide-in: slide-in 0.2s ease-out;
+
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes scale-up {
+    from { transform: scale(0.95); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+  @keyframes slide-in {
+    from { transform: translateY(1rem); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
   }
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--color-background);
+  color: var(--color-text-primary);
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
+
+/* Accessibility Focus Indicator */
+*:focus-visible {
+  outline: 3px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-surface-secondary);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-strong);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-muted);
+}
+
+/* ==================================================
+   PRINT REPORT CSS MEDIA CONFIGURATIONS
+   ================================================== */
+@media print {
+  body {
+    background: white !important;
+    color: #102A33 !important;
+    font-family: 'Plus Jakarta Sans', sans-serif !important;
+  }
+
+  /* Hide headers, footers, cancel controls and other non-print widgets */
+  header, footer, button, nav, .no-print {
+    display: none !important;
+  }
+
+  @page {
+    size: A4 portrait;
+    margin: 15mm 15mm 15mm 15mm;
+  }
+
+  .print-container {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+  }
+
+  .print-avoid-break {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+}
+

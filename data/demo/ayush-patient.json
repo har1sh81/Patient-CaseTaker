@@ -1,0 +1,83 @@
+{
+  "id": "scenario_ayush",
+  "name": "AYUSH Ayurvedic Consultation Case",
+  "description": "Ayurvedic intake scenario containing Prakriti (Vata-Pitta) and Agni (Manda) diagnostics.",
+  "mode": "ayush",
+  "estimatedDemoDurationMinutes": 6,
+  "patient": {
+    "id": "pat_03",
+    "identification": {
+      "hospitalNumber": "HSP-100247",
+      "abhaReference": "ABHA-003"
+    },
+    "demographics": {
+      "firstName": "Ramesh",
+      "lastName": "Iyer",
+      "fullName": "Ramesh Iyer",
+      "dateOfBirth": "1975-03-10",
+      "age": 51,
+      "gender": "male"
+    },
+    "createdAt": "2026-08-26T15:30:00Z"
+  },
+  "consent": {
+    "id": "con_03",
+    "patientId": "pat_03",
+    "sessionId": "ses_03",
+    "consentVersion": "1.0",
+    "permissions": {
+      "intakeCollection": true,
+      "voiceProcessing": true,
+      "documentProcessing": true,
+      "aiAssistedStructuring": true,
+      "reportGeneration": true
+    },
+    "accepted": true,
+    "acceptedAt": "2026-08-26T15:35:00Z",
+    "language": "hi",
+    "source": "touchscreen"
+  },
+  "session": {
+    "id": "ses_03",
+    "patientId": "pat_03",
+    "status": "active",
+    "language": "hi",
+    "departmentMode": "ayush",
+    "consentId": "con_03",
+    "startedAt": "2026-08-26T15:31:00Z",
+    "expiresAt": "2026-08-26T16:01:00Z",
+    "currentStep": "interview",
+    "progress": {
+      "completedSections": ["consent"],
+      "pendingSections": ["interview", "documents", "review", "print"],
+      "percentage": 25
+    },
+    "cleanupStatus": {
+      "temporaryDataDeleted": false
+    }
+  },
+  "conversation": [
+    {
+      "questionId": "q_chief_complaint",
+      "patientResponse": "Chronic digestive issues and feeling sluggish after meals.",
+      "inputMethod": "voice"
+    }
+  ],
+  "documents": [],
+  "expectedClinicalHistory": {
+    "pastMedicalHistory": [
+      {
+        "id": "pmh_ayu_01",
+        "conditionName": "Mild gastritis",
+        "status": "active",
+        "provenance": { "source": "patient_voice", "confidence": "high" }
+      }
+    ],
+    "pastSurgicalHistory": [],
+    "medications": [],
+    "allergies": [],
+    "familyHistory": []
+  },
+  "expectedFlags": [],
+  "expectedReportSummary": "AYUSH Ayurvedic Intake Session. Prakriti constitution checked: Vata-Pitta. Slow metabolic fire (Manda Agni)."
+}

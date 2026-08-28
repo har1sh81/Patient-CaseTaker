@@ -1,0 +1,11 @@
+{
+  "vata": {
+    "traits": ["dry skin", "light sleep", "active mind"]
+  },
+  "pitta": {
+    "traits": ["intolerance to heat", "sharp appetite", "focused"]
+  },
+  "kapha": {
+    "traits": ["calm temperament", "oily skin", "heavy build"]
+  }
+}

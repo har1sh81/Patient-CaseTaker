@@ -1,0 +1,115 @@
+{
+  "id": "scenario_attention",
+  "name": "Retrosternal Chest Pain Case",
+  "description": "Retrosternal pressure-like chest pain of 3 hours duration. High priority warning flags activated.",
+  "mode": "standard",
+  "estimatedDemoDurationMinutes": 8,
+  "patient": {
+    "id": "pat_02",
+    "identification": {
+      "hospitalNumber": "HSP-100246",
+      "abhaReference": "ABHA-002"
+    },
+    "demographics": {
+      "firstName": "Arun",
+      "lastName": "Kumar",
+      "fullName": "Arun Kumar",
+      "dateOfBirth": "1981-11-20",
+      "age": 45,
+      "gender": "male"
+    },
+    "createdAt": "2026-08-26T12:00:00Z"
+  },
+  "consent": {
+    "id": "con_02",
+    "patientId": "pat_02",
+    "sessionId": "ses_02",
+    "consentVersion": "1.0",
+    "permissions": {
+      "intakeCollection": true,
+      "voiceProcessing": true,
+      "documentProcessing": true,
+      "aiAssistedStructuring": true,
+      "reportGeneration": true
+    },
+    "accepted": true,
+    "acceptedAt": "2026-08-26T12:05:00Z",
+    "language": "en",
+    "source": "touchscreen"
+  },
+  "session": {
+    "id": "ses_02",
+    "patientId": "pat_02",
+    "status": "active",
+    "language": "en",
+    "departmentMode": "standard",
+    "consentId": "con_02",
+    "startedAt": "2026-08-26T12:01:00Z",
+    "expiresAt": "2026-08-26T12:31:00Z",
+    "currentStep": "interview",
+    "progress": {
+      "completedSections": ["consent"],
+      "pendingSections": ["interview", "documents", "review", "print"],
+      "percentage": 25
+    },
+    "cleanupStatus": {
+      "temporaryDataDeleted": false
+    }
+  },
+  "conversation": [
+    {
+      "questionId": "q_chief_complaint",
+      "patientResponse": "Severe chest pain and heavy pressure in the center of the chest.",
+      "inputMethod": "voice"
+    },
+    {
+      "questionId": "q_duration",
+      "patientResponse": "About 3 hours ago.",
+      "inputMethod": "voice"
+    }
+  ],
+  "documents": [],
+  "expectedClinicalHistory": {
+    "pastMedicalHistory": [
+      {
+        "id": "pmh_01",
+        "conditionName": "Hypertension",
+        "status": "active",
+        "provenance": { "source": "patient_voice", "confidence": "high" }
+      },
+      {
+        "id": "pmh_02",
+        "conditionName": "Diabetes",
+        "status": "active",
+        "provenance": { "source": "patient_voice", "confidence": "high" }
+      }
+    ],
+    "pastSurgicalHistory": [],
+    "medications": [
+      {
+        "id": "med_01",
+        "name": "Amlodipine 5mg OD",
+        "status": "active",
+        "provenance": { "source": "patient_voice", "confidence": "high" }
+      }
+    ],
+    "allergies": [
+      {
+        "id": "alg_01",
+        "allergen": "No Known Drug Allergies",
+        "category": "unknown",
+        "provenance": { "source": "patient_voice", "confidence": "high" }
+      }
+    ],
+    "familyHistory": [
+      {
+        "id": "fam_01",
+        "relationship": "father",
+        "condition": "Myocardial Infarction at age 52",
+        "provenance": { "source": "patient_voice", "confidence": "high" }
+      }
+    ]
+  },
+  "expectedFlags": ["Potential Priority Information — Requires Clinical Review"],
+  "expectedReportSummary": "Patient reported retrosternal pressure-like chest pain of sudden onset. Safety filters activated due to cardiac risk factors."
+}

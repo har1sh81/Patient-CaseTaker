@@ -1,0 +1,53 @@
+{
+  "id": "scenario_standard",
+  "name": "Standard Intake Scenario",
+  "description": "Standard patient with mild complaint and clinical documents",
+  "mode": "standard",
+  "estimatedDemoDurationMinutes": 5,
+  "patient": {
+    "id": "pat_01",
+    "identification": {
+      "hospitalNumber": "HSP-100245",
+      "abhaReference": "ABHA-001"
+    },
+    "demographics": {
+      "firstName": "Jane",
+      "lastName": "Doe",
+      "fullName": "Jane Doe",
+      "dateOfBirth": "1990-05-15",
+      "age": 36,
+      "gender": "female"
+    },
+    "createdAt": "2026-08-26T10:30:00Z"
+  },
+  "consent": {
+    "accepted": true,
+    "permissions": {
+      "intakeCollection": true,
+      "voiceProcessing": true,
+      "documentProcessing": true,
+      "aiAssistedStructuring": true,
+      "reportGeneration": true
+    }
+  },
+  "session": {
+    "status": "active"
+  },
+  "conversation": [
+    {
+      "questionId": "q_chief_complaint",
+      "patientResponse": "Headache",
+      "inputMethod": "voice"
+    }
+  ],
+  "documents": [],
+  "expectedClinicalHistory": {
+    "pastMedicalHistory": [],
+    "pastSurgicalHistory": [],
+    "medications": [],
+    "allergies": [],
+    "familyHistory": []
+  },
+  "expectedFlags": [],
+  "expectedReportSummary": "Patient reports headache. No safety concerns triggered."
+}

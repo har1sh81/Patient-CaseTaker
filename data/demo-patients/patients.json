@@ -1,0 +1,34 @@
+[
+  {
+    "id": "pat_01",
+    "identification": {
+      "hospitalNumber": "HSP-100245",
+      "abhaReference": "ABHA-001"
+    },
+    "demographics": {
+      "firstName": "Jane",
+      "lastName": "Doe",
+      "fullName": "Jane Doe",
+      "dateOfBirth": "1990-05-15",
+      "age": 36,
+      "gender": "female"
+    },
+    "createdAt": "2026-08-26T10:30:00Z"
+  },
+  {
+    "id": "pat_02",
+    "identification": {
+      "hospitalNumber": "HSP-100246",
+      "abhaReference": "ABHA-002"
+    },
+    "demographics": {
+      "firstName": "John",
+      "lastName": "Smith",
+      "fullName": "John Smith",
+      "dateOfBirth": "1985-11-23",
+      "age": 40,
+      "gender": "male"
+    },
+    "createdAt": "2026-08-26T10:35:00Z"
+  }
+]

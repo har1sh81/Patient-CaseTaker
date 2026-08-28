@@ -1,0 +1,19 @@
+import { z } from 'zod';
+import * as schemas from '../schemas/report.schema';
+
+export type PatientReviewSection = z.infer<typeof schemas.PatientReviewSectionSchema>;
+export type PatientReviewState = z.infer<typeof schemas.PatientReviewStateSchema>;
+export type PatientCorrection = z.infer<typeof schemas.PatientCorrectionSchema>;
+export type PatientReportSection = z.infer<typeof schemas.PatientReportSectionSchema>;
+export type VisitReportSection = z.infer<typeof schemas.VisitReportSectionSchema>;
+export type ClinicalHistoryReportSection = z.infer<typeof schemas.ClinicalHistoryReportSectionSchema>;
+export type DocumentSummaryReportSection = z.infer<typeof schemas.DocumentSummaryReportSectionSchema>;
+export type AyushReportSection = z.infer<typeof schemas.AyushReportSectionSchema>;
+export type ReportConfirmation = z.infer<typeof schemas.ReportConfirmationSchema>;
+export type PhysicianVerification = z.infer<typeof schemas.PhysicianVerificationSchema>;
+export type ReportReference = z.infer<typeof schemas.ReportReferenceSchema>;
+export type ClinicalHistoryReport = z.infer<typeof schemas.ClinicalHistoryReportSchema>;
+export type ReportValidationIssue = z.infer<typeof schemas.ReportValidationIssueSchema>;
+export type ReportValidationResult = z.infer<typeof schemas.ReportValidationResultSchema>;
+export type ReportGenerationRequest = z.infer<typeof schemas.ReportGenerationRequestSchema>;
+export type ReportGenerationResponse = z.infer<typeof schemas.ReportGenerationResponseSchema>;

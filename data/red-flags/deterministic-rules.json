@@ -1,0 +1,45 @@
+[
+  {
+    "id": "rule_chest_pain",
+    "category": "red_flag",
+    "enabled": true,
+    "appliesTo": "chief_complaint",
+    "conditions": [
+      {
+        "field": "primaryComplaint",
+        "operator": "contains",
+        "value": "chest pain"
+      }
+    ],
+    "result": {
+      "severity": "priority",
+      "label": "Potential Priority Information — Requires Clinical Review",
+      "message": "Patient reported chest pain. Requires immediate clinical review.",
+      "requiresClinicalReview": true
+    }
+  },
+  {
+    "id": "rule_high_bp",
+    "category": "lab_attention",
+    "enabled": true,
+    "appliesTo": "laboratory_results",
+    "conditions": [
+      {
+        "field": "testName",
+        "operator": "equals",
+        "value": "systolic_blood_pressure"
+      },
+      {
+        "field": "numericValue",
+        "operator": "greater_than",
+        "value": 180
+      }
+    ],
+    "result": {
+      "severity": "priority",
+      "label": "Potential Priority Information — Requires Clinical Review",
+      "message": "Patient blood pressure is dangerously high (>180). Requires immediate medical attention.",
+      "requiresClinicalReview": true
+    }
+  }
+]
