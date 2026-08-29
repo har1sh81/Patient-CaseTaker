@@ -33,7 +33,7 @@ export async function POST(
     const supabaseToken = cookieStore.get('sb-ouqhtjcvtsmfyfmanvjq-auth-token');
     
     // In mock mode without a token, use a default ID. Otherwise they wouldn't be able to log in.
-    let doctorId = 'dr_temp_123';
+    const doctorId = 'dr_temp_123';
     
     // Perform resolution
     const flag = await db.resolveConflict(flagId, decision, doctorId);
