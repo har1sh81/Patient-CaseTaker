@@ -76,4 +76,17 @@ export class MockABDMProvider implements HealthRecordProvider {
       ]
     };
   }
+
+  async publishRecord(fhirBundle: any): Promise<{ success: boolean; externalId?: string; error?: string }> {
+    console.log('[MockABDMProvider] Exporting FHIR bundle to ABDM network...');
+    
+    // Simulate network delay
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    // Simulate successful ABDM publish
+    return {
+      success: true,
+      externalId: `ABDM-TXN-${new Date().getFullYear()}-${Math.floor(Math.random() * 1000000)}`,
+    };
+  }
 }

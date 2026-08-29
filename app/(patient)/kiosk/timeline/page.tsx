@@ -7,7 +7,8 @@ import { MedicalTimelineView } from '../../../../components/timeline';
 import { Button } from '../../../../components/ui/button';
 import { Spinner } from '../../../../components/ui/spinner';
 import { Alert } from '../../../../components/ui/alert';
-import { MedicalTimeline, AttentionFlag } from '../../../../types';
+import { MedicalTimeline, AttentionFlag, ReconstructedHistory } from '../../../../types';
+import { ComplaintHistoryView } from '../../../../components/timeline/ComplaintHistoryView';
 
 function TimelineContent() {
   const router = useRouter();
@@ -15,16 +16,18 @@ function TimelineContent() {
   const sessionId = searchParams.get('sessionId');
 
   const [timeline, setTimeline] = React.useState<MedicalTimeline | null>(null);
+  const [reconstructed, setReconstructed] = React.useState<ReconstructedHistory | null>(null);
   const [flags, setFlags] = React.useState<AttentionFlag[]>([]);
   const [loading, setLoading] = React.useState(false);
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
+  const [viewMode, setViewMode] = React.useState<'complaint' | 'full'>('complaint');
 
   const organizeRecords = React.useCallback(async () => {
     if (!sessionId) return;
     setLoading(true);
     setErrorMsg(null);
     try {
-      // Fetch timeline
+      // Fetch base timeline
       const res = await fetch('/api/kiosk/interview/timeline', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -35,6 +38,13 @@ function TimelineContent() {
         setTimeline(data.data);
       } else {
         setErrorMsg(data.error || 'Failed to organize records');
+      }
+
+      // Fetch reconstructed timeline
+      const reconRes = await fetch(`/api/kiosk/interview/timeline/reconstruct?sessionId=${sessionId}`);
+      const reconData = await reconRes.json();
+      if (reconRes.ok && reconData.success) {
+        setReconstructed(reconData.data);
       }
 
       // Evaluate attention flags
@@ -101,9 +111,34 @@ function TimelineContent() {
           <Spinner size="lg" />
           <p className="text-text-secondary font-medium">Organizing and fusing records...</p>
         </div>
-      ) : timeline ? (
-        <MedicalTimelineView timeline={timeline} />
-      ) : null}
+      ) : (
+        <>
+          <div className="flex justify-center mb-4">
+            <div className="bg-gray-100 p-1 rounded-lg inline-flex">
+              <button
+                className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${viewMode === 'complaint' ? 'bg-white shadow-sm text-blue-700' : 'text-gray-600 hover:text-gray-900'}`}
+                onClick={() => setViewMode('complaint')}
+              >
+                Complaint-Focused View
+              </button>
+              <button
+                className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${viewMode === 'full' ? 'bg-white shadow-sm text-blue-700' : 'text-gray-600 hover:text-gray-900'}`}
+                onClick={() => setViewMode('full')}
+              >
+                Full Medical History
+              </button>
+            </div>
+          </div>
+          
+          {viewMode === 'complaint' && reconstructed && (
+            <ComplaintHistoryView history={reconstructed} />
+          )}
+          
+          {viewMode === 'full' && timeline && (
+            <MedicalTimelineView timeline={timeline} />
+          )}
+        </>
+      )}
 
       {!loading && (
         <div className="flex justify-between items-center mt-8 pt-8 border-t border-border">

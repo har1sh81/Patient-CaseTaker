@@ -4,7 +4,9 @@ import * as React from 'react';
 import { MedicalTimeline, FusedClinicalRecord } from '../../types';
 import { Card } from '../ui/card';
 import { Alert } from '../ui/alert';
-import { Activity, Pill, AlertTriangle, Syringe, TestTube, FileText, Stethoscope } from 'lucide-react';
+import { Activity, Pill, AlertTriangle, Syringe, TestTube, FileText, Stethoscope, Search } from 'lucide-react';
+import { Dialog } from '../ui/dialog';
+import { SourceTruthPanel } from '../doctor/SourceTruthPanel';
 
 interface MedicalTimelineViewProps {
   timeline: MedicalTimeline;
@@ -12,6 +14,7 @@ interface MedicalTimelineViewProps {
 
 export function MedicalTimelineView({ timeline }: MedicalTimelineViewProps) {
   const { records } = timeline;
+  const [selectedRecord, setSelectedRecord] = React.useState<FusedClinicalRecord | null>(null);
 
   if (!records || records.length === 0) {
     return (
@@ -62,16 +65,33 @@ export function MedicalTimelineView({ timeline }: MedicalTimelineViewProps) {
           
           <div className="flex flex-col gap-4 pl-4 border-l-2 border-primary/20 ml-6 py-2">
             {groupedRecords[key].map(record => (
-              <TimelineRecordCard key={record.id} record={record} />
+              <TimelineRecordCard key={record.id} record={record} onSelect={() => setSelectedRecord(record)} />
             ))}
           </div>
         </div>
       ))}
+
+      <Dialog 
+        isOpen={!!selectedRecord} 
+        onClose={() => setSelectedRecord(null)}
+        title="Evidence Traceability"
+        description="Source Truth for this clinical fact"
+      >
+        {selectedRecord && (
+          <div className="h-[60vh] max-h-[600px] overflow-y-auto">
+            <SourceTruthPanel 
+              record={selectedRecord} 
+              onClose={() => setSelectedRecord(null)} 
+              sessionId={timeline.sessionId}
+            />
+          </div>
+        )}
+      </Dialog>
     </div>
   );
 }
 
-function TimelineRecordCard({ record }: { record: FusedClinicalRecord }) {
+function TimelineRecordCard({ record, onSelect }: { record: FusedClinicalRecord, onSelect: () => void }) {
   const getIcon = () => {
     switch (record.category) {
       case 'condition': return <Activity size={20} className="text-secondary" />;
@@ -110,7 +130,10 @@ function TimelineRecordCard({ record }: { record: FusedClinicalRecord }) {
   const uniqueSources = Array.from(new Set(record.provenances.map((p) => String(p.source))));
 
   return (
-    <Card className={`p-4 relative overflow-hidden transition-all hover:shadow-md ${record.status === 'conflict' ? 'border-orange-300 bg-orange-50/30' : ''}`}>
+    <Card 
+      className={`p-4 relative overflow-hidden transition-all hover:shadow-md cursor-pointer ${record.status === 'conflict' ? 'border-orange-300 bg-orange-50/30' : ''}`}
+      onClick={onSelect}
+    >
       {record.status === 'conflict' && (
         <div className="absolute top-0 left-0 w-1 h-full bg-orange-400"></div>
       )}
@@ -159,6 +182,13 @@ function TimelineRecordCard({ record }: { record: FusedClinicalRecord }) {
               </Alert>
             </div>
           )}
+
+          <div className="mt-2 border-t border-gray-100 pt-2 flex justify-end">
+            <button className="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1">
+              <Search className="h-3 w-3" />
+              View Source Truth
+            </button>
+          </div>
         </div>
       </div>
     </Card>

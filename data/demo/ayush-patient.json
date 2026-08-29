@@ -58,9 +58,24 @@
   },
   "conversation": [
     {
-      "questionId": "q_chief_complaint",
-      "patientResponse": "Chronic digestive issues and feeling sluggish after meals.",
+      "questionId": "reason_for_visit",
+      "patientResponse": "Chronic digestive issues and stomach pain for 3 weeks.",
       "inputMethod": "voice"
+    },
+    {
+      "questionId": "ayush_prakriti",
+      "patientResponse": "I am generally a Vata-Pitta type, thin build.",
+      "inputMethod": "voice"
+    },
+    {
+      "questionId": "ayush_digestion",
+      "patientResponse": "weak",
+      "inputMethod": "touch"
+    },
+    {
+      "questionId": "ayush_bowel",
+      "patientResponse": "hard",
+      "inputMethod": "touch"
     }
   ],
   "documents": [],

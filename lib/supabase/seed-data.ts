@@ -126,6 +126,28 @@ export async function loadAndSeedScenario(scenarioId: 'standard' | 'attention' |
         updatedAt: new Date().toISOString(),
       });
     }
+    
+    // Inject a specific medication conflict for the SIH demo scenario
+    if (scenarioId === 'attention' && scenario.session && scenario.session.id) {
+      await db.saveAttentionFlag({
+        id: `flg_${scenario.session.id}_medconflict`,
+        sessionId: scenario.session.id,
+        patientId: scenario.patient?.id || 'mock_patient',
+        category: 'medication_attention',
+        severity: 'high',
+        label: 'Medication Conflict',
+        message: 'Discrepancy found between Patient Interview and ABDM records for Amlodipine.',
+        evidence: ['Patient: Amlodipine 5mg', 'ABDM: Amlodipine 10mg'],
+        provenances: [
+          { source: 'patient_voice', confidence: 'high' },
+          { source: 'abdm', confidence: 'high' }
+        ],
+        requiresClinicalReview: true,
+        status: 'active',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+    }
   }
 
   console.log(`[Seed Loader] Successfully loaded scenario: ${scenarioId}`);

@@ -24,4 +24,13 @@ export class ABDMProvider implements HealthRecordProvider {
 
     throw new Error('Real ABDM integration is not yet configured with valid credentials.');
   }
+
+  async publishRecord(_fhirBundle: any): Promise<{ success: boolean; externalId?: string; error?: string }> {
+    // Architectural stub for real ABDM M3 Gateway integration
+    // 1. Authenticate with ABDM Gateway using client credentials
+    // 2. Call /v0.5/health-information/notify (HIP flow)
+    // 3. Encrypt and push FHIR bundles
+
+    throw new Error('Real ABDM export integration is not yet configured with valid credentials.');
+  }
 }

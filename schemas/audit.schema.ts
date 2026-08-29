@@ -36,6 +36,15 @@ export const AuditActionSchema = z.enum([
   'attention_flag_updated',
   'attention_evaluation_completed',
   'attention_evaluation_failed',
+  'complaint_history_reconstructed',
+  'source_truth_viewed',
+  'source_truth_conflict_viewed',
+  'patient_review_opened',
+  'patient_correction_recorded',
+  'patient_confirmation_completed',
+  'case_sent_to_doctor',
+  'physician_finalized',
+  'conflict_resolved',
 ]);
 
 export const AuditLogSchema = z.object({

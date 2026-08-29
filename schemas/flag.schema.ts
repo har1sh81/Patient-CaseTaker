@@ -51,7 +51,10 @@ export const AttentionFlagSchema = z.object({
   evidence: z.array(z.string()),
   provenances: z.array(DataProvenanceSchema),
   requiresClinicalReview: z.boolean(),
-  status: z.enum(['active', 'acknowledged', 'resolved', 'dismissed']),
+  status: z.enum(['active', 'acknowledged', 'resolved', 'dismissed']).default('active'),
+  resolutionDecision: z.string().optional(),
+  resolvedBy: z.string().optional(),
+  resolvedAt: z.string().optional(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });

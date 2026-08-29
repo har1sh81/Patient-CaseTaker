@@ -15,4 +15,5 @@ export * from './demo.schema';
 export * from './audit.schema';
 export * from './api.schema';
 export * from './abdm.schema';
+export * from './export.schema';
 export * from './timeline.schema';

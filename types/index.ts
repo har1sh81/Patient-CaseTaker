@@ -15,4 +15,5 @@ export * from './demo.types';
 export * from './audit.types';
 export * from './api.types';
 export * from './abdm.types';
+export * from './export.types';
 export * from './timeline.types';

@@ -22,7 +22,7 @@ export interface StorageService {
 }
 
 export class SupabaseStorage implements StorageService {
-  private bucketName = 'medical-documents';
+  private bucketName = 'medical_documents';
 
   private validateFile(file: FilePayload) {
     const allowedTypes = ['application/pdf', 'image/png', 'image/jpeg', 'image/jpg'];

@@ -1,11 +1,11 @@
 {
   "id": "scenario_standard",
   "name": "Standard Intake Scenario",
-  "description": "Standard patient with mild complaint and clinical documents",
+  "description": "Standard patient with stomach pain, multi-source provenance, and a medication conflict.",
   "mode": "standard",
   "estimatedDemoDurationMinutes": 5,
   "patient": {
-    "id": "pat_01",
+    "id": "pat_golden",
     "identification": {
       "hospitalNumber": "HSP-100245",
       "abhaReference": "ABHA-001"
@@ -31,23 +31,75 @@
     }
   },
   "session": {
-    "status": "active"
+    "id": "scenario_standard",
+    "patientId": "pat_golden",
+    "status": "active",
+    "language": "en",
+    "departmentMode": "standard",
+    "startedAt": "2026-08-26T10:00:00Z",
+    "currentStep": "interview",
+    "progress": {
+      "completedSections": ["consent"],
+      "pendingSections": ["interview", "documents", "review", "print"],
+      "percentage": 25
+    },
+    "cleanupStatus": {
+      "temporaryDataDeleted": false
+    }
   },
   "conversation": [
     {
       "questionId": "q_chief_complaint",
-      "patientResponse": "Headache",
+      "patientResponse": "I have been having severe stomach pain for the last 3 days.",
+      "inputMethod": "voice"
+    },
+    {
+      "questionId": "q_medications",
+      "patientResponse": "I am taking Omeprazole 20mg.",
       "inputMethod": "voice"
     }
   ],
   "documents": [],
   "expectedClinicalHistory": {
-    "pastMedicalHistory": [],
+    "pastMedicalHistory": [
+      {
+        "id": "pmh_01",
+        "conditionName": "Gastritis",
+        "dateOfDiagnosis": "2024",
+        "status": "active",
+        "provenance": { "source": "abdm", "confidence": "high" }
+      },
+      {
+        "id": "pmh_02",
+        "conditionName": "Diabetes",
+        "status": "active",
+        "provenance": { "source": "abdm", "confidence": "high" }
+      }
+    ],
     "pastSurgicalHistory": [],
-    "medications": [],
+    "medications": [
+      {
+        "id": "med_01",
+        "name": "Omeprazole",
+        "dosage": "20mg",
+        "frequency": "Once daily",
+        "status": "active",
+        "provenance": { "source": "patient_voice", "confidence": "high" }
+      },
+      {
+        "id": "med_02",
+        "name": "Omeprazole",
+        "dosage": "40mg",
+        "frequency": "Once daily",
+        "status": "active",
+        "provenance": { "source": "abdm", "confidence": "high" }
+      }
+    ],
     "allergies": [],
     "familyHistory": []
   },
-  "expectedFlags": [],
-  "expectedReportSummary": "Patient reports headache. No safety concerns triggered."
+  "expectedFlags": [
+    "Medication conflict: Patient reported Omeprazole 20mg, ABDM shows Omeprazole 40mg"
+  ],
+  "expectedReportSummary": "Patient reports severe stomach pain for 3 days. Patient states taking Omeprazole 20mg. ABDM records show Omeprazole 40mg (conflict)."
 }

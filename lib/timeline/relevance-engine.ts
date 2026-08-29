@@ -4,7 +4,7 @@ export interface ComplaintContext {
   complaint: string;
   duration?: string;
   severity?: string;
-  extractedFacts?: any[];
+  extractedFacts?: unknown[];
 }
 
 // A deterministic mapping of common complaints to relevant medical terms, diagnoses, and medications
@@ -22,7 +22,7 @@ export function extractComplaintContext(answers: ConversationAnswer[]): Complain
   if (!complaintAnswer) return null;
 
   return {
-    complaint: complaintAnswer.rawValue.toLowerCase(),
+    complaint: String(complaintAnswer.rawValue).toLowerCase(),
   };
 }
 

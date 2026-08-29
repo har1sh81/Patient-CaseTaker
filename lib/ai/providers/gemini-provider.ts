@@ -73,14 +73,15 @@ export class GeminiProvider implements AIProvider {
     const json = JSON.parse(textResponse);
     
     // Recursively remove null values so Zod optional fields don't throw
-    const removeNulls = (obj: any): any => {
+    const removeNulls = (obj: unknown): unknown => {
       if (obj === null) return undefined;
       if (typeof obj !== 'object') return obj;
       if (Array.isArray(obj)) return obj.map(removeNulls);
-      const newObj: any = {};
-      for (const key in obj) {
-        if (obj[key] !== null) {
-          newObj[key] = removeNulls(obj[key]);
+      const newObj: Record<string, unknown> = {};
+      const objAsRecord = obj as Record<string, unknown>;
+      for (const key in objAsRecord) {
+        if (objAsRecord[key] !== null) {
+          newObj[key] = removeNulls(objAsRecord[key]);
         }
       }
       return newObj;
@@ -206,6 +207,28 @@ INSTRUCTIONS:
   }
 
   private buildReportPrompt(request: ReportGenerationRequest): string {
+    let ayushInstructions = '';
+    let ayushOutput = '';
+    if (request.session.departmentMode === 'ayush') {
+      ayushInstructions = `
+- THIS IS AN AYUSH PATIENT. Extract patient-reported AYUSH information (digestion, bowel habits, sleep, diet, dashavidha pariksha elements).
+- DO NOT translate patient responses into Ayurvedic clinical terminology (e.g., if a patient reports poor digestion, write "Patient reports poor digestion", NOT "Agni is weak").
+- DO NOT diagnose a Dosha imbalance.
+- DO NOT recommend Ayurvedic treatments.
+- All AYUSH outputs MUST remain labeled as "patient-reported".
+- Put the AYUSH information into the "ayush" property of the report.`;
+      ayushOutput = `,
+    "ayush": {
+      "prakriti": "patient response if present...",
+      "vikriti": "patient response if present...",
+      "agni": "patient response if present...",
+      "koshtha": "patient response if present...",
+      "ahara": ["diet details..."],
+      "vihara": ["lifestyle details..."],
+      "dashavidhaPariksha": { "sleepQuality": "...", "etc": "..." }
+    }`;
+    }
+
     return `
 You are a highly constrained medical history aggregation engine.
 Your ONLY responsibility is to combine the provided JSON inputs into a structured clinical history draft.
@@ -215,7 +238,7 @@ SAFETY DIRECTIVES:
 - DO NOT recommend treatments.
 - DO NOT invent or assume missing information. If information is not in the source data, output "Not reported" or omit it.
 - DO NOT resolve conflicts automatically. If sources disagree, present both.
-- THIS IS A DRAFT FOR PHYSICIAN REVIEW.
+- THIS IS A DRAFT FOR PHYSICIAN REVIEW.${ayushInstructions}
 
 INPUTS:
 Answers: ${JSON.stringify(request.answers)}
@@ -235,7 +258,7 @@ Return a JSON object with:
       "medications": [],
       "allergies": [],
       "familyHistory": []
-    }
+    }${ayushOutput}
   },
   "validation": { "passed": true, "missingRequiredSections": [], "warnings": [] }
 }

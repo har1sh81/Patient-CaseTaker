@@ -48,8 +48,8 @@ function OcrBadge({ documentId, sessionId }: { documentId: string; sessionId?: s
       if (data.ocr) {
         setOcr(data.ocr);
       }
-    } catch {
-      setError('Failed to process document');
+    } catch (err) {
+      console.error('Failed to process document', err);
     } finally {
       setLoading(false);
     }

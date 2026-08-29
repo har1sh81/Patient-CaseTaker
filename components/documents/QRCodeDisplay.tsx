@@ -110,6 +110,12 @@ export function QRCodeDisplay({ sessionId }: QRCodeDisplayProps) {
         </div>
       )}
 
+      {typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') && (
+        <div className="text-xs text-warning/90 bg-warning/5 border border-warning/20 p-3 rounded-xl max-w-sm text-center">
+          <strong>Testing on mobile?</strong> Your phone cannot resolve <code>localhost</code>. Ensure both devices are on the same Wi-Fi network, and open this portal on your computer using your local network IP (e.g. <code>http://10.201.164.215:3000/kiosk</code>) instead of localhost.
+        </div>
+      )}
+
       <div className="flex items-center gap-3 text-text-muted text-sm bg-surface-muted px-4 py-3 rounded-xl w-full justify-center">
         <Smartphone className="w-5 h-5 shrink-0" />
         <p>No patient info is contained in this QR code.</p>

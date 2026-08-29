@@ -6,4 +6,7 @@ export interface HealthRecordProvider {
   
   /** Verify the OTP and fetch the authorized digital health records */
   verifyConsentAndFetchRecords(transactionId: string, otp: string, abhaReference: string): Promise<RawHealthRecordPayload>;
+
+  /** Export the finalized clinical record to ABDM as FHIR */
+  publishRecord(fhirBundle: any): Promise<{ success: boolean; externalId?: string; error?: string }>;
 }

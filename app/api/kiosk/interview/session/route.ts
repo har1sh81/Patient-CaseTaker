@@ -15,6 +15,7 @@ export async function GET(request: Request) {
 
     if (!activeSession) {
       return NextResponse.json({ success: false, error: 'Session not found' }, { status: 404 });
+
     }
 
     if (activeSession.status !== 'active' || isSessionExpired(activeSession)) {

@@ -13,7 +13,8 @@ import {
   ClinicalHistoryReport,
   AuditLog,
   OCRResponse,
-  MedicalTimeline
+  MedicalTimeline,
+  ExportRecord
 } from '../../types';
 import {
   PatientSchema,
@@ -46,6 +47,7 @@ export class MockRepository implements DatabaseService {
   private corrections = new Map<string, PatientCorrection>();
   private reports = new Map<string, ClinicalHistoryReport>();
   private auditLogs = new Map<string, AuditLog>();
+  private exportRecords = new Map<string, ExportRecord>();
   private ocrResponses = new Map<string, OCRResponse>();
   private timelines = new Map<string, MedicalTimeline>();
 
@@ -111,6 +113,12 @@ export class MockRepository implements DatabaseService {
     const data = this.sessions.get(id);
     if (!data) return null;
     return IntakeSessionSchema.parse({ ...data });
+  }
+
+  async getSessionsByStatus(status: string): Promise<IntakeSession[]> {
+    const list = Array.from(this.sessions.values());
+    const matches = list.filter(s => s.status === status);
+    return matches.map(m => IntakeSessionSchema.parse({ ...m }));
   }
 
   async updateSession(id: string, updates: Partial<IntakeSession>): Promise<IntakeSession> {
@@ -267,11 +275,21 @@ export class MockRepository implements DatabaseService {
   }
 
   async acknowledgeFlag(id: string): Promise<void> {
-    const match = this.flags.get(id);
-    if (match) {
-      match.status = 'acknowledged';
-      this.flags.set(id, match);
-    }
+    const flag = this.flags.get(id);
+    if (!flag) throw new Error('Flag not found');
+    flag.status = 'acknowledged';
+    this.flags.set(id, flag);
+  }
+
+  async resolveConflict(flagId: string, decision: string, doctorId: string): Promise<import('../../types').AttentionFlag> {
+    const flag = this.flags.get(flagId);
+    if (!flag) throw new Error('Flag not found');
+    flag.status = 'resolved';
+    flag.resolutionDecision = decision;
+    flag.resolvedBy = doctorId;
+    flag.resolvedAt = new Date().toISOString();
+    this.flags.set(flagId, flag);
+    return flag;
   }
 
   // Corrections
@@ -285,6 +303,16 @@ export class MockRepository implements DatabaseService {
     const list = Array.from(this.corrections.values());
     const matched = list.filter((c) => c.sessionId === sessionId);
     return matched.map((c) => PatientCorrectionSchema.parse({ ...c }));
+  }
+
+  // Exports
+  async saveExportRecord(record: ExportRecord): Promise<ExportRecord> {
+    this.exportRecords.set(record.id, record);
+    return record;
+  }
+
+  async getExportRecords(sessionId: string): Promise<ExportRecord[]> {
+    return Array.from(this.exportRecords.values()).filter((r) => r.sessionId === sessionId);
   }
 
   // Clinical Reports
@@ -308,6 +336,22 @@ export class MockRepository implements DatabaseService {
   }
 
   // Audit Logs
+
+  async updateClinicalReport(sessionId: string, data: Partial<import('../../types').ClinicalHistoryReport>): Promise<import('../../types').ClinicalHistoryReport> {
+    const report = Array.from(this.reports.values()).find(r => r.sessionId === sessionId);
+    if (!report) throw new Error('Report not found');
+    const updated = { ...report, ...data } as import('../../types').ClinicalHistoryReport;
+    this.reports.set(updated.reportId, updated);
+    return updated;
+  }
+
+  async finalizeSession(sessionId: string): Promise<void> {
+    const session = this.sessions.get(sessionId);
+    if (!session) throw new Error('Session not found');
+    session.status = 'finalized';
+    this.sessions.set(sessionId, session);
+  }
+
   async saveAuditLog(log: AuditLog): Promise<AuditLog> {
     AuditLogSchema.parse(log);
     this.auditLogs.set(log.id, { ...log });
@@ -320,7 +364,7 @@ export class MockRepository implements DatabaseService {
     return matched.map((l) => AuditLogSchema.parse({ ...l }));
   }
 
-  async resetDatabase(): Promise<void> {
+  async resetDemoData(): Promise<void> {
     this.patients.clear();
     this.consents.clear();
     this.sessions.clear();

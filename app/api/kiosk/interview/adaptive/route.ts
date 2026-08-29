@@ -22,6 +22,7 @@ export async function POST(request: Request) {
     const activeSession = await db.getSession(reqData.sessionId);
     if (!activeSession) {
       return NextResponse.json({ success: false, error: 'Session not found' }, { status: 404 });
+
     }
 
     // Check 3: session.status === 'active'

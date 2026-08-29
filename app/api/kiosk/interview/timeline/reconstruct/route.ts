@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { db, isSessionExpired } from '../../../../../../lib/supabase/db-service';
+import { db } from '../../../../../../lib/supabase/db-service';
 import { reconstructHistory } from '../../../../../../lib/timeline/relevance-engine';
 import { ReconstructedHistory } from '../../../../../../types';
 
@@ -16,6 +16,7 @@ export async function GET(request: Request) {
     const activeSession = await db.getSession(sessionId);
     if (!activeSession) {
       return NextResponse.json({ success: false, error: 'Session not found' }, { status: 404 });
+
     }
     if (activeSession.status !== 'active' && activeSession.status !== 'completed') {
       return NextResponse.json({ success: false, error: 'Session is not valid' }, { status: 403 });

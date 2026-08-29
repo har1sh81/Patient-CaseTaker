@@ -7,8 +7,10 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ documentId: string }> }
 ) {
+  let documentId: string | undefined;
   try {
-    const { documentId } = await params;
+    const p = await params;
+    documentId = p.documentId;
     const body = await req.json();
     const sessionId = body.sessionId;
     const retry = req.nextUrl.searchParams.get('retry') === 'true';
@@ -19,6 +21,22 @@ export async function POST(
 
     // 1. Validate active session
     const session = await db.getSession(sessionId);
+
+    if (!session) {
+      return NextResponse.json({ error: 'Session not found' }, { status: 404 });
+    }
+    if (process.env.NEXT_PUBLIC_MOCK_SERVICES_ENABLED !== 'true' && process.env.NODE_ENV !== 'development' && process.env.DEMO_ENVIRONMENT !== 'true') {
+      const { createClient } = require('@/lib/supabase/server');
+      const supabase = await createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || user.id !== session.patientId) {
+        return NextResponse.json({ error: 'Unauthorized access to session' }, { status: 403 });
+      }
+    }
+
+
+    
+
     if (!session || session.status !== 'active' || isSessionExpired(session)) {
       return NextResponse.json({ success: false, error: 'Invalid or expired session.' }, { status: 403 });
     }
@@ -27,6 +45,7 @@ export async function POST(
     const document = await db.getDocument(documentId);
     if (!document || document.sessionId !== sessionId) {
       return NextResponse.json({ success: false, error: 'Document not found or access denied.' }, { status: 404 });
+
     }
 
     // 3. Check for existing completed OCR (unless retrying)
@@ -116,10 +135,18 @@ export async function POST(
     });
 
     return NextResponse.json({ success: true, ocr: savedResult });
-  } catch {
-    console.error('Error starting OCR process:', error);
+  } catch (error) {
+    const err = error as Error;
+    const failedResp = await db.saveOcrResponse({
+      documentId: documentId || 'unknown',
+      rawText: '',
+      pages: [],
+      confidence: 'unknown',
+      status: 'failed',
+      error: err.message || 'Internal OCR error',
+    });
     return NextResponse.json(
-      { success: false, error: 'Internal server error during OCR.' },
+      { success: false, error: 'Internal server error during OCR.', ocr: failedResp },
       { status: 500 }
     );
   }

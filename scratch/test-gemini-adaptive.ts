@@ -17,41 +17,46 @@ async function runTest() {
     latestAnswer: {
       id: 'ans_1',
       questionId: 'chief_complaint',
-      rawValue: 'I have had severe stomach pain for 3 weeks and it gets worse when I eat.',
-      timestamp: new Date().toISOString()
-    },
+      sessionId: 'test_session',
+      rawValue: 'I have had severe stomach pain for 3 weeks and it gets worse when I eat.'
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any,
     structuredHistory: {},
     currentQuestion: {
       id: 'chief_complaint',
+      section: 'chief_complaint',
       question: { en: 'What brings you to the hospital today?' },
-      type: 'text',
       options: [],
       informationFields: ['chief_complaint']
-    },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any,
     previousAnswers: [],
     extractedFacts: [],
     questionBankContext: [
       {
         id: 'symptom_duration',
+        section: 'hpi',
         question: { en: 'How long have you had this pain?' },
-        type: 'text',
         options: [],
         informationFields: ['duration']
-      },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any,
       {
         id: 'pain_scale',
+        section: 'hpi',
         question: { en: 'On a scale of 1 to 10, how severe is it?' },
-        type: 'number',
         options: [],
         informationFields: ['severity']
-      },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any,
       {
         id: 'associated_symptoms',
+        section: 'hpi',
         question: { en: 'Do you have any other symptoms like fever or vomiting?' },
-        type: 'text',
         options: [],
         informationFields: ['associated_symptoms']
-      }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any
     ],
     allowedQuestionIds: [
       'symptom_duration',

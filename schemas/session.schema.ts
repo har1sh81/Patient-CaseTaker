@@ -8,8 +8,11 @@ export const IntakeSessionStatusSchema = z.enum([
   'identifying_patient',
   'awaiting_consent',
   'active',
-  'review',
-  'report_ready',
+  'report_ready', // Same as DRAFT_READY
+  'patient_review',
+  'patient_confirmed',
+  'sent_to_doctor',
+  'finalized',
   'printing',
   'completed',
   'cancelled',
@@ -45,4 +48,7 @@ export const IntakeSessionSchema = z.object({
     temporaryDataDeleted: z.boolean(),
     cleanedAt: z.string().optional(),
   }),
+
+  handoffSnapshotId: z.string().optional(),
+  handoffAt: z.string().optional(),
 });

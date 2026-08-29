@@ -22,6 +22,23 @@ export async function GET(req: NextRequest) {
 
   try {
     const session = await db.getSession(sessionId);
+
+    if (!session) {
+      return NextResponse.json({ error: 'Session not found' }, { status: 404 });
+    }
+    if (process.env.NEXT_PUBLIC_MOCK_SERVICES_ENABLED !== 'true' && process.env.NODE_ENV !== 'development' && process.env.DEMO_ENVIRONMENT !== 'true') {
+      const { createClient } = require('@/lib/supabase/server');
+      const supabase = await createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || user.id !== session.patientId) {
+        return NextResponse.json({ error: 'Unauthorized access to session' }, { status: 403 });
+      }
+    }
+
+
+    
+
+
     if (!session || session.status === 'completed' || session.status === 'cancelled' || session.status === 'expired') {
       return NextResponse.json({ success: false, error: 'Invalid or inactive session' }, { status: 403 });
     }
