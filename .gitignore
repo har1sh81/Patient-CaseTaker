@@ -48,3 +48,6 @@ next-env.d.ts
 
 # temporary scratch directory
 /scratch/
+
+# supabase local CLI state
+supabase/.temp/

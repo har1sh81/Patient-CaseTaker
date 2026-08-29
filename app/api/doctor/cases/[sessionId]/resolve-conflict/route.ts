@@ -43,9 +43,8 @@ export async function POST(
       await db.updateClinicalReport(sessionId, updatePayload);
     }
 
-    const { randomUUID } = require('crypto');
     await db.saveAuditLog({
-      id: `log_${randomUUID()}`,
+      id: `log_${crypto.randomUUID()}`,
       sessionId,
       action: 'conflict_resolved',
       timestamp: new Date().toISOString(),
