@@ -1,6 +1,14 @@
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
+export function isSupabaseConfigured(): boolean {
+  return (
+    !!process.env.NEXT_PUBLIC_SUPABASE_URL &&
+    !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY &&
+    process.env.NEXT_PUBLIC_SUPABASE_URL !== 'https://your-project.supabase.co'
+  );
+}
+
 export async function createClient() {
   let cookieStore: Awaited<ReturnType<typeof cookies>> | undefined;
   try {
@@ -9,15 +17,16 @@ export async function createClient() {
     // We are running outside Next.js request scope (e.g. in a CLI script)
   }
 
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
   // Use service role key to bypass RLS policies if present and it is a valid JWT
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const useAdminKey = !!serviceKey && !serviceKey.startsWith('sb_secret_') && serviceKey.includes('.');
   const supabaseKey = useAdminKey
     ? serviceKey!
-    : process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+    : (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-anon-key');
 
   return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    supabaseUrl,
     supabaseKey,
     {
       cookies: {
@@ -44,14 +53,15 @@ export async function createClient() {
 export async function createAdminClient() {
   // Uses the service role key to bypass RLS for admin operations like Audit Logs.
   // Falls back to anon key if the service key is not a valid JWT.
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const useAdminKey = !!serviceKey && !serviceKey.startsWith('sb_secret_') && serviceKey.includes('.');
   const supabaseKey = useAdminKey
     ? serviceKey!
-    : process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+    : (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-anon-key');
 
   return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    supabaseUrl,
     supabaseKey,
     {
       cookies: {

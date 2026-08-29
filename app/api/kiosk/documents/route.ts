@@ -3,6 +3,7 @@ import { db } from '../../../../lib/supabase/db-service';
 import { storage } from '../../../../lib/supabase/storage';
 import { verifyUploadToken } from '../../../../lib/crypto/token';
 import { MedicalDocumentTypeSchema } from '../../../../schemas';
+import { createClient, isSupabaseConfigured } from '@/lib/supabase/server';
 
 export async function GET(req: NextRequest) {
   let sessionId = req.nextUrl.searchParams.get('sessionId');
@@ -26,8 +27,8 @@ export async function GET(req: NextRequest) {
     if (!session) {
       return NextResponse.json({ error: 'Session not found' }, { status: 404 });
     }
-    if (process.env.NEXT_PUBLIC_MOCK_SERVICES_ENABLED !== 'true' && process.env.NODE_ENV !== 'development' && process.env.DEMO_ENVIRONMENT !== 'true') {
-      const { createClient } = require('@/lib/supabase/server');
+
+    if (isSupabaseConfigured() && process.env.NEXT_PUBLIC_MOCK_SERVICES_ENABLED !== 'true' && process.env.NODE_ENV !== 'development' && process.env.DEMO_ENVIRONMENT !== 'true') {
       const supabase = await createClient();
       const { data: { user } } = await supabase.auth.getUser();
       if (!user || user.id !== session.patientId) {

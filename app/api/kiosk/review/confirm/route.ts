@@ -3,6 +3,7 @@ import { db } from '../../../../../lib/supabase/db-service';
 import { z } from 'zod';
 import { randomUUID } from 'crypto';
 import { ClinicalHistoryReport } from '../../../../../types';
+import { createClient, isSupabaseConfigured } from '@/lib/supabase/server';
 
 const ConfirmRequestSchema = z.object({
   sessionId: z.string(),
@@ -30,8 +31,7 @@ export async function POST(request: Request) {
 
     }
 
-    if (process.env.NEXT_PUBLIC_MOCK_SERVICES_ENABLED !== 'true' && process.env.NODE_ENV !== 'development' && process.env.DEMO_ENVIRONMENT !== 'true') {
-      const { createClient } = require('@/lib/supabase/server');
+    if (isSupabaseConfigured() && process.env.NEXT_PUBLIC_MOCK_SERVICES_ENABLED !== 'true' && process.env.NODE_ENV !== 'development' && process.env.DEMO_ENVIRONMENT !== 'true') {
       const supabase = await createClient();
       const { data: { user } } = await supabase.auth.getUser();
       if (!user || user.id !== session.patientId) {

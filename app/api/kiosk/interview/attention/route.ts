@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db, isSessionExpired } from '../../../../../lib/supabase/db-service';
 import { evaluateAttentionFlags } from '../../../../../lib/attention/evaluate';
+import { createClient, isSupabaseConfigured } from '@/lib/supabase/server';
 
 export async function POST(request: Request) {
   try {
@@ -16,8 +17,7 @@ export async function POST(request: Request) {
 
     }
 
-    if (process.env.NEXT_PUBLIC_MOCK_SERVICES_ENABLED !== 'true' && process.env.NODE_ENV !== 'development' && process.env.DEMO_ENVIRONMENT !== 'true') {
-      const { createClient } = require('@/lib/supabase/server');
+    if (isSupabaseConfigured() && process.env.NEXT_PUBLIC_MOCK_SERVICES_ENABLED !== 'true' && process.env.NODE_ENV !== 'development' && process.env.DEMO_ENVIRONMENT !== 'true') {
       const supabase = await createClient();
       const { data: { user } } = await supabase.auth.getUser();
       if (!user || user.id !== session.patientId) {
