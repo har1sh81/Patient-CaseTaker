@@ -59,7 +59,22 @@ export class MockRepository implements DatabaseService {
   }
 
   async getPatient(id: string): Promise<Patient | null> {
-    const data = this.patients.get(id);
+    let data = this.patients.get(id);
+    if (!data && (id.startsWith('pat_') || id.startsWith('ses_'))) {
+      const pId = id.startsWith('pat_') ? id : `pat_${id.substring(4)}`;
+      data = {
+        id: pId,
+        identification: {},
+        demographics: {
+          firstName: 'Kiosk',
+          fullName: 'Kiosk Patient',
+          age: 35,
+          gender: 'other',
+        },
+        createdAt: new Date().toISOString(),
+      };
+      this.patients.set(pId, data);
+    }
     if (!data) return null;
     return PatientSchema.parse({ ...data });
   }
@@ -110,7 +125,29 @@ export class MockRepository implements DatabaseService {
   }
 
   async getSession(id: string): Promise<IntakeSession | null> {
-    const data = this.sessions.get(id);
+    let data = this.sessions.get(id);
+    if (!data && id.startsWith('ses_')) {
+      const patientId = `pat_${id.substring(4)}`;
+      await this.getPatient(patientId);
+
+      data = {
+        id,
+        patientId,
+        status: 'active',
+        language: 'en',
+        departmentMode: 'standard',
+        startedAt: new Date().toISOString(),
+        expiresAt: new Date(Date.now() + 30 * 60000).toISOString(),
+        currentStep: 'documents',
+        progress: {
+          completedSections: ['consent', 'interview'],
+          pendingSections: ['documents', 'review'],
+          percentage: 40,
+        },
+        cleanupStatus: { temporaryDataDeleted: false },
+      };
+      this.sessions.set(id, data);
+    }
     if (!data) return null;
     return IntakeSessionSchema.parse({ ...data });
   }
@@ -122,7 +159,10 @@ export class MockRepository implements DatabaseService {
   }
 
   async updateSession(id: string, updates: Partial<IntakeSession>): Promise<IntakeSession> {
-    const existing = this.sessions.get(id);
+    let existing = this.sessions.get(id);
+    if (!existing) {
+      existing = (await this.getSession(id)) || undefined;
+    }
     if (!existing) throw new Error(`Session ${id} not found in mock store`);
     
     const merged = { ...existing, ...updates };
