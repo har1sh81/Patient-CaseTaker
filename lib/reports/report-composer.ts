@@ -6,6 +6,7 @@ import {
   SummaryMedicationItem,
   SummaryAllergyItem,
   SummaryLabItem,
+  SummarySocialHistory,
 } from '@/types/summary.types';
 import { IntakeSession, Patient, ConversationAnswer, AttentionFlag, DocumentExtractionResult } from '@/types';
 import { extractComplaintContext } from '@/lib/timeline/relevance-engine';
@@ -110,14 +111,51 @@ export function composeClinicalConsultationSummary(params: {
     });
   });
 
-  // 3. Information Not Reported
+  // 3. Extract family history
+  const familyHistory: string[] = [];
+  const familyHistAns = answers.find(a => a.questionId === 'family_history' || a.section === 'family_history');
+  if (familyHistAns) {
+    const rawFamily = String(familyHistAns.rawValue || familyHistAns.transcript || '');
+    if (rawFamily && !rawFamily.toLowerCase().includes('no') && rawFamily !== 'none') {
+      // Split by common delimiters
+      const items = rawFamily.split(/[,;]|\band\b/).map(s => s.trim()).filter(Boolean);
+      items.forEach(item => familyHistory.push(item));
+    }
+  }
+
+  // 4. Extract social history
+  const socialHistory: SummarySocialHistory = {};
+  const occupationAns = answers.find(a => a.questionId === 'occupation' || a.section === 'social_history');
+  const smokingAns = answers.find(a => a.questionId === 'smoking_status' || a.questionId === 'smoking');
+  const alcoholAns = answers.find(a => a.questionId === 'alcohol_use' || a.questionId === 'alcohol');
+  const exerciseAns = answers.find(a => a.questionId === 'exercise' || a.questionId === 'physical_activity');
+  const dietAns = answers.find(a => a.questionId === 'diet' || a.section === 'social_history');
+
+  if (occupationAns) socialHistory.occupation = String(occupationAns.rawValue || occupationAns.transcript);
+  if (smokingAns) socialHistory.smoking = String(smokingAns.rawValue || smokingAns.transcript);
+  if (alcoholAns) socialHistory.alcohol = String(alcoholAns.rawValue || alcoholAns.transcript);
+  if (exerciseAns) socialHistory.exercise = String(exerciseAns.rawValue || exerciseAns.transcript);
+  if (dietAns) socialHistory.diet = String(dietAns.rawValue || dietAns.transcript);
+
+  // 5. Extract review of systems from answers with review_of_systems section
+  const reviewOfSystems: Record<string, string> = {};
+  answers.filter(a => a.section === 'review_of_systems').forEach(ans => {
+    if (ans.rawValue || ans.transcript) {
+      reviewOfSystems[ans.questionId] = String(ans.rawValue || ans.transcript);
+    }
+  });
+
+  // 6. Information Not Reported
   const missingFields: string[] = [];
   if (!hpi.location) missingFields.push('Exact symptom anatomical location');
   if (!hpi.associatedSymptoms) missingFields.push('Associated systemic symptoms');
   if (relevantPreviousHistory.length === 0) missingFields.push('Prior hospital discharge summaries');
   if (medications.length === 0) missingFields.push('Daily prescription dosage list');
+  if (familyHistory.length === 0) missingFields.push('Family medical history');
+  if (Object.keys(socialHistory).length === 0) missingFields.push('Social history (smoking, alcohol, exercise, diet)');
+  if (allergies.length === 0) missingFields.push('Known drug/food allergies');
 
-  // 4. AYUSH Section
+  // 7. AYUSH Section
   let ayushSection;
   if (session.departmentMode === 'ayush') {
     const prakritiAns = answers.find(a => a.questionId === 'ayush_prakriti');
@@ -161,8 +199,10 @@ export function composeClinicalConsultationSummary(params: {
     medications,
     allergies,
     investigations: labResults,
-    familyHistory: [],
+    familyHistory,
     personalHistory: [],
+    socialHistory: Object.keys(socialHistory).length > 0 ? socialHistory : undefined,
+    reviewOfSystems: Object.keys(reviewOfSystems).length > 0 ? reviewOfSystems : undefined,
     informationNotReported: missingFields,
     medicalJourney: timelineEvents,
     uploadedDocuments: {
