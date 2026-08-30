@@ -26,7 +26,14 @@ export interface LocalNLPResult {
   primarySymptom?: string;
   duration?: string;
   severity?: string;
+  painScore?: number;
   location?: string;
+  character?: string;
+  progression?: string;
+  aggravatingFactors?: string;
+  relievingFactors?: string;
+  associatedSymptoms?: string;
+  previousTreatments?: string;
   negatedSymptoms: string[];
   activeSymptoms: string[];
   historicalConditions: string[];
@@ -96,6 +103,42 @@ const DURATION_PATTERNS = [
   /(\d+)\s*(weeks?|week|हफ़्ते|सप्ताह|வாரங்கள்|வாரம்)/i,
   /(\d+)\s*(months?|month|महीने|माह|மாதங்கள்|மாதம்)/i,
   /(\d+)\s*(years?|year|साल|वर्ष|ஆண்டுகள்|வருடம்)/i,
+];
+
+const LOCATION_PATTERNS = [
+  /upper stomach|epigastric|lower abdomen|chest|head|back|left arm|throat|right side|left side|stomach|belly/i,
+  /सीने|पेट|सिर|गर्दन|पीठ/i,
+  /மார்பு|வயிறு|தலை|கழுத்து|முதுகு/i,
+];
+
+const CHARACTER_PATTERNS = [
+  /burning|sharp|dull|throbbing|cramping|stabbing|pressure|tightness|aching|squeezing/i,
+  /जलन|तेज|मीठा|धड़कने वाला|मरोड़|दबाव/i,
+  /எரிச்சல்|கடுமையான|மந்தமான|துடிக்கும்|பிடிப்பு/i,
+];
+
+const PROGRESSION_PATTERNS = [
+  /getting worse|worsening|getting better|improving|staying the same|constant|intermittent|comes and goes/i,
+  /बढ़ रहा|सुधार|वैसा ही|लगातार|आता जाता/i,
+  /மோசமாகிறது|குணமாகிறது|மாற்றமில்லை|தொடர்ச்சியான/i,
+];
+
+const AGGRAVATING_PATTERNS = [
+  /after eating|after meals|with food|when bending|with movement|on exertion|when walking|after lying down/i,
+  /खाने के बाद|भोजन के बाद|चलने पर/i,
+  /சாப்பிட்ட பிறகு|உணவுக்கு பின்/i,
+];
+
+const RELIEVING_PATTERNS = [
+  /antacids|with rest|after resting|taking medicine|drinking water|lying down/i,
+  /एंटासिड|आराम करने पर/i,
+  /ஓய்வெடுத்த பிறகு/i,
+];
+
+const PREVIOUS_TREATMENT_PATTERNS = [
+  /took paracetamol|took antacid|home remedy|tried painkillers|visited clinic|consulted doctor/i,
+  /दवा ली|पेरासिटामोल ली/i,
+  /மருந்து எடுத்தேன்/i,
 ];
 
 export class LocalClinicalNLP {
@@ -199,15 +242,29 @@ export class LocalClinicalNLP {
       }
     }
 
-    // 4. Extract Severity
+    // 4. Extract Severity & Pain Score (1-10)
     let severity: string | undefined;
-    const severityMatch = text.match(/(\d+)\s*\/\s*10|severe|mild|moderate|गंभीर|हल्का|கடுமையான/i);
-    if (severityMatch) {
-      severity = severityMatch[0];
+    let painScore: number | undefined;
+    const numericMatch = text.match(/(\d{1,2})\s*(?:\/|\s*out of\s*)\s*10|scale\s*(?:of\s*)?(\d{1,2})|score\s*(\d{1,2})/i);
+    if (numericMatch) {
+      const valStr = numericMatch[1] || numericMatch[2] || numericMatch[3];
+      const parsed = parseInt(valStr, 10);
+      if (!isNaN(parsed) && parsed >= 1 && parsed <= 10) {
+        painScore = parsed;
+        severity = `${parsed}/10`;
+      }
+    }
+    if (!severity) {
+      const severityMatch = text.match(/severe|mild|moderate|गंभीर|हल्का|கடுமையான/i);
+      if (severityMatch) {
+        severity = severityMatch[0];
+      }
+    }
+    if (severity) {
       facts.push({
         entityType: 'severity',
-        rawText: severityMatch[0],
-        normalizedValue: severityMatch[0],
+        rawText: severity,
+        normalizedValue: severity,
         status: 'active',
         negated: false,
         temporalContext: 'current',
@@ -216,11 +273,87 @@ export class LocalClinicalNLP {
       });
     }
 
+    // 5. Extract Location
+    let location: string | undefined;
+    for (const pat of LOCATION_PATTERNS) {
+      const match = text.match(pat);
+      if (match) {
+        location = match[0];
+        facts.push({
+          entityType: 'location',
+          rawText: match[0],
+          normalizedValue: match[0],
+          status: 'active',
+          negated: false,
+          temporalContext: 'current',
+          confidence: 0.90,
+          language,
+        });
+        break;
+      }
+    }
+
+    // 6. Extract Character
+    let character: string | undefined;
+    for (const pat of CHARACTER_PATTERNS) {
+      const match = text.match(pat);
+      if (match) {
+        character = match[0];
+        break;
+      }
+    }
+
+    // 7. Extract Progression
+    let progression: string | undefined;
+    for (const pat of PROGRESSION_PATTERNS) {
+      const match = text.match(pat);
+      if (match) {
+        progression = match[0];
+        break;
+      }
+    }
+
+    // 8. Extract Aggravating & Relieving Factors
+    let aggravatingFactors: string | undefined;
+    for (const pat of AGGRAVATING_PATTERNS) {
+      const match = text.match(pat);
+      if (match) {
+        aggravatingFactors = match[0];
+        break;
+      }
+    }
+
+    let relievingFactors: string | undefined;
+    for (const pat of RELIEVING_PATTERNS) {
+      const match = text.match(pat);
+      if (match) {
+        relievingFactors = match[0];
+        break;
+      }
+    }
+
+    // 9. Extract Previous Treatments
+    let previousTreatments: string | undefined;
+    for (const pat of PREVIOUS_TREATMENT_PATTERNS) {
+      const match = text.match(pat);
+      if (match) {
+        previousTreatments = match[0];
+        break;
+      }
+    }
+
     return {
       facts,
       primarySymptom: activeSymptoms[0],
       duration,
       severity,
+      painScore,
+      location,
+      character,
+      progression,
+      aggravatingFactors,
+      relievingFactors,
+      previousTreatments,
       negatedSymptoms,
       activeSymptoms,
       historicalConditions,

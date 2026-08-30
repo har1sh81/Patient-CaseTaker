@@ -159,7 +159,35 @@ export const QuestionRenderer: React.FC<QuestionRendererProps> = ({
         </div>
       )}
 
-      {question.inputType === 'number' && (
+      {question.id === 'pain_scale' ? (
+        <div className="flex flex-col items-center gap-6 w-full max-w-xl mx-auto">
+          <div className="grid grid-cols-5 gap-3 w-full sm:grid-cols-10">
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
+              <button
+                key={num}
+                type="button"
+                onClick={() => {
+                  setTouchValue(num);
+                  handleTouchSubmit(num);
+                }}
+                disabled={disabled}
+                className={`h-14 rounded-xl font-black text-lg transition-all active:scale-95 cursor-pointer shadow-sm border ${
+                  touchValue === num
+                    ? 'bg-primary text-white border-primary ring-4 ring-primary/20 scale-105'
+                    : 'bg-white text-secondary border-border-light hover:border-primary hover:bg-surface-muted'
+                }`}
+              >
+                {num}
+              </button>
+            ))}
+          </div>
+          <div className="flex justify-between w-full text-xs font-bold text-text-secondary px-1">
+            <span>1 — Very Mild</span>
+            <span>5 — Moderate</span>
+            <span>10 — Worst Pain</span>
+          </div>
+        </div>
+      ) : question.inputType === 'number' ? (
         <div className="w-full max-w-sm mx-auto">
           <NumericInput
             value={touchValue as number}
@@ -168,7 +196,7 @@ export const QuestionRenderer: React.FC<QuestionRendererProps> = ({
             disabled={disabled}
           />
         </div>
-      )}
+      ) : null}
 
       {question.inputType === 'text' && (
         <TextInputKiosk

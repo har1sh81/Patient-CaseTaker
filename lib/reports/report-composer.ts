@@ -40,11 +40,17 @@ export function composeClinicalConsultationSummary(params: {
   const durationAns = answers.find(a => a.questionId === 'symptom_duration');
   const progressionAns = answers.find(a => a.questionId === 'symptom_progression');
   const locationAns = answers.find(a => a.questionId === 'pain_location');
-  const assocAns = answers.find(a => a.questionId === 'associated_symptoms');
+  const characterAns = answers.find(a => a.questionId === 'symptom_character');
+  const aggRelAns = answers.find(a => a.questionId === 'aggravating_relieving' || a.questionId === 'stomach_pain_triggers');
+  const prevTreatAns = answers.find(a => a.questionId === 'previous_treatments');
+  const assocAns = answers.find(a => a.questionId === 'associated_symptoms' || a.questionId === 'gi_red_flags');
 
   const hpi: SummaryHPI = {
     duration: durationAns ? String(durationAns.rawValue || durationAns.transcript) : duration,
     location: locationAns ? String(locationAns.rawValue || locationAns.transcript) : undefined,
+    character: characterAns ? String(characterAns.rawValue || characterAns.transcript) : undefined,
+    aggravatingRelieving: aggRelAns ? String(aggRelAns.rawValue || aggRelAns.transcript) : undefined,
+    previousTreatments: prevTreatAns ? String(prevTreatAns.rawValue || prevTreatAns.transcript) : undefined,
     associatedSymptoms: assocAns ? String(assocAns.rawValue || assocAns.transcript) : undefined,
     progression: progressionAns ? String(progressionAns.rawValue || progressionAns.transcript) : undefined,
   };

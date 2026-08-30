@@ -36,6 +36,72 @@ function evaluateCondition(condition: { fieldId: string; operator: string; value
 /**
  * Determines the next valid question ID based on current question's rules and provided answers.
  */
+export interface CurrentProblemDomainStatus {
+  domain: string;
+  status: 'COMPLETE' | 'PARTIAL' | 'MISSING';
+  value?: string;
+}
+
+export function evalCurrentProblemDomains(
+  answers: Record<string, ConversationAnswer>
+): Record<string, CurrentProblemDomainStatus> {
+  const combinedText = Object.values(answers)
+    .map(a => String(a.transcript || a.rawValue || a.normalizedValue || ''))
+    .join(' ');
+  const nlpResult = LocalClinicalNLP.extractFacts(combinedText, 'en');
+
+  return {
+    chief_complaint: {
+      domain: 'chief_complaint',
+      status: (answers['reason_for_visit'] || nlpResult.primarySymptom) ? 'COMPLETE' : 'MISSING',
+      value: nlpResult.primarySymptom || (answers['reason_for_visit']?.rawValue as string),
+    },
+    onset_duration: {
+      domain: 'onset_duration',
+      status: (answers['symptom_duration'] || nlpResult.duration) ? 'COMPLETE' : 'MISSING',
+      value: nlpResult.duration || (answers['symptom_duration']?.rawValue as string),
+    },
+    location: {
+      domain: 'location',
+      status: (answers['pain_location'] || nlpResult.location) ? 'COMPLETE' : 'MISSING',
+      value: nlpResult.location || (answers['pain_location']?.rawValue as string),
+    },
+    character_quality: {
+      domain: 'character_quality',
+      status: (answers['symptom_character'] || nlpResult.character) ? 'COMPLETE' : 'MISSING',
+      value: nlpResult.character || (answers['symptom_character']?.rawValue as string),
+    },
+    severity: {
+      domain: 'severity',
+      status: (answers['pain_scale'] || nlpResult.painScore || nlpResult.severity) ? 'COMPLETE' : 'MISSING',
+      value: nlpResult.painScore ? `${nlpResult.painScore}/10` : (nlpResult.severity || (answers['pain_scale']?.rawValue as string)),
+    },
+    progression: {
+      domain: 'progression',
+      status: (answers['symptom_progression'] || nlpResult.progression) ? 'COMPLETE' : 'MISSING',
+      value: nlpResult.progression || (answers['symptom_progression']?.rawValue as string),
+    },
+    aggravating_relieving: {
+      domain: 'aggravating_relieving',
+      status: (answers['aggravating_relieving'] || answers['stomach_pain_triggers'] || nlpResult.aggravatingFactors || nlpResult.relievingFactors) ? 'COMPLETE' : 'MISSING',
+      value: nlpResult.aggravatingFactors || nlpResult.relievingFactors || (answers['aggravating_relieving']?.rawValue as string) || (answers['stomach_pain_triggers']?.rawValue as string),
+    },
+    associated_symptoms: {
+      domain: 'associated_symptoms',
+      status: (answers['associated_symptoms'] || answers['gi_red_flags'] || answers['cardiac_radiation_check'] || nlpResult.associatedSymptoms || nlpResult.negatedSymptoms.length > 0) ? 'COMPLETE' : 'MISSING',
+      value: (answers['associated_symptoms']?.rawValue as string) || (answers['gi_red_flags']?.rawValue as string) || (nlpResult.negatedSymptoms.length ? `No ${nlpResult.negatedSymptoms.join(', ')}` : undefined),
+    },
+    previous_treatments: {
+      domain: 'previous_treatments',
+      status: (answers['previous_treatments'] || nlpResult.previousTreatments) ? 'COMPLETE' : 'MISSING',
+      value: nlpResult.previousTreatments || (answers['previous_treatments']?.rawValue as string),
+    },
+  };
+}
+
+/**
+ * Determines the next valid question ID based on current question's rules and 9-domain coverage.
+ */
 export function getNextQuestion(
   currentQuestionId: string,
   answers: Record<string, ConversationAnswer>,
@@ -59,44 +125,41 @@ export function getNextQuestion(
     }
   }
 
-  // 2. Dynamic Adaptive Progress & Fact-Aware Question Skipping
-  const combinedText = Object.values(answers)
-    .map(a => String(a.transcript || a.rawValue || a.normalizedValue || ''))
-    .join(' ');
-  const nlpResult = LocalClinicalNLP.extractFacts(combinedText, 'en');
+  // 2. Evaluate 9 Current-Problem Domains
+  const domains = evalCurrentProblemDomains(answers);
 
-  // Dynamic Symptom-Specific Clinical Differential Routing
-  const lowerCombined = combinedText.toLowerCase();
-  const isStomachPain = lowerCombined.includes('stomach') || lowerCombined.includes('epigastric') || lowerCombined.includes('belly') || lowerCombined.includes('abdominal');
-  const isChestPain = lowerCombined.includes('chest pain') || lowerCombined.includes('angina') || lowerCombined.includes('chest pressure');
-
-  if (isStomachPain) {
-    if (!answers['stomach_pain_triggers']) {
-      const q = questions.find(item => item.id === 'stomach_pain_triggers');
-      if (q) return q;
-    }
-    if (!answers['gi_red_flags']) {
-      const q = questions.find(item => item.id === 'gi_red_flags');
-      if (q) return q;
-    }
-  }
-
-  if (isChestPain && !answers['cardiac_radiation_check']) {
-    const q = questions.find(item => item.id === 'cardiac_radiation_check');
-    if (q) return q;
-  }
+  const questionDomainMap: Record<string, string> = {
+    reason_for_visit: 'chief_complaint',
+    symptom_duration: 'onset_duration',
+    pain_location: 'location',
+    symptom_character: 'character_quality',
+    pain_scale: 'severity',
+    safety_check: 'severity',
+    symptom_progression: 'progression',
+    aggravating_relieving: 'aggravating_relieving',
+    associated_symptoms: 'associated_symptoms',
+    previous_treatments: 'previous_treatments',
+  };
 
   let nextIdx = currentIndex + 1;
   while (nextIdx < questions.length) {
     const candidateQ = questions[nextIdx];
-    const fields = candidateQ.informationFields || [];
+    const targetDomain = questionDomainMap[candidateQ.id];
 
-    const isDurationAnswered = fields.includes('duration') && (nlpResult.duration || Boolean(answers['symptom_duration']));
-    const isSeverityAnswered = fields.includes('severity') && (nlpResult.severity || Boolean(answers['symptom_severity']) || Boolean(answers['pain_scale']));
-    const isPainLocationAnswered = fields.includes('pain_location') && (nlpResult.location || Boolean(answers['pain_location']));
+    // Priority Rule: Do NOT move to past medical history or medications until all Current-Problem domains are covered
+    const isHistoryOrMedication = candidateQ.section === 'past_medical_history' || candidateQ.section === 'medications';
+    if (isHistoryOrMedication) {
+      const missingCurrentProbQ = questions.find(q => {
+        const dKey = questionDomainMap[q.id];
+        return dKey && domains[dKey]?.status === 'MISSING' && !answers[q.id];
+      });
+      if (missingCurrentProbQ) {
+        return missingCurrentProbQ;
+      }
+    }
 
-    // If candidate question asks for duration, severity, or location that was ALREADY spoken/extracted, skip it!
-    if (isDurationAnswered || isSeverityAnswered || isPainLocationAnswered) {
+    // Skip candidate question if its domain is ALREADY COMPLETE and answered or extracted
+    if (targetDomain && domains[targetDomain]?.status === 'COMPLETE' && (answers[candidateQ.id] || candidateQ.required === false)) {
       nextIdx++;
       continue;
     }

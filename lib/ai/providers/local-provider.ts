@@ -21,19 +21,41 @@ export class LocalProvider implements AIProvider {
       confidence: f.confidence > 0.8 ? ('high' as const) : ('medium' as const),
     }));
 
-    // 3. Determine Next Question ID dynamically by checking already extracted facts
-    const askedIds = new Set(((request as any).answersHistory || (request as any).previousAnswers || []).map((a: any) => a.questionId));
+    // 3. Determine Next Question ID dynamically across 9 current-problem domains
+    const answersMap: Record<string, any> = {};
+    const prevAnswers = ((request as any).answersHistory || (request as any).previousAnswers || []);
+    prevAnswers.forEach((a: any) => {
+      answersMap[a.questionId] = a;
+    });
+
+    const askedIds = new Set(prevAnswers.map((a: any) => a.questionId));
     let nextQuestionId: string | undefined;
 
+    const hasLocation = Boolean(nlpResult.location) || askedIds.has('pain_location');
+    const hasCharacter = Boolean(nlpResult.character) || askedIds.has('symptom_character');
     const hasDuration = Boolean(nlpResult.duration) || askedIds.has('symptom_duration');
-    const hasSeverity = Boolean(nlpResult.severity) || askedIds.has('symptom_severity') || askedIds.has('pain_scale');
+    const hasSeverity = Boolean(nlpResult.painScore) || Boolean(nlpResult.severity) || askedIds.has('pain_scale');
+    const hasProgression = Boolean(nlpResult.progression) || askedIds.has('symptom_progression');
+    const hasAggRel = Boolean(nlpResult.aggravatingFactors) || Boolean(nlpResult.relievingFactors) || askedIds.has('aggravating_relieving');
+    const hasAssoc = Boolean(nlpResult.associatedSymptoms) || askedIds.has('associated_symptoms');
+    const hasPrevTreat = Boolean(nlpResult.previousTreatments) || askedIds.has('previous_treatments');
 
     if (!hasDuration) {
       nextQuestionId = 'symptom_duration';
+    } else if (!hasLocation) {
+      nextQuestionId = 'pain_location';
+    } else if (!hasCharacter) {
+      nextQuestionId = 'symptom_character';
     } else if (!hasSeverity) {
-      nextQuestionId = 'symptom_severity';
-    } else if (!askedIds.has('symptom_progression')) {
+      nextQuestionId = 'pain_scale';
+    } else if (!hasProgression) {
       nextQuestionId = 'symptom_progression';
+    } else if (!hasAggRel) {
+      nextQuestionId = 'aggravating_relieving';
+    } else if (!hasAssoc) {
+      nextQuestionId = 'associated_symptoms';
+    } else if (!hasPrevTreat) {
+      nextQuestionId = 'previous_treatments';
     } else if (!askedIds.has('past_medical_history')) {
       nextQuestionId = 'past_medical_history';
     } else if (!askedIds.has('current_medications')) {

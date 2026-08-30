@@ -28,6 +28,8 @@ export const SummaryHPISchema = z.object({
   duration: z.string().optional(),
   aggravatingFactors: z.string().optional(),
   relievingFactors: z.string().optional(),
+  aggravatingRelieving: z.string().optional(),
+  previousTreatments: z.string().optional(),
   associatedSymptoms: z.string().optional(),
   progression: z.string().optional(),
 });
