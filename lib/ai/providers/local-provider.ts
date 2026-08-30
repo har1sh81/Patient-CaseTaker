@@ -5,14 +5,20 @@ import { composeClinicalConsultationSummary } from '../../reports/report-compose
 
 export class LocalProvider implements AIProvider {
   async analyzeAnswer(request: AdaptiveQuestionRequest): Promise<AdaptiveQuestionResponse> {
-    const text = typeof request.latestAnswer?.rawValue === 'string'
+    const prevAnswers = ((request as any).answersHistory || (request as any).previousAnswers || []);
+    const latestText = typeof request.latestAnswer?.rawValue === 'string'
       ? request.latestAnswer.rawValue
       : String(request.latestAnswer?.transcript || '');
 
+    const combinedText = [
+      ...prevAnswers.map((a: any) => String(a.transcript || a.rawValue || a.normalizedValue || '')),
+      latestText
+    ].filter(Boolean).join(' ');
+
     const lang = request.language === 'hi' ? 'hi' : request.language === 'ta' ? 'ta' : 'en';
 
-    // 1. Run Local Clinical NLP
-    const nlpResult = LocalClinicalNLP.extractFacts(text, lang);
+    // 1. Run Local Clinical NLP over all combined text
+    const nlpResult = LocalClinicalNLP.extractFacts(combinedText, lang);
 
     // 2. Map facts
     const extractedFacts = nlpResult.facts.map(f => ({
@@ -23,12 +29,14 @@ export class LocalProvider implements AIProvider {
 
     // 3. Determine Next Question ID dynamically across 9 current-problem domains
     const answersMap: Record<string, any> = {};
-    const prevAnswers = ((request as any).answersHistory || (request as any).previousAnswers || []);
     prevAnswers.forEach((a: any) => {
       answersMap[a.questionId] = a;
     });
+    if (request.latestAnswer?.questionId) {
+      answersMap[request.latestAnswer.questionId] = request.latestAnswer;
+    }
 
-    const askedIds = new Set(prevAnswers.map((a: any) => a.questionId));
+    const askedIds = new Set(Object.keys(answersMap));
     let nextQuestionId: string | undefined;
 
     const hasLocation = Boolean(nlpResult.location) || askedIds.has('pain_location');
