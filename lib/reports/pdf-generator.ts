@@ -94,7 +94,7 @@ export async function generateClinicalSummaryPDFBuffer(summary: ClinicalConsulta
     color: rgb(0.15, 0.2, 0.3),
   });
 
-  page.drawText(`Patient Name: ${summary.patient.fullName}`, {
+  page.drawText(cleanText(`Patient Name: ${summary.patient.fullName}`), {
     x: margin + 10,
     y: y - 32,
     size: 10,
@@ -102,7 +102,7 @@ export async function generateClinicalSummaryPDFBuffer(summary: ClinicalConsulta
     color: rgb(0.1, 0.1, 0.1),
   });
 
-  page.drawText(`Age / Gender: ${summary.patient.age || 'N/A'} yrs / ${summary.patient.gender || 'N/A'}`, {
+  page.drawText(cleanText(`Age / Gender: ${summary.patient.age || 'N/A'} yrs / ${summary.patient.gender || 'N/A'}`), {
     x: margin + 260,
     y: y - 32,
     size: 9,
@@ -110,7 +110,7 @@ export async function generateClinicalSummaryPDFBuffer(summary: ClinicalConsulta
     color: rgb(0.2, 0.2, 0.2),
   });
 
-  page.drawText(`Hospital ID: ${summary.patient.hospitalNumber}`, {
+  page.drawText(cleanText(`Hospital ID: ${summary.patient.hospitalNumber}`), {
     x: margin + 10,
     y: y - 48,
     size: 9,
@@ -118,7 +118,7 @@ export async function generateClinicalSummaryPDFBuffer(summary: ClinicalConsulta
     color: rgb(0.2, 0.2, 0.2),
   });
 
-  page.drawText(`ABHA Ref: ${summary.patient.abhaReference}`, {
+  page.drawText(cleanText(`ABHA Ref: ${summary.patient.abhaReference}`), {
     x: margin + 180,
     y: y - 48,
     size: 9,
@@ -126,7 +126,7 @@ export async function generateClinicalSummaryPDFBuffer(summary: ClinicalConsulta
     color: rgb(0.2, 0.2, 0.2),
   });
 
-  page.drawText(`Intake Date: ${summary.visit.generatedDate}`, {
+  page.drawText(cleanText(`Intake Date: ${summary.visit.generatedDate}`), {
     x: margin + 350,
     y: y - 48,
     size: 9,
@@ -162,14 +162,14 @@ export async function generateClinicalSummaryPDFBuffer(summary: ClinicalConsulta
   });
   y -= 26;
 
-  page.drawText(`Primary Complaint: ${summary.chiefComplaint.primaryComplaint}`, {
+  page.drawText(cleanText(`Primary Complaint: ${summary.chiefComplaint.primaryComplaint}`), {
     x: margin,
     y: y - 10,
     size: 10,
     font: fontBold,
     color: rgb(0, 0, 0),
   });
-  page.drawText(`Duration: ${summary.chiefComplaint.duration || 'Not reported'}`, {
+  page.drawText(cleanText(`Duration: ${summary.chiefComplaint.duration || 'Not reported'}`), {
     x: margin + 300,
     y: y - 10,
     size: 9,
@@ -179,7 +179,7 @@ export async function generateClinicalSummaryPDFBuffer(summary: ClinicalConsulta
   y -= 20;
 
   if (summary.chiefComplaint.patientWords) {
-    page.drawText(`Patient's Own Words: "${summary.chiefComplaint.patientWords}"`, {
+    page.drawText(cleanText(`Patient's Own Words: "${summary.chiefComplaint.patientWords}"`), {
       x: margin,
       y: y - 10,
       size: 9,
@@ -190,7 +190,7 @@ export async function generateClinicalSummaryPDFBuffer(summary: ClinicalConsulta
   }
 
   if (summary.hpi.associatedSymptoms) {
-    page.drawText(`Associated Symptoms: ${summary.hpi.associatedSymptoms}`, {
+    page.drawText(cleanText(`Associated Symptoms: ${summary.hpi.associatedSymptoms}`), {
       x: margin,
       y: y - 10,
       size: 9,
