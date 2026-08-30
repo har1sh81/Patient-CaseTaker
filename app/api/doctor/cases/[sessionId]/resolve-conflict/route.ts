@@ -8,7 +8,9 @@ export async function POST(
   context: { params: Promise<{ sessionId: string }> }
 ) {
   try {
-    const isMockOrDemo = process.env.NEXT_PUBLIC_MOCK_SERVICES_ENABLED === 'true' || process.env.DEMO_ENVIRONMENT === 'true';
+    const cookieStore = await cookies();
+    const isDemoCookie = cookieStore.get('demo_doctor_session')?.value === 'true';
+    const isMockOrDemo = isDemoCookie || process.env.NEXT_PUBLIC_MOCK_SERVICES_ENABLED === 'true' || process.env.DEMO_ENVIRONMENT === 'true';
     let userId = 'demo-doctor';
     if (!isMockOrDemo) {
       const supabase = await createClient();
