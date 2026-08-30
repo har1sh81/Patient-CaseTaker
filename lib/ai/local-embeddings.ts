@@ -1,7 +1,10 @@
 /**
- * Local Embeddings & Vector Search Engine
- * Generates 384-dimensional dense vector embeddings 100% locally.
- * Integrates with Supabase pgvector for complaint-focused RAG retrieval.
+ * Local Deterministic Feature Hashing Vectorizer
+ * 
+ * CLASSIFICATION: N-Gram Hashing & BM25 Frequency Vectorizer (NOT Neural Semantic Embedding Model).
+ * 
+ * Note: Produces 384-dimensional sparse-dense feature vectors via hashing.
+ * For true semantic representation, integrate a local ONNX Transformer model (e.g. all-MiniLM-L6-v2 via @xenova/transformers).
  */
 
 export class LocalEmbeddingsEngine {

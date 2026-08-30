@@ -4,7 +4,7 @@ import { GeminiProvider } from './providers/gemini-provider';
 import { LocalProvider } from './providers/local-provider';
 
 export function getAIProvider(): AIProvider {
-  const providerType = process.env.AI_PROVIDER || (process.env.NEXT_PUBLIC_MOCK_SERVICES_ENABLED === 'true' ? 'mock' : 'gemini');
+  const providerType = (process.env.AI_PROVIDER || 'gemini').toLowerCase();
 
   if (providerType === 'local') {
     return new LocalProvider();
@@ -14,11 +14,14 @@ export function getAIProvider(): AIProvider {
     return new MockProvider();
   }
 
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    console.warn('GEMINI_API_KEY is not set. Falling back to LocalProvider.');
-    return new LocalProvider();
+  if (providerType === 'gemini') {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      console.warn('[AI Provider Factory] AI_PROVIDER=gemini configured but GEMINI_API_KEY is missing. Using MockProvider for fallback.');
+      return new MockProvider();
+    }
+    return new GeminiProvider(apiKey, process.env.GEMINI_MODEL || 'gemini-3.6-flash');
   }
 
-  return new GeminiProvider(apiKey, process.env.GEMINI_MODEL || 'gemini-3.6-flash');
+  throw new Error(`Invalid AI_PROVIDER configuration: "${providerType}". Supported values: "local", "gemini", "mock".`);
 }

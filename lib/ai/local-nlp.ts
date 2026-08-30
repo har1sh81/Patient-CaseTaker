@@ -1,7 +1,14 @@
 /**
- * Local Clinical NLP Engine
- * Supports English, Hindi, and Tamil entity extraction, negation detection, and temporal parsing.
- * 100% Provider-Independent & Cloud-Free.
+ * Local Clinical Rule-Based Lexicon Parser
+ * 
+ * CLASSIFICATION: Rule-Based / Pattern-Matching NLP Engine (NOT Transformer/Statistical ML).
+ * 
+ * Capabilities:
+ * - Multilingual keyword & regex pattern extraction (EN, HI, TA)
+ * - Window-based negation detection (within 25 chars of symptom)
+ * - Temporal duration normalization
+ * 
+ * Note: Designed for rapid, zero-dependency offline prototyping.
  */
 
 export interface ExtractedClinicalFact {
