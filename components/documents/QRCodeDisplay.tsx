@@ -95,7 +95,7 @@ export function QRCodeDisplay({ sessionId }: QRCodeDisplayProps) {
           </div>
         ) : token ? (
           <QRCodeSVG 
-            value={`${window.location.origin}/upload?token=${token}`}
+            value={`${process.env.NEXT_PUBLIC_APP_URL || (typeof window !== 'undefined' ? window.location.origin : '')}/upload?token=${token}`}
             size={200}
             level="H"
             includeMargin={true}
