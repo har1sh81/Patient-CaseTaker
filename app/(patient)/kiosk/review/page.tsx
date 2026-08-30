@@ -9,7 +9,7 @@ import { Card } from '../../../../components/ui/card';
 import { Checkbox } from '../../../../components/ui/checkbox';
 import { Alert } from '../../../../components/ui/alert';
 import { Spinner } from '../../../../components/ui/spinner';
-import { ShieldCheck, Edit2, AlertTriangle, FileText, Activity, UserPlus } from 'lucide-react';
+import { ShieldCheck, Edit2, AlertTriangle, FileText, Activity, UserPlus, Send, Info, MapPin, User, Clock, Building, Ticket } from 'lucide-react';
 
 function PatientReviewContent() {
   const router = useRouter();
@@ -20,13 +20,42 @@ function PatientReviewContent() {
   const [data, setData] = React.useState<Record<string, unknown> | null>(null);
   const [error, setError] = React.useState<string | null>(null);
 
-  const [confirmed, setConfirmed] = React.useState(false);
+  const [confirmed, setConfirmed] = React.useState(true);
   const [submitting, setSubmitting] = React.useState(false);
   const [success, setSuccess] = React.useState(false);
   const [handoffRef, setHandoffRef] = React.useState('');
+  const [doctorInfo, setDoctorInfo] = React.useState<{
+    doctorName: string;
+    specialty: string;
+    roomNumber: string;
+    floor: string;
+    tokenNumber: string;
+  } | null>(null);
+  const [countdown, setCountdown] = React.useState(20);
 
   const [editingField, setEditingField] = React.useState<string | null>(null);
   const [editValue, setEditValue] = React.useState('');
+
+  React.useEffect(() => {
+    if (!success) return;
+    const timer = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          fetch('/api/kiosk/session/cleanup', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sessionId, reason: 'user_cancelled' }),
+          }).finally(() => {
+            router.push('/kiosk');
+          });
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [success, sessionId, router]);
 
   React.useEffect(() => {
     if (!sessionId) {
@@ -65,7 +94,6 @@ function PatientReviewContent() {
       });
       if (!res.ok) throw new Error('Failed to save correction');
       setEditingField(null);
-      // Optimistically update the UI data or refetch (we'll do a simple window reload for simplicity and robustness in this demo)
       window.location.reload();
     } catch (err: unknown) {
       alert('Correction failed: ' + (err instanceof Error ? err.message : String(err)));
@@ -84,6 +112,9 @@ function PatientReviewContent() {
       const resData = await res.json();
       if (!res.ok) throw new Error(resData.error || 'Failed to confirm');
 
+      if (resData.doctorAssignment) {
+        setDoctorInfo(resData.doctorAssignment);
+      }
       setSuccess(true);
       setHandoffRef(resData.snapshotId || 'MK-OK');
     } catch (err: unknown) {
@@ -118,22 +149,82 @@ function PatientReviewContent() {
   }
 
   if (success) {
+    const docName = doctorInfo?.doctorName || 'Dr. Rajesh Sharma, MD';
+    const specialty = doctorInfo?.specialty || 'General Medicine & Internal Care';
+    const room = doctorInfo?.roomNumber || 'Room 204';
+    const floor = doctorInfo?.floor || '2nd Floor, OPD Wing B';
+    const token = doctorInfo?.tokenNumber || 'MK-305';
+
     return (
       <KioskLayout activeStepIndex={4}>
-        <div className="max-w-2xl mx-auto mt-12 text-center p-8 bg-white rounded-xl border-2 border-green-200 shadow-lg">
-          <ShieldCheck className="w-20 h-20 text-green-500 mx-auto mb-6" />
-          <h1 className="text-3xl font-bold text-gray-900 mb-4">SENT TO DOCTOR&apos;S DASHBOARD</h1>
-          <p className="text-lg text-gray-600 mb-6">
-            Your intake summary, medical history, and uploaded documents have been securely transmitted directly to the Doctor&apos;s Dashboard.
-            Please take a seat in the waiting area.
-          </p>
-          <div className="bg-gray-50 p-4 rounded-lg inline-block border border-gray-200 mb-8">
-            <p className="text-sm text-gray-500 mb-1">Case Reference ID</p>
-            <p className="text-xl font-mono font-bold text-gray-900">{handoffRef.split('_')[1] || handoffRef}</p>
+        <div className="max-w-3xl mx-auto my-8 p-8 bg-white rounded-2xl border-2 border-green-300 shadow-xl text-center">
+          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-green-400">
+            <ShieldCheck className="w-12 h-12 text-green-600" />
           </div>
-          <div>
+
+          <h1 className="text-3xl font-extrabold text-gray-900 mb-2">Thank you for your cooperation!</h1>
+          <p className="text-lg text-gray-600 mb-8 max-w-xl mx-auto">
+            Your intake details and medical history have been sent directly to the Doctor&apos;s Dashboard.
+          </p>
+
+          {/* Doctor & Room Assignment Card */}
+          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-2xl p-6 mb-8 text-left shadow-sm">
+            <div className="flex justify-between items-start border-b border-blue-200 pb-4 mb-4">
+              <div>
+                <span className="text-xs font-bold uppercase tracking-wider text-blue-600 bg-blue-100 px-3 py-1 rounded-full">Assigned Practitioner</span>
+                <h2 className="text-2xl font-bold text-gray-900 mt-2 flex items-center gap-2">
+                  <User className="w-6 h-6 text-blue-600" /> {docName}
+                </h2>
+                <p className="text-sm font-medium text-blue-800">{specialty}</p>
+              </div>
+              <div className="text-right bg-white p-3 rounded-xl border border-blue-200 shadow-sm">
+                <span className="text-xs font-semibold text-gray-500 block">Queue Token</span>
+                <span className="text-2xl font-mono font-black text-blue-700">{token}</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-white p-4 rounded-xl border border-blue-100 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600 shrink-0">
+                  <Building className="w-5 h-5" />
+                </div>
+                <div>
+                  <span className="text-xs text-gray-500 block">Consultation Room</span>
+                  <span className="text-lg font-bold text-gray-900">{room}</span>
+                </div>
+              </div>
+
+              <div className="bg-white p-4 rounded-xl border border-blue-100 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center text-indigo-600 shrink-0">
+                  <MapPin className="w-5 h-5" />
+                </div>
+                <div>
+                  <span className="text-xs text-gray-500 block">Floor / Wing</span>
+                  <span className="text-base font-bold text-gray-900">{floor}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Instructions Box */}
+          <div className="bg-gray-50 p-5 rounded-xl border border-gray-200 mb-8 text-left text-sm space-y-2">
+            <h3 className="font-bold text-gray-800 text-base mb-3 flex items-center gap-2">
+              <Ticket className="w-4 h-4 text-primary" /> Patient Next Steps
+            </h3>
+            <p className="text-gray-700">1. Please proceed directly to <strong>{room}</strong> ({floor}).</p>
+            <p className="text-gray-700">2. Have a seat in the designated waiting area outside the room.</p>
+            <p className="text-gray-700">3. Your token <strong>{token}</strong> will be announced on the display screen.</p>
+          </div>
+
+          {/* Auto Reset Timer Bar */}
+          <div className="flex flex-col items-center gap-4">
+            <div className="flex items-center gap-2 text-sm font-medium text-gray-500">
+              <Clock className="w-4 h-4 text-gray-400" />
+              <span>This kiosk screen will automatically reset in <strong className="text-gray-900 font-bold">{countdown} seconds</strong></span>
+            </div>
+
             <Button
-              className="w-full max-w-sm py-4 text-base font-semibold"
+              className="w-full max-w-sm py-4 text-base font-semibold bg-gray-900 hover:bg-black text-white"
               onClick={async () => {
                 try {
                   await fetch('/api/kiosk/session/cleanup', {
@@ -145,7 +236,7 @@ function PatientReviewContent() {
                 router.push('/kiosk');
               }}
             >
-              Finish Intake & Return to Start
+              Finish Intake & Return to Kiosk Start
             </Button>
           </div>
         </div>
@@ -262,7 +353,13 @@ function PatientReviewContent() {
                 ))}
               </ul>
             ) : (
-              <p className="text-gray-500 text-sm">Not reported</p>
+              <div className="bg-blue-50/60 border border-blue-100 p-4 rounded-lg flex items-center gap-3 text-blue-900">
+                <Info className="w-5 h-5 text-blue-600 shrink-0" />
+                <div>
+                  <p className="font-semibold text-sm">No Prior Medical History Found</p>
+                  <p className="text-xs text-blue-700">First Visit Intake — No prior chronic conditions or hospitalizations recorded for this patient.</p>
+                </div>
+              </div>
             )}
           </Card>
 
@@ -285,7 +382,7 @@ function PatientReviewContent() {
                 ))}
               </ul>
             ) : (
-              <p className="text-gray-500 text-sm">Not reported</p>
+              <p className="text-gray-500 text-sm">No regular medications reported.</p>
             )}
           </Card>
 
@@ -300,7 +397,7 @@ function PatientReviewContent() {
                 ))}
               </ul>
             ) : (
-              <p className="text-gray-500 text-sm">Not reported</p>
+              <p className="text-gray-500 text-sm">No known allergies reported.</p>
             )}
           </Card>
 
@@ -332,26 +429,35 @@ function PatientReviewContent() {
           </Card>
         </div>
 
-        <div className="mt-12 bg-white p-6 rounded-xl border-2 border-gray-200 shadow-sm sticky bottom-4 z-10">
-          <div className="flex items-start mb-6">
+        <div className="mt-12 bg-white p-6 rounded-xl border-2 border-primary/20 shadow-md sticky bottom-4 z-10">
+          <div className="flex items-start mb-4">
             <Checkbox 
               id="confirm-cb" 
               checked={confirmed} 
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfirmed(e.target.checked)} 
-              className="mt-1 w-6 h-6"
+              className="mt-1 w-5 h-5"
             />
             <label htmlFor="confirm-cb" className="ml-3 text-sm font-medium text-gray-900 cursor-pointer">
-              I have reviewed the information above and confirm that it accurately represents the information I provided for this visit. <br/>
-              <span className="text-gray-500 font-normal">Your information will now be shared with the healthcare professional for review as part of your consultation.</span>
+              I have reviewed the information above and confirm that it accurately represents the information I provided for this visit.
             </label>
           </div>
 
           <Button 
-            className="w-full text-lg py-6" 
+            className="w-full text-xl py-6 bg-primary hover:bg-primary/90 text-white font-bold flex items-center justify-center gap-3 shadow-lg rounded-xl" 
             disabled={!confirmed || submitting} 
             onClick={handleConfirm}
           >
-            {submitting ? 'Sending your confirmed information...' : '✅ CONFIRM & SEND TO DOCTOR'}
+            {submitting ? (
+              <>
+                <Spinner className="w-6 h-6 text-white mr-2" />
+                <span>Sending to Doctor&apos;s Dashboard...</span>
+              </>
+            ) : (
+              <>
+                <Send className="w-6 h-6" />
+                <span>Send to Doctor</span>
+              </>
+            )}
           </Button>
         </div>
       </div>

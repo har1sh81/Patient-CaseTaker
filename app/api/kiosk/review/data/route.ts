@@ -27,10 +27,37 @@ export async function GET(request: Request) {
 
 
     const patient = session.patientId ? await db.getPatient(session.patientId) : null;
-    const report = await db.getReportBySession(sessionId);
+    let report = await db.getReportBySession(sessionId);
+    const answers = await db.getSessionAnswers(sessionId);
     const flags = await db.getSessionFlags(sessionId);
     const timeline = await db.getTimeline(sessionId);
     const documents = await db.getSessionDocuments(sessionId);
+
+    if (!report) {
+      const { getAIProvider } = await import('@/lib/ai/factory');
+      const extractions = [];
+      for (const d of documents) {
+        const ext = await db.getExtraction(d.id);
+        if (ext) extractions.push(ext);
+      }
+      const provider = getAIProvider();
+      const genResponse = await provider.generateClinicalHistoryDraft({
+        session,
+        patient: patient || {
+          id: session.patientId || 'pat_demo',
+          demographics: { firstName: 'Patient', fullName: 'Kiosk Patient', age: 35, gender: 'other' },
+          identification: {},
+          createdAt: new Date().toISOString(),
+        },
+        answers,
+        timeline: timeline ? timeline.records : [],
+        documents: extractions,
+        flags,
+        patientReview: { sessionId, sections: [], status: 'pending' },
+      });
+      report = genResponse.report;
+      await db.saveReport(report);
+    }
 
     // Filter flags to just show there are flags, without clinical logic
     const hasAttentionFlags = flags.some(f => f.status === 'active' && (f.severity === 'high' || f.severity === 'critical'));
@@ -39,6 +66,7 @@ export async function GET(request: Request) {
       session,
       patient,
       report,
+      answers,
       timeline,
       documents,
       hasAttentionFlags,

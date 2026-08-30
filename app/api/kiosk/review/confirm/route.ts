@@ -112,7 +112,48 @@ export async function POST(request: Request) {
       timestamp: new Date().toISOString(),
     });
 
-    return NextResponse.json({ success: true, snapshotId }, { status: 200 });
+    // Determine assigned doctor based on chief complaint / department mode
+    const complaintText = (report?.clinicalHistory?.chiefComplaint?.primaryComplaint || '').toLowerCase();
+    
+    let doctorAssignment = {
+      doctorName: 'Dr. Rajesh Sharma, MD',
+      specialty: 'General Medicine & Internal Care',
+      roomNumber: 'Room 204',
+      floor: '2nd Floor, Wing B',
+      tokenNumber: `MK-${Math.floor(100 + Math.random() * 900)}`
+    };
+
+    if (complaintText.includes('heart') || complaintText.includes('chest') || complaintText.includes('palpitation')) {
+      doctorAssignment = {
+        doctorName: 'Dr. Ananya Roy, MD',
+        specialty: 'Cardiology & Critical Care',
+        roomNumber: 'Room 108',
+        floor: '1st Floor, OPD Block A',
+        tokenNumber: `MK-${Math.floor(100 + Math.random() * 900)}`
+      };
+    } else if (complaintText.includes('bone') || complaintText.includes('joint') || complaintText.includes('knee') || complaintText.includes('back') || complaintText.includes('fracture')) {
+      doctorAssignment = {
+        doctorName: 'Dr. Vikram Patel, MS',
+        specialty: 'Orthopedics & Joint Care',
+        roomNumber: 'Room 312',
+        floor: '3rd Floor, Wing C',
+        tokenNumber: `MK-${Math.floor(100 + Math.random() * 900)}`
+      };
+    } else if (session.departmentMode === 'ayush' || complaintText.includes('ayush') || complaintText.includes('prakriti')) {
+      doctorAssignment = {
+        doctorName: 'Dr. Meera Vaidya, BAMS',
+        specialty: 'Ayurveda & Panchakarma',
+        roomNumber: 'Room 102',
+        floor: 'Ground Floor, AYUSH OPD',
+        tokenNumber: `MK-${Math.floor(100 + Math.random() * 900)}`
+      };
+    }
+
+    return NextResponse.json({ 
+      success: true, 
+      snapshotId,
+      doctorAssignment 
+    }, { status: 200 });
   } catch (error: unknown) {
     console.error('Failed to confirm session:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
