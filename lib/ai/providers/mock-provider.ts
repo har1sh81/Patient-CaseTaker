@@ -86,11 +86,50 @@ export class MockProvider implements AIProvider {
       };
     }
 
-    // Default Scenario 1 / 10 / 11 / 12 / 13 / 14: Simple valid response (e.g., complaint only)
+    // Dynamic clinical adaptation & fact extraction
+    const currentQId = request.currentQuestion?.id || request.latestAnswer.questionId;
+    const isChiefComplaintQuestion = currentQId === 'reason_for_visit' || currentQId === 'chief_complaint';
+
+    const facts = isChiefComplaintQuestion
+      ? [{ field: 'chief_complaint', value: rawVal || (request.latestAnswer.rawValue as string), confidence: 'high' as const }]
+      : [{ field: currentQId, value: String(request.latestAnswer.rawValue), confidence: 'high' as const }];
+
+    let selectedNextQId: string | undefined;
+
+    if (isChiefComplaintQuestion) {
+      if (rawVal.includes('pain') || rawVal.includes('ache') || rawVal.includes('hurt') || rawVal.includes('cramp') || rawVal.includes('headache')) {
+        selectedNextQId = request.allowedQuestionIds.find(id => id === 'safety_check' || id === 'pain_location' || id === 'pain_scale');
+      } else {
+        selectedNextQId = request.allowedQuestionIds.find(id => id === 'symptom_duration' || id === 'associated_symptoms');
+      }
+    } else if (currentQId === 'symptom_duration') {
+      selectedNextQId = request.allowedQuestionIds.find(id => id === 'symptom_progression' || id === 'associated_symptoms');
+    } else if (currentQId === 'symptom_progression') {
+      selectedNextQId = request.allowedQuestionIds.find(id => id === 'safety_check' || id === 'associated_symptoms');
+    } else if (currentQId === 'safety_check') {
+      selectedNextQId = (rawVal.includes('yes') || rawVal === 'true')
+        ? request.allowedQuestionIds.find(id => id === 'pain_location')
+        : request.allowedQuestionIds.find(id => id === 'pain_scale' || id === 'associated_symptoms');
+    } else if (currentQId === 'pain_location') {
+      selectedNextQId = request.allowedQuestionIds.find(id => id === 'pain_scale' || id === 'associated_symptoms');
+    } else if (currentQId === 'pain_scale' || currentQId === 'associated_symptoms') {
+      selectedNextQId = request.allowedQuestionIds.find(id => id === 'past_medical_history' || id === 'current_medications');
+    } else if (currentQId === 'past_medical_history') {
+      selectedNextQId = request.allowedQuestionIds.find(id => id === 'current_medications');
+    }
+
+    if (selectedNextQId) {
+      return {
+        extractedFacts: facts,
+        missingInformation: [],
+        nextAction: 'ask_follow_up',
+        nextQuestionId: selectedNextQId,
+        confidence: 'high'
+      };
+    }
+
     return {
-      extractedFacts: [
-        { field: 'patient_input', value: request.latestAnswer.rawValue as string, confidence: 'high' }
-      ],
+      extractedFacts: facts,
       missingInformation: [],
       nextAction: 'continue_deterministic',
       confidence: 'high'

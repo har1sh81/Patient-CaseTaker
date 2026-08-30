@@ -150,12 +150,12 @@ export function buildTimeline(
   // We look for answers that might represent conditions or meds.
   // For the prototype, we can use specific question IDs (like "past_medical_history", "medications").
   answers.forEach(ans => {
-    if (ans.questionId === 'past_medical_history' || ans.questionId === 'chief_complaint') {
+    if (ans.questionId === 'reason_for_visit' || ans.questionId === 'chief_complaint' || ans.section === 'chief_complaint' || ans.questionId === 'past_medical_history') {
       addOrMergeRecord(records, {
         sessionId,
         patientId,
         category: 'condition',
-        originalValue: String(ans.normalizedValue || ans.rawValue),
+        originalValue: String(ans.normalizedValue || ans.rawValue || ans.transcript || ''),
         dateStr: undefined,
         provenance: { source: 'patient_voice', conversationMessageId: ans.id }
       });

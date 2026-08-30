@@ -18,11 +18,27 @@ const MEDICAL_SYNONYMS: Record<string, string[]> = {
 };
 
 export function extractComplaintContext(answers: ConversationAnswer[]): ComplaintContext | null {
-  const complaintAnswer = answers.find(a => a.questionId === 'chief_complaint');
+  const complaintAnswer = answers.find(
+    a => a.questionId === 'reason_for_visit' ||
+         a.questionId === 'chief_complaint' ||
+         a.section === 'chief_complaint'
+  );
+  const durationAnswer = answers.find(
+    a => a.questionId === 'symptom_duration' || a.questionId === 'duration'
+  );
+  const severityAnswer = answers.find(
+    a => a.questionId === 'pain_scale' || a.questionId === 'severity'
+  );
+
   if (!complaintAnswer) return null;
 
+  const rawText = String(complaintAnswer.rawValue || complaintAnswer.transcript || '').trim();
+  if (!rawText) return null;
+
   return {
-    complaint: String(complaintAnswer.rawValue).toLowerCase(),
+    complaint: rawText,
+    duration: durationAnswer ? String(durationAnswer.rawValue || '').trim() : undefined,
+    severity: severityAnswer ? String(severityAnswer.rawValue || '').trim() : undefined,
   };
 }
 

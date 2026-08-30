@@ -127,6 +127,51 @@ export const PHASE6_DEMO_QUESTIONS: Question[] = [
     allowVoice: false, // Number keypad only
     allowTouch: true,
   },
+  {
+    id: 'associated_symptoms',
+    section: 'hpi',
+    displayOrder: 7,
+    question: {
+      en: 'Are you experiencing any other symptoms along with this (such as fever, nausea, dizziness, or shortness of breath)?',
+      hi: 'क्या आपको इसके साथ कोई अन्य लक्षण (जैसे बुखार, मतली, चक्कर आना या सांस लेने में तकलीफ) का अनुभव हो रहा है?',
+      ta: 'இதனுடன் ஏதேனும் மற்ற அறிகுறிகள் (காய்ச்சல், குமட்டல், தலைச்சுற்றல் போன்றவை) உணர்கிறீர்களா?',
+    },
+    inputType: 'text',
+    informationFields: ['associated_symptoms'],
+    required: false,
+    allowVoice: true,
+    allowTouch: true,
+  },
+  {
+    id: 'past_medical_history',
+    section: 'past_medical_history',
+    displayOrder: 8,
+    question: {
+      en: 'Do you have any existing medical conditions (such as Diabetes, High Blood Pressure, Asthma, or Heart disease)?',
+      hi: 'क्या आपको कोई पहले से मौजूद बीमारी (जैसे मधुमेह, उच्च रक्तचाप, अस्थमा या हृदय रोग) है?',
+      ta: 'உங்களுக்கு ஏற்கனவே ஏதேனும் மருத்துவ நிலைமைகள் (நீரிழிவு, உயர் இரத்த அழுத்தம், ஆஸ்துமா போன்றவை) உள்ளதா?',
+    },
+    inputType: 'text',
+    informationFields: ['past_conditions'],
+    required: false,
+    allowVoice: true,
+    allowTouch: true,
+  },
+  {
+    id: 'current_medications',
+    section: 'medications',
+    displayOrder: 9,
+    question: {
+      en: 'Are you currently taking any regular medications or supplements?',
+      hi: 'क्या आप वर्तमान में कोई नियमित दवाएं या पूरक ले रहे हैं?',
+      ta: 'நீங்கள் தற்போது ஏதேனும் வழக்கமான மருந்துகளை உட்கொள்கிறீர்களா?',
+    },
+    inputType: 'text',
+    informationFields: ['medications'],
+    required: false,
+    allowVoice: true,
+    allowTouch: true,
+  },
 ];
 
 export const PHASE13_AYUSH_QUESTIONS: Question[] = [
