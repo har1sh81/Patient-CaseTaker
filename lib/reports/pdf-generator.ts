@@ -1,6 +1,17 @@
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import { ClinicalConsultationSummary } from '@/types/summary.types';
 
+function cleanText(text: string | undefined): string {
+  if (!text) return '';
+  return text
+    .replace(/✓/g, '[CONFIRMED]')
+    .replace(/🗣/g, '[Patient]')
+    .replace(/📄/g, '[Document]')
+    .replace(/🏥/g, '[ABDM]')
+    .replace(/•/g, '-')
+    .replace(/[^\x00-\x7F]/g, '');
+}
+
 export async function generateClinicalSummaryPDFBuffer(summary: ClinicalConsultationSummary): Promise<Buffer> {
   const pdfDoc = await PDFDocument.create();
   const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
@@ -22,7 +33,7 @@ export async function generateClinicalSummaryPDFBuffer(summary: ClinicalConsulta
       color: rgb(0.08, 0.38, 0.74), // Primary Blue #1565C0
     });
 
-    page.drawText('MEDIKIOSK — CLINICAL CONSULTATION SUMMARY', {
+    page.drawText('MEDIKIOSK - CLINICAL CONSULTATION SUMMARY', {
       x: margin + 12,
       y: y - 24,
       size: 13,
@@ -30,7 +41,7 @@ export async function generateClinicalSummaryPDFBuffer(summary: ClinicalConsulta
       color: rgb(1, 1, 1),
     });
 
-    page.drawText(`REF: ${summary.reference.referenceNumber}`, {
+    page.drawText(`REF: ${cleanText(summary.reference.referenceNumber)}`, {
       x: width - margin - 110,
       y: y - 24,
       size: 10,
@@ -54,7 +65,7 @@ export async function generateClinicalSummaryPDFBuffer(summary: ClinicalConsulta
     borderWidth: 1,
   });
 
-  page.drawText(`${summary.patientConfirmation.badgeText}   |   ${summary.patientConfirmation.statusText}`, {
+  page.drawText(cleanText(`${summary.patientConfirmation.badgeText}   |   ${summary.patientConfirmation.statusText}`), {
     x: margin + 10,
     y: y - 15,
     size: 9,
@@ -212,14 +223,15 @@ export async function generateClinicalSummaryPDFBuffer(summary: ClinicalConsulta
   if (summary.relevantPreviousHistory.length > 0) {
     summary.relevantPreviousHistory.forEach(item => {
       checkPageBreak(18);
-      page.drawText(`• ${item.conditionName}`, {
+      page.drawText(cleanText(`- ${item.conditionName}`), {
         x: margin + 10,
         y: y - 10,
         size: 9,
         font: fontBold,
         color: rgb(0.1, 0.1, 0.1),
       });
-      page.drawText(`[Source: ${item.source === 'abdm' ? '🏥 ABDM' : item.source === 'patient' ? '🗣 Patient' : '📄 Document'}]`, {
+      const srcTag = item.source === 'abdm' ? '[Source: ABDM]' : item.source === 'patient' ? '[Source: Patient]' : '[Source: Document]';
+      page.drawText(srcTag, {
         x: margin + 250,
         y: y - 10,
         size: 8,
@@ -262,14 +274,15 @@ export async function generateClinicalSummaryPDFBuffer(summary: ClinicalConsulta
   if (summary.medications.length > 0) {
     summary.medications.forEach(med => {
       checkPageBreak(18);
-      page.drawText(`• ${med.medicationName} ${med.dose || ''}`, {
+      page.drawText(cleanText(`- ${med.medicationName} ${med.dose || ''}`), {
         x: margin + 10,
         y: y - 10,
         size: 9,
         font: fontRegular,
         color: rgb(0.1, 0.1, 0.1),
       });
-      page.drawText(`[Source: ${med.source === 'abdm' ? '🏥 ABDM' : med.source === 'patient' ? '🗣 Patient' : '📄 Document'}]`, {
+      const srcTag = med.source === 'abdm' ? '[Source: ABDM]' : med.source === 'patient' ? '[Source: Patient]' : '[Source: Document]';
+      page.drawText(srcTag, {
         x: margin + 250,
         y: y - 10,
         size: 8,
