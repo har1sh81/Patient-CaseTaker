@@ -35,7 +35,6 @@ export async function POST(
 
     // In a real app we'd decode the JWT to get the doctor ID
     // For now we'll mock the doctor ID or read a cookie
-    const cookieStore = await cookies();
     const isMock = process.env.NEXT_PUBLIC_MOCK_SERVICES_ENABLED === 'true';
     const supabaseToken = cookieStore.get('sb-ouqhtjcvtsmfyfmanvjq-auth-token');
     
