@@ -204,12 +204,12 @@ function InterviewEngineWrapper({ session, initialAnswers }: { session: IntakeSe
           <div className="flex-1 flex flex-col justify-center">
             <QuestionCard
               question={currentQuestion}
-              language="en" // Hardcoded to 'en' for now, could be pulled from session
+              language={(session.language as any) || 'en'}
               disabled={status.status === 'saving_answer' || status.status === 'validating'}
             >
               <QuestionRenderer
                 question={currentQuestion}
-                language="en"
+                language={(session.language as any) || 'en'}
                 onSubmit={engine.submitAnswer}
                 disabled={status.status === 'saving_answer' || status.status === 'validating'}
               />
