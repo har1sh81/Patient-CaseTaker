@@ -1,42 +1,40 @@
-# Phase 22, 22B, 22C, 22D, & 23 Architecture — Real Browser Clinical Validation
+# Phase 22, 22B, 22C, 22D, 23, & 25 Architecture — Report Data Integrity & Source Consistency
 
-## 1. Real Browser Clinical Workflow Validation Architecture
-Phase 23 validates the complete MediKiosk user experience across real Playwright browser instances operating against live HTTP server routes (`AI_PROVIDER=local`):
+## 1. Canonical Snapshot Architecture
+MediKiosk enforces a single canonical snapshot contract ([`types/summary.types.ts`](file:///c:/Users/haris/OneDrive/projects/Patient-TakeCare/types/summary.types.ts)). Once a patient confirms their intake, the session transitions to `sent_to_doctor` and freezes the snapshot:
 
 ```
-Browser UI (Playwright Chromium)
-         │
-         ▼
-Next.js HTTP API Server (`http://localhost:3000`)
-         │
-         ▼
-Local Clinical Intelligence Engine
-  ├─► LocalClinicalNLP Fact Extraction
-  ├─► LocalNeuralEmbeddingsEngine (all-MiniLM-L6-v2)
-  ├─► Scoped pgvector Retrieval
-  └─► LocalProvider Adaptive Questioning
-         │
-         ▼
-Clinical Consultation Summary Composer
-         │
-         ▼
-Server-Side PDF Buffer Generation (WinAnsi Unicode Sanitized)
-         │
-         ▼
-Doctor Dashboard Workspace Queue (`/doctor`)
+PATIENT SOURCES (Speech / Text / Document OCR / ABDM)
+                    │
+                    ▼
+         Structured Fact Extraction
+                    │
+                    ▼
+          Patient Intake Review
+                    │
+                    ▼
+        Patient Confirmation Snapshot
+                    │
+                    ▼
+       ClinicalConsultationSummary (Frozen Object)
+       ├───────────────────────────────┐
+       ▼                               ▼
+Doctor Workspace View             Server-Side PDF Buffer Generator
+(`/doctor/patient/[sessionId]`)    (`generateClinicalSummaryPDFBuffer`)
 ```
 
 ---
 
-## 2. Playwright Browser E2E Test Suite Results
+## 2. Report Integrity & Equivalence Audit Results
 
-| Test Case | Scenario Description | Status | Latency |
-|---|---|---|---|
-| **Test 1** | Patient Kiosk Check-In & Language Selection | **PASSED** | 993 ms |
-| **Test 2** | Doctor Auth (`doctor@takecare.health`) & Case Queue | **PASSED** | 2.2 s |
-| **Test 3** | Security Boundary & Unauthenticated API Rejection | **PASSED** | 61 ms |
-| **Test 4** | Demo Sandbox Access (`/demo`) | **PASSED** | 759 ms |
-| **Combined** | All 7 Repository Playwright Tests | **PASSED** | **8.3 s Total** |
+| Audit Metric | Benchmark Audit Finding | Status |
+|---|---|---|
+| **Canonical Snapshot Immutability** | Patient-confirmed snapshot frozen upon session transition | **VERIFIED** |
+| **Doctor Dashboard & PDF Equivalence** | 100% Shared `ClinicalConsultationSummary` Schema | **VERIFIED** |
+| **Idempotency / Double-Click Lock** | `status === 'sent_to_doctor'` returns cached summary | **VERIFIED** |
+| **Provenance Retention** | Preserves `🗣 Patient`, `📄 Document`, `🏥 ABDM` badges | **VERIFIED** |
+| **Multi-Source Conflict Preservation** | Multi-source medication discrepancies retain conflict flags | **VERIFIED** |
+| **Missing Information Tagging** | Unreported intake sections explicitly marked "Not reported" | **VERIFIED** |
 
 ---
 
