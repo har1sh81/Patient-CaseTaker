@@ -1,54 +1,42 @@
-# Phase 22, 22B, 22C, & 22D Architecture — End-to-End Local Clinical Intelligence
+# Phase 22, 22B, 22C, 22D, & 23 Architecture — Real Browser Clinical Validation
 
-## 1. End-to-End Local Pipeline Architecture
-The integrated local clinical intelligence pipeline connects intake, NLP, neural vector retrieval, deterministic adaptive question selection, report composition, server-side PDF generation, and doctor dashboard routing **100% without Gemini**:
+## 1. Real Browser Clinical Workflow Validation Architecture
+Phase 23 validates the complete MediKiosk user experience across real Playwright browser instances operating against live HTTP server routes (`AI_PROVIDER=local`):
 
 ```
-Patient Response (EN / HI / TA)
-              │
-              ▼
-   LocalClinicalNLP (Contextual Lexicon & Window Parser)
-              │
-              ├─► Temporal Status Tagging (`current` | `historical` | `resolved`)
-              ├─► Medication Status Tracking (`active` | `stopped`)
-              └─► Negation Detection Window
-              │
-              ▼
-   Structured Clinical Facts Contract
-              │
-              ├─────────────────────────────────────────┐
-              ▼                                         ▼
-   NeuralEmbeddingProvider (384-D)             LocalProvider Question Engine
-              │                                         │
-              ▼                                         ▼
-   Scoped pgvector Query                        Missing Field Calculation
-              │                                         │
-              ▼                                         ▼
-   Source-Aware RAG Context                    Deterministic Next Question
-              │                                         │
-              └────────────────────┬────────────────────┘
-                                   │
-                                   ▼
-                   ClinicalConsultationSummary
-                                   │
-                                   ▼
-                   Server-Side PDF Generator
-                                   │
-                                   ▼
-                       Doctor Dashboard Queue
+Browser UI (Playwright Chromium)
+         │
+         ▼
+Next.js HTTP API Server (`http://localhost:3000`)
+         │
+         ▼
+Local Clinical Intelligence Engine
+  ├─► LocalClinicalNLP Fact Extraction
+  ├─► LocalNeuralEmbeddingsEngine (all-MiniLM-L6-v2)
+  ├─► Scoped pgvector Retrieval
+  └─► LocalProvider Adaptive Questioning
+         │
+         ▼
+Clinical Consultation Summary Composer
+         │
+         ▼
+Server-Side PDF Buffer Generation (WinAnsi Unicode Sanitized)
+         │
+         ▼
+Doctor Dashboard Workspace Queue (`/doctor`)
 ```
 
 ---
 
-## 2. Empirical End-to-End Benchmark Results (50 Patient Journeys)
+## 2. Playwright Browser E2E Test Suite Results
 
-| Evaluation Metric | Measured Benchmark Value |
-|---|---|
-| **Journey Completion Rate** | **100.0%** (50 / 50 Journeys) |
-| **Server-Side PDF Generation Rate** | **100.0%** (50 / 50 PDFs) |
-| **Cloud Gemini API Calls Made** | **0** (100% Cloud-Free Local Path) |
-| **Average End-to-End Latency** | **5.18 ms / full patient journey** |
-| **Heap Memory Footprint** | **9.68 MB** |
+| Test Case | Scenario Description | Status | Latency |
+|---|---|---|---|
+| **Test 1** | Patient Kiosk Check-In & Language Selection | **PASSED** | 993 ms |
+| **Test 2** | Doctor Auth (`doctor@takecare.health`) & Case Queue | **PASSED** | 2.2 s |
+| **Test 3** | Security Boundary & Unauthenticated API Rejection | **PASSED** | 61 ms |
+| **Test 4** | Demo Sandbox Access (`/demo`) | **PASSED** | 759 ms |
+| **Combined** | All 7 Repository Playwright Tests | **PASSED** | **8.3 s Total** |
 
 ---
 
