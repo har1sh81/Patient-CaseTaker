@@ -124,12 +124,18 @@ export function getNextQuestion(
     safety_check: 'severity',
     symptom_progression: 'progression',
     aggravating_relieving: 'aggravating_relieving',
+    stomach_pain_triggers: 'aggravating_relieving',
     associated_symptoms: 'associated_symptoms',
+    gi_red_flags: 'associated_symptoms',
+    cardiac_radiation_check: 'associated_symptoms',
     previous_treatments: 'previous_treatments',
   };
 
   // Evaluate domains ONCE to use for both followUpRules and sequential logic
   const domains = evalCurrentProblemDomains(answers);
+  const combinedText = Object.values(answers)
+    .map(a => String(a.transcript || a.rawValue || a.normalizedValue || ''))
+    .join(' ');
 
   // 1. Check if there are explicit followUpRules to jump to a specific question
   // BUT respect domain completeness - don't jump to a question whose domain is already COMPLETE
@@ -155,6 +161,24 @@ export function getNextQuestion(
   while (nextIdx < questions.length) {
     const candidateQ = questions[nextIdx];
     const targetDomain = questionDomainMap[candidateQ.id];
+
+    // Skip cardiac radiation check if patient has not mentioned chest/cardiac symptoms
+    if (candidateQ.id === 'cardiac_radiation_check') {
+      const mentionsChest = /chest|heart|cardiac|angina|stern/i.test(combinedText);
+      if (!mentionsChest) {
+        nextIdx++;
+        continue;
+      }
+    }
+
+    // Skip GI-specific questions if patient has not mentioned stomach/abdominal/digestive symptoms
+    if (candidateQ.id === 'stomach_pain_triggers' || candidateQ.id === 'gi_red_flags') {
+      const mentionsGI = /stomach|abdomen|abdominal|epigastri|belly|digest|gastric|acid|reflux|burn/i.test(combinedText);
+      if (!mentionsGI) {
+        nextIdx++;
+        continue;
+      }
+    }
 
     // Skip candidate question if its domain is ALREADY COMPLETE (info already extracted via NLP or answered)
     if (targetDomain && domains[targetDomain]?.status === 'COMPLETE') {

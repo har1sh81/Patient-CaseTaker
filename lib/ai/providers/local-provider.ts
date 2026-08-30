@@ -41,6 +41,9 @@ export class LocalProvider implements AIProvider {
     const isSafetyNo = askedIds.has('safety_check') && (answersMap['safety_check']?.rawValue === 'no' || answersMap['safety_check']?.rawValue === false);
     let nextQuestionId: string | undefined;
 
+    const mentionsChest = /chest|heart|cardiac|angina|stern/i.test(combinedText);
+    const mentionsGI = /stomach|abdomen|abdominal|epigastri|belly|digest|gastric|acid|reflux|burn/i.test(combinedText);
+
     const hasLocation = Boolean(nlpResult.location) || askedIds.has('pain_location') || isSafetyNo;
     const hasCharacter = Boolean(nlpResult.character) || askedIds.has('symptom_character');
     const hasDuration = Boolean(nlpResult.duration) || askedIds.has('symptom_duration');
@@ -62,6 +65,12 @@ export class LocalProvider implements AIProvider {
       nextQuestionId = 'symptom_progression';
     } else if (!hasAggRel && allowed.includes('aggravating_relieving')) {
       nextQuestionId = 'aggravating_relieving';
+    } else if (mentionsGI && !askedIds.has('stomach_pain_triggers') && allowed.includes('stomach_pain_triggers')) {
+      nextQuestionId = 'stomach_pain_triggers';
+    } else if (mentionsGI && !askedIds.has('gi_red_flags') && allowed.includes('gi_red_flags')) {
+      nextQuestionId = 'gi_red_flags';
+    } else if (mentionsChest && !askedIds.has('cardiac_radiation_check') && allowed.includes('cardiac_radiation_check')) {
+      nextQuestionId = 'cardiac_radiation_check';
     } else if (!hasAssoc && allowed.includes('associated_symptoms')) {
       nextQuestionId = 'associated_symptoms';
     } else if (!hasPrevTreat && allowed.includes('previous_treatments')) {
@@ -71,8 +80,13 @@ export class LocalProvider implements AIProvider {
     } else if (!askedIds.has('current_medications') && allowed.includes('current_medications')) {
       nextQuestionId = 'current_medications';
     } else {
-      // Pick the first allowed question if available
-      nextQuestionId = allowed[0];
+      // Pick first unasked allowed question that isn't irrelevant cardiac/GI
+      nextQuestionId = allowed.find(id => {
+        if (askedIds.has(id)) return false;
+        if (id === 'cardiac_radiation_check' && !mentionsChest) return false;
+        if ((id === 'stomach_pain_triggers' || id === 'gi_red_flags') && !mentionsGI) return false;
+        return true;
+      });
     }
 
     const isComplete = !nextQuestionId;
