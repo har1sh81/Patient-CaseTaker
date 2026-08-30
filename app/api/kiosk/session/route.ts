@@ -45,8 +45,25 @@ export async function POST(request: Request) {
 
     // 1. Ensure patient exists in repository
     let existingPatient = await db.getPatient(patient.id);
+    if (!existingPatient && patient.identification?.hospitalNumber) {
+      existingPatient = await db.getPatientByHospitalNumber(patient.identification.hospitalNumber);
+    }
+    if (!existingPatient && patient.identification?.abhaReference) {
+      existingPatient = await db.getPatientByAbha(patient.identification.abhaReference);
+    }
     if (!existingPatient) {
-      existingPatient = await db.createPatient(patient);
+      try {
+        existingPatient = await db.createPatient(patient);
+      } catch (err: any) {
+        // Fallback catch if duplicate constraint fires
+        if (patient.identification?.hospitalNumber) {
+          existingPatient = await db.getPatientByHospitalNumber(patient.identification.hospitalNumber);
+        }
+        if (!existingPatient && patient.identification?.abhaReference) {
+          existingPatient = await db.getPatientByAbha(patient.identification.abhaReference);
+        }
+        if (!existingPatient) throw err;
+      }
     }
 
     // 2. Initialize Intake Session (without consentId first to prevent foreign key violation)

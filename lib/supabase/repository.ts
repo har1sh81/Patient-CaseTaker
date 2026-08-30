@@ -247,7 +247,19 @@ export class SupabaseRepository implements DatabaseService {
       .select()
       .single();
 
-    if (error) throw new Error(`createPatient failed: ${error.message}`);
+    if (error) {
+      if (error.message.includes('unique constraint') || error.code === '23505') {
+        if (patient.identification?.hospitalNumber) {
+          const existing = await this.getPatientByHospitalNumber(patient.identification.hospitalNumber);
+          if (existing) return existing;
+        }
+        if (patient.identification?.abhaReference) {
+          const existing = await this.getPatientByAbha(patient.identification.abhaReference);
+          if (existing) return existing;
+        }
+      }
+      throw new Error(`createPatient failed: ${error.message}`);
+    }
     return PatientSchema.parse(dbToPatient(data));
   }
 
