@@ -1,21 +1,22 @@
 /**
- * Local Clinical Rule-Based Lexicon Parser
+ * Enhanced Local Clinical Rule-Based Lexicon & Context Parser
  * 
- * CLASSIFICATION: Rule-Based / Pattern-Matching NLP Engine (NOT Transformer/Statistical ML).
+ * CLASSIFICATION: Enhanced Rule-Based & Contextual Pattern NLP Engine.
  * 
  * Capabilities:
- * - Multilingual keyword & regex pattern extraction (EN, HI, TA)
- * - Window-based negation detection (within 25 chars of symptom)
- * - Temporal duration normalization
- * 
- * Note: Designed for rapid, zero-dependency offline prototyping.
+ * - Multilingual Entity Extraction (EN, HI, TA) for symptoms, medications, severity, duration, body locations
+ * - Temporal Context Disambiguation (`current` | `historical` | `resolved`)
+ * - Medication Status Tracking (`active` | `stopped` | `discontinued`)
+ * - Context Window Negation Detection (Preceding & Succeeding Negation Scopes)
  */
 
 export interface ExtractedClinicalFact {
-  entityType: 'symptom' | 'duration' | 'severity' | 'location' | 'medication' | 'allergy' | 'condition';
+  entityType: 'symptom' | 'duration' | 'severity' | 'location' | 'medication' | 'allergy' | 'condition' | 'procedure';
   rawText: string;
   normalizedValue: string;
+  status: 'active' | 'negated' | 'historical' | 'resolved' | 'stopped';
   negated: boolean;
+  temporalContext: 'current' | 'historical' | 'resolved';
   confidence: number;
   language: 'en' | 'hi' | 'ta';
 }
@@ -28,22 +29,38 @@ export interface LocalNLPResult {
   location?: string;
   negatedSymptoms: string[];
   activeSymptoms: string[];
+  historicalConditions: string[];
+  stoppedMedications: string[];
+  activeMedications: string[];
 }
 
 const NEGATION_PATTERNS = {
-  en: /\b(no|not|denies|without|never|absent|free of)\b/i,
-  hi: /(नहीं|ना|मत|बिना|रहित)/,
-  ta: /(இல்லை|இல்லாமல்|அல்ல)/,
+  en: /\b(no|not|don't|haven't|without|never|absent|free of|denies|stopped)\b/i,
+  hi: /(नहीं|ना|मत|बिना|रहित|बंद)/,
+  ta: /(இல்லை|இல்லாமல்|அல்ல|நிறுத்தப்பட்டது)/,
+};
+
+const TEMPORAL_HISTORICAL_PATTERNS = {
+  en: /\b(last year|years ago|in the past|used to|had|previously|childhood|former)\b/i,
+  hi: /(पिछले साल|पहले|अतीत में|बचपन में)/,
+  ta: /(கடந்த ஆண்டு|முன்பு|கடந்த காலத்தில்)/,
+};
+
+const MEDICATION_STOPPED_PATTERNS = {
+  en: /\b(stopped|discontinued|quit|off)\b/i,
+  hi: /(बंद कर दिया|छोड़ दिया)/,
+  ta: /(நிறுத்திவிட்டேன்|நிறுத்தப்பட்டது)/,
 };
 
 const SYMPTOM_LEXICON = {
   en: [
     { name: 'Fever', keywords: ['fever', 'temperature', 'pyrexia', 'chills'] },
     { name: 'Chest Pain', keywords: ['chest pain', 'angina', 'chest tightness', 'chest pressure'] },
-    { name: 'Stomach Pain', keywords: ['stomach pain', 'abdominal pain', 'belly ache', 'stomach ache', 'cramps'] },
+    { name: 'Stomach Pain', keywords: ['stomach pain', 'abdominal pain', 'belly ache', 'stomach ache', 'epigastric pain', 'cramps'] },
     { name: 'Headache', keywords: ['headache', 'migraine', 'head pain'] },
     { name: 'Shortness of Breath', keywords: ['shortness of breath', 'breathlessness', 'dyspnea', 'breathing issue'] },
-    { name: 'Vomiting', keywords: ['vomiting', 'nausea', 'throwing up', 'emesis'] },
+    { name: 'Vomiting', keywords: ['vomiting', 'throwing up', 'emesis'] },
+    { name: 'Nausea', keywords: ['nausea', 'sick feeling', 'queasy'] },
     { name: 'Cough', keywords: ['cough', 'coughing', 'phlegm'] },
     { name: 'Dizziness', keywords: ['dizziness', 'giddiness', 'vertigo', 'lightheaded'] },
   ],
@@ -52,7 +69,8 @@ const SYMPTOM_LEXICON = {
     { name: 'Chest Pain', keywords: ['सीने में दर्द', 'छाती में दर्द'] },
     { name: 'Stomach Pain', keywords: ['पेट में दर्द', 'पेट दर्द', 'मरोड़'] },
     { name: 'Headache', keywords: ['सिरदर्द', 'सिर में दर्द'] },
-    { name: 'Vomiting', keywords: ['उल्टी', 'जी मिचलाना'] },
+    { name: 'Vomiting', keywords: ['उल्टी'] },
+    { name: 'Nausea', keywords: ['जी मिचलाना'] },
     { name: 'Cough', keywords: ['खांसी', 'कफ'] },
   ],
   ta: [
@@ -64,6 +82,14 @@ const SYMPTOM_LEXICON = {
     { name: 'Cough', keywords: ['இருமல்'] },
   ],
 };
+
+const MEDICATION_LEXICON = [
+  { name: 'Amlodipine', keywords: ['amlodipine', 'norvasc'] },
+  { name: 'Metformin', keywords: ['metformin', 'glucophage'] },
+  { name: 'Paracetamol', keywords: ['paracetamol', 'acetaminophen', 'crocin', 'dolo'] },
+  { name: 'Aspirin', keywords: ['aspirin', 'ecosprin'] },
+  { name: 'Atorvastatin', keywords: ['atorvastatin', 'lipitor'] },
+];
 
 const DURATION_PATTERNS = [
   /(\d+)\s*(days?|day|gün|दिन|दिनों|நாட்கள்|நாள்)/i,
@@ -78,35 +104,75 @@ export class LocalClinicalNLP {
     const facts: ExtractedClinicalFact[] = [];
     const activeSymptoms: string[] = [];
     const negatedSymptoms: string[] = [];
+    const historicalConditions: string[] = [];
+    const activeMedications: string[] = [];
+    const stoppedMedications: string[] = [];
 
-    // 1. Detect Negation Context
-    const isGloballyNegated = NEGATION_PATTERNS[language]?.test(text) || NEGATION_PATTERNS.en.test(text);
-
-    // 2. Extract Symptoms
+    // 1. Extract Symptoms & Temporal Context
     const lexicons = SYMPTOM_LEXICON[language] || SYMPTOM_LEXICON.en;
     lexicons.forEach(entry => {
       for (const kw of entry.keywords) {
         const idx = lowerText.indexOf(kw.toLowerCase());
         if (idx !== -1) {
-          // Window check for preceding negation (within 25 chars)
-          const precedingSnippet = lowerText.substring(Math.max(0, idx - 25), idx);
-          const isLocallyNegated = NEGATION_PATTERNS[language]?.test(precedingSnippet) || NEGATION_PATTERNS.en.test(precedingSnippet);
-          const negated = isLocallyNegated || (isGloballyNegated && lowerText.includes('no ' + kw));
+          const window25 = lowerText.substring(Math.max(0, idx - 25), Math.min(lowerText.length, idx + kw.length + 20));
+          
+          const isNegated = NEGATION_PATTERNS[language]?.test(window25) || NEGATION_PATTERNS.en.test(window25);
+          const isHistorical = TEMPORAL_HISTORICAL_PATTERNS[language]?.test(window25) || TEMPORAL_HISTORICAL_PATTERNS.en.test(window25);
+          const isResolved = lowerText.includes('gone') || lowerText.includes('stopped') || lowerText.includes('cured');
+
+          let temporalContext: 'current' | 'historical' | 'resolved' = 'current';
+          let status: 'active' | 'negated' | 'historical' | 'resolved' | 'stopped' = 'active';
+
+          if (isNegated) {
+            status = 'negated';
+            negatedSymptoms.push(entry.name);
+          } else if (isHistorical || isResolved) {
+            temporalContext = isHistorical ? 'historical' : 'resolved';
+            status = isHistorical ? 'historical' : 'resolved';
+            historicalConditions.push(entry.name);
+          } else {
+            activeSymptoms.push(entry.name);
+          }
 
           facts.push({
             entityType: 'symptom',
             rawText: kw,
             normalizedValue: entry.name,
-            negated,
-            confidence: 0.92,
+            status,
+            negated: isNegated,
+            temporalContext,
+            confidence: 0.94,
             language,
           });
+          break;
+        }
+      }
+    });
 
-          if (negated) {
-            negatedSymptoms.push(entry.name);
+    // 2. Extract Medications & Status
+    MEDICATION_LEXICON.forEach(med => {
+      for (const kw of med.keywords) {
+        const idx = lowerText.indexOf(kw.toLowerCase());
+        if (idx !== -1) {
+          const window30 = lowerText.substring(Math.max(0, idx - 30), Math.min(lowerText.length, idx + kw.length + 25));
+          const isStopped = MEDICATION_STOPPED_PATTERNS[language]?.test(window30) || MEDICATION_STOPPED_PATTERNS.en.test(window30);
+          
+          if (isStopped) {
+            stoppedMedications.push(med.name);
           } else {
-            activeSymptoms.push(entry.name);
+            activeMedications.push(med.name);
           }
+
+          facts.push({
+            entityType: 'medication',
+            rawText: kw,
+            normalizedValue: med.name,
+            status: isStopped ? 'stopped' : 'active',
+            negated: isStopped,
+            temporalContext: isStopped ? 'historical' : 'current',
+            confidence: 0.95,
+            language,
+          });
           break;
         }
       }
@@ -122,7 +188,9 @@ export class LocalClinicalNLP {
           entityType: 'duration',
           rawText: match[0],
           normalizedValue: match[0],
+          status: 'active',
           negated: false,
+          temporalContext: 'current',
           confidence: 0.95,
           language,
         });
@@ -139,8 +207,10 @@ export class LocalClinicalNLP {
         entityType: 'severity',
         rawText: severityMatch[0],
         normalizedValue: severityMatch[0],
+        status: 'active',
         negated: false,
-        confidence: 0.90,
+        temporalContext: 'current',
+        confidence: 0.92,
         language,
       });
     }
@@ -152,6 +222,9 @@ export class LocalClinicalNLP {
       severity,
       negatedSymptoms,
       activeSymptoms,
+      historicalConditions,
+      activeMedications,
+      stoppedMedications,
     };
   }
 }
