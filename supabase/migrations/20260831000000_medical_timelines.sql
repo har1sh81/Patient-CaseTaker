@@ -14,6 +14,7 @@ CREATE INDEX IF NOT EXISTS idx_timelines_patient_id ON public.medical_timelines(
 ALTER TABLE public.medical_timelines ENABLE ROW LEVEL SECURITY;
 
 -- Allow public access for demo environment
+DROP POLICY IF EXISTS "Allow demo access to timelines" ON public.medical_timelines;
 CREATE POLICY "Allow demo access to timelines" 
 ON public.medical_timelines 
 FOR ALL 
