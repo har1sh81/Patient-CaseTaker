@@ -5,6 +5,7 @@ export async function middleware(request: NextRequest) {
   // In mock mode or when Supabase is not configured, skip auth middleware
   if (
     process.env.NEXT_PUBLIC_MOCK_SERVICES_ENABLED === 'true' ||
+    process.env.DEMO_ENVIRONMENT === 'true' ||
     !process.env.NEXT_PUBLIC_SUPABASE_URL ||
     !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   ) {

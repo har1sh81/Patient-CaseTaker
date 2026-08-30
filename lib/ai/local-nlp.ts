@@ -106,9 +106,9 @@ const DURATION_PATTERNS = [
 ];
 
 const LOCATION_PATTERNS = [
-  /upper stomach|epigastric|lower abdomen|chest|head|back|left arm|throat|right side|left side|stomach|belly/i,
-  /सीने|पेट|सिर|गर्दन|पीठ/i,
-  /மார்பு|வயிறு|தலை|கழுத்து|முதுகு/i,
+  /upper stomach|epigastric|lower abdomen|chest|head(?:ache)?|migraine|back|left arm|throat|right side|left side|stomach|belly|abdomen|shoulder|neck|jaw|knee|leg|arm/i,
+  /सीने|पेट|सिर|गर्दन|पीठ|कंधा|कमर|हाथ|पैर/i,
+  /மார்பு|வயிறு|தலை|கழுத்து|முதுகு|தோள்|கால்|கை/i,
 ];
 
 const CHARACTER_PATTERNS = [
@@ -255,9 +255,15 @@ export class LocalClinicalNLP {
       }
     }
     if (!severity) {
-      const severityMatch = text.match(/severe|mild|moderate|गंभीर|हल्का|கடுமையான/i);
-      if (severityMatch) {
-        severity = severityMatch[0];
+      const SEVERITY_PATTERNS = [
+        /severe|mild|moderate|intense|excruciating|unbearable|गंभीर|हल्का|மிதமான|கடுமையான/i,
+      ];
+      for (const pat of SEVERITY_PATTERNS) {
+        const match = text.match(pat);
+        if (match) {
+          severity = match[0];
+          break;
+        }
       }
     }
     if (severity) {

@@ -8,10 +8,15 @@ export async function POST(
   { params }: { params: Promise<{ sessionId: string }> }
 ) {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user || user.app_metadata?.role !== 'doctor') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    const isMockOrDemo = process.env.NEXT_PUBLIC_MOCK_SERVICES_ENABLED === 'true' || process.env.DEMO_ENVIRONMENT === 'true';
+    let userId = 'demo-doctor';
+    if (!isMockOrDemo) {
+      const supabase = await createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || user.app_metadata?.role !== 'doctor') {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+      }
+      userId = user.id;
     }
 
     const { sessionId } = await params;
@@ -33,7 +38,7 @@ export async function POST(
       sessionId,
       action: 'physician_finalized',
       timestamp: new Date().toISOString(),
-      metadata: { actor: user.id }
+      metadata: { actor: userId }
     });
     return NextResponse.json({ success: true });
   } catch (error: unknown) {

@@ -37,9 +37,11 @@ export class LocalProvider implements AIProvider {
     }
 
     const askedIds = new Set(Object.keys(answersMap));
+    const allowed = request.allowedQuestionIds || [];
+    const isSafetyNo = askedIds.has('safety_check') && (answersMap['safety_check']?.rawValue === 'no' || answersMap['safety_check']?.rawValue === false);
     let nextQuestionId: string | undefined;
 
-    const hasLocation = Boolean(nlpResult.location) || askedIds.has('pain_location');
+    const hasLocation = Boolean(nlpResult.location) || askedIds.has('pain_location') || isSafetyNo;
     const hasCharacter = Boolean(nlpResult.character) || askedIds.has('symptom_character');
     const hasDuration = Boolean(nlpResult.duration) || askedIds.has('symptom_duration');
     const hasSeverity = Boolean(nlpResult.painScore) || Boolean(nlpResult.severity) || askedIds.has('pain_scale');
@@ -48,26 +50,29 @@ export class LocalProvider implements AIProvider {
     const hasAssoc = Boolean(nlpResult.associatedSymptoms) || askedIds.has('associated_symptoms');
     const hasPrevTreat = Boolean(nlpResult.previousTreatments) || askedIds.has('previous_treatments');
 
-    if (!hasDuration) {
+    if (!hasDuration && allowed.includes('symptom_duration')) {
       nextQuestionId = 'symptom_duration';
-    } else if (!hasLocation) {
+    } else if (!hasLocation && allowed.includes('pain_location')) {
       nextQuestionId = 'pain_location';
-    } else if (!hasCharacter) {
+    } else if (!hasCharacter && allowed.includes('symptom_character')) {
       nextQuestionId = 'symptom_character';
-    } else if (!hasSeverity) {
+    } else if (!hasSeverity && allowed.includes('pain_scale')) {
       nextQuestionId = 'pain_scale';
-    } else if (!hasProgression) {
+    } else if (!hasProgression && allowed.includes('symptom_progression')) {
       nextQuestionId = 'symptom_progression';
-    } else if (!hasAggRel) {
+    } else if (!hasAggRel && allowed.includes('aggravating_relieving')) {
       nextQuestionId = 'aggravating_relieving';
-    } else if (!hasAssoc) {
+    } else if (!hasAssoc && allowed.includes('associated_symptoms')) {
       nextQuestionId = 'associated_symptoms';
-    } else if (!hasPrevTreat) {
+    } else if (!hasPrevTreat && allowed.includes('previous_treatments')) {
       nextQuestionId = 'previous_treatments';
-    } else if (!askedIds.has('past_medical_history')) {
+    } else if (!askedIds.has('past_medical_history') && allowed.includes('past_medical_history')) {
       nextQuestionId = 'past_medical_history';
-    } else if (!askedIds.has('current_medications')) {
+    } else if (!askedIds.has('current_medications') && allowed.includes('current_medications')) {
       nextQuestionId = 'current_medications';
+    } else {
+      // Pick the first allowed question if available
+      nextQuestionId = allowed[0];
     }
 
     const isComplete = !nextQuestionId;

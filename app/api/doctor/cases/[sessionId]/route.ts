@@ -4,10 +4,13 @@ import { db } from '../../../../../lib/supabase/db-service';
 
 export async function GET(request: Request, context: { params: Promise<{ sessionId: string }> }) {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user || user.app_metadata?.role !== 'doctor') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    const isMockOrDemo = process.env.NEXT_PUBLIC_MOCK_SERVICES_ENABLED === 'true' || process.env.DEMO_ENVIRONMENT === 'true';
+    if (!isMockOrDemo) {
+      const supabase = await createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || user.app_metadata?.role !== 'doctor') {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+      }
     }
 
     const { sessionId } = await context.params;

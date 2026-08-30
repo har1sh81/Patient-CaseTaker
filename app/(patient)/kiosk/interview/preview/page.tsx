@@ -166,12 +166,12 @@ function PreviewContent() {
 
           {/* Next Steps (Phase 15 Teaser) */}
           <div className="pt-8 flex justify-end">
-             <button
+            <button
               type="button"
-              onClick={() => router.push('/kiosk')}
+              onClick={() => router.push(`/kiosk/review?sessionId=${sessionId}`)}
               className="px-8 py-4 bg-primary text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-all"
             >
-              Complete Check-in
+              Proceed to Review & Confirm
             </button>
           </div>
         </div>

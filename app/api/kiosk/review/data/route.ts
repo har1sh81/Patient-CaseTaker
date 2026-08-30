@@ -34,33 +34,104 @@ export async function GET(request: Request) {
     const documents = await db.getSessionDocuments(sessionId);
 
     if (!report) {
-      const { getAIProvider } = await import('@/lib/ai/factory');
+      const { composeClinicalConsultationSummary } = await import('@/lib/reports/report-composer');
       const extractions = [];
-      for (const d of documents) {
+      for (const d of (documents || [])) {
         const ext = await db.getExtraction(d.id);
         if (ext) extractions.push(ext);
       }
-      const provider = getAIProvider();
-      const genResponse = await provider.generateClinicalHistoryDraft({
+
+      const activePatient = patient || {
+        id: session.patientId || 'pat_demo',
+        demographics: { firstName: 'Patient', fullName: 'Kiosk Patient', age: 35, gender: 'other' },
+        identification: {},
+        createdAt: new Date().toISOString(),
+      };
+
+      const summary = composeClinicalConsultationSummary({
         session,
-        patient: patient || {
-          id: session.patientId || 'pat_demo',
-          demographics: { firstName: 'Patient', fullName: 'Kiosk Patient', age: 35, gender: 'other' },
-          identification: {},
-          createdAt: new Date().toISOString(),
-        },
-        answers,
-        timeline: timeline ? timeline.records : [],
+        patient: activePatient,
+        answers: answers || [],
+        flags: flags || [],
+        timelineEvents: [],
         documents: extractions,
-        flags,
-        patientReview: { sessionId, sections: [], status: 'pending' },
       });
-      report = genResponse.report;
-      await db.saveReport(report);
+
+      const draftReport: any = {
+        reportId: `rep_${sessionId}`,
+        reportVersion: '1.0.0',
+        generatedAt: new Date().toISOString(),
+        sessionId,
+        patient: {
+          fullName: activePatient.demographics?.fullName || 'Kiosk Patient',
+          age: activePatient.demographics?.age,
+          gender: activePatient.demographics?.gender,
+          hospitalNumber: activePatient.identification?.hospitalNumber,
+          abhaReference: activePatient.identification?.abhaReference,
+        },
+        visit: {
+          generatedDate: new Date().toISOString().split('T')[0],
+          departmentMode: session.departmentMode,
+          intakeLanguage: session.language || (session as any).preferredLanguage || 'en',
+          reasonForVisit: summary.chiefComplaint.primaryComplaint,
+        },
+        clinicalHistory: {
+          chiefComplaint: {
+            primaryComplaint: summary.chiefComplaint.primaryComplaint,
+            additionalComplaints: [],
+            provenance: { source: 'patient_voice' },
+          },
+          historyOfPresentIllness: {
+            patientNarrative: summary.chiefComplaint.patientWords || summary.chiefComplaint.primaryComplaint,
+            completeness: { missingFields: summary.informationNotReported, completedFields: ['primaryComplaint'] },
+          },
+          pastMedicalHistory: summary.relevantPreviousHistory.map((h: any, idx: number) => ({
+            id: `pmh_${idx}`,
+            conditionName: h.conditionName,
+            status: 'active' as const,
+            provenance: { source: 'patient_voice' },
+          })),
+          pastSurgicalHistory: [],
+          medications: summary.medications.map((m: any, idx: number) => ({
+            id: `med_${idx}`,
+            name: m.medicationName,
+            status: 'active' as const,
+            provenance: { source: 'patient_voice' },
+          })),
+          allergies: [],
+          familyHistory: [],
+        },
+        documentSummary: {
+          uploadedDocumentCount: extractions.length,
+          documents: extractions.map((d: any) => ({ id: d.documentId, type: d.documentType, fileName: d.documentId })),
+          extractedConditions: extractions.flatMap((d: any) => d.extractedConditions || []),
+          laboratoryResults: [],
+          admissions: [],
+        },
+        medicalTimeline: [],
+        attentionFlags: flags,
+        patientConfirmation: {
+          confirmedByPatient: false,
+          confirmedAt: '',
+          correctionsMade: 0,
+        },
+        physicianVerification: {
+          status: 'pending_physician_review',
+          signatureRequired: false,
+        },
+        reference: {
+          referenceNumber: summary.reference.referenceNumber,
+          qrPayload: summary.reference.qrPayload,
+          generatedAt: summary.reference.generatedAt,
+        },
+      };
+
+      await db.saveReport(draftReport);
+      report = draftReport;
     }
 
     // Filter flags to just show there are flags, without clinical logic
-    const hasAttentionFlags = flags.some(f => f.status === 'active' && (f.severity === 'high' || f.severity === 'critical'));
+    const hasAttentionFlags = (flags || []).some(f => f.status === 'active' && (f.severity === 'high' || f.severity === 'critical'));
 
     return NextResponse.json({
       session,
@@ -71,8 +142,8 @@ export async function GET(request: Request) {
       documents,
       hasAttentionFlags,
     });
-  } catch (error: unknown) {
+  } catch (error: any) {
     console.error('Failed to fetch review data:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ error: 'Internal server error', details: error.message || String(error) }, { status: 500 });
   }
 }

@@ -9,7 +9,7 @@ import { Card } from '../../../../components/ui/card';
 import { Checkbox } from '../../../../components/ui/checkbox';
 import { Alert } from '../../../../components/ui/alert';
 import { Spinner } from '../../../../components/ui/spinner';
-import { ShieldCheck, Edit2, AlertTriangle, FileText, Activity, UserPlus, Send, Info, MapPin, User, Clock, Building, Ticket } from 'lucide-react';
+import { ShieldCheck, Edit2, AlertTriangle, FileText, Activity, UserPlus, Send, MapPin, User, Building, Ticket, CheckCircle2 } from 'lucide-react';
 
 function PatientReviewContent() {
   const router = useRouter();
@@ -31,31 +31,9 @@ function PatientReviewContent() {
     floor: string;
     tokenNumber: string;
   } | null>(null);
-  const [countdown, setCountdown] = React.useState(20);
 
   const [editingField, setEditingField] = React.useState<string | null>(null);
   const [editValue, setEditValue] = React.useState('');
-
-  React.useEffect(() => {
-    if (!success) return;
-    const timer = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          fetch('/api/kiosk/session/cleanup', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ sessionId, reason: 'user_cancelled' }),
-          }).finally(() => {
-            router.push('/kiosk');
-          });
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [success, sessionId, router]);
 
   React.useEffect(() => {
     if (!sessionId) {
@@ -101,7 +79,7 @@ function PatientReviewContent() {
   };
 
   const handleConfirm = async () => {
-    if (!confirmed) return;
+    if (!confirmed || submitting) return;
     setSubmitting(true);
     try {
       const res = await fetch('/api/kiosk/review/confirm', {
@@ -137,12 +115,12 @@ function PatientReviewContent() {
   if (error) {
     return (
       <KioskLayout activeStepIndex={3}>
-        <div className="p-8">
+        <div className="p-8 max-w-xl mx-auto">
           <Alert variant="error" title="Error">
             <h2 className="font-bold">We could not complete the handoff.</h2>
             <p>{error}</p>
           </Alert>
-          <Button className="mt-4" onClick={() => router.push('/kiosk')}>Start Over</Button>
+          <Button className="mt-4 w-full" onClick={() => router.push('/kiosk')}>Start Over</Button>
         </div>
       </KioskLayout>
     );
@@ -162,10 +140,30 @@ function PatientReviewContent() {
             <ShieldCheck className="w-12 h-12 text-green-600" />
           </div>
 
-          <h1 className="text-3xl font-extrabold text-gray-900 mb-2">Thank you for your cooperation!</h1>
-          <p className="text-lg text-gray-600 mb-8 max-w-xl mx-auto">
-            Your intake details and medical history have been sent directly to the Doctor&apos;s Dashboard.
+          <h1 className="text-3xl font-extrabold text-gray-900 mb-2">Your information has been successfully submitted.</h1>
+          <p className="text-lg text-gray-600 mb-6 max-w-xl mx-auto">
+            Your clinical summary has been prepared for the doctor.
           </p>
+
+          {/* Completion Status Checklist */}
+          <div className="bg-green-50/70 border border-green-200 rounded-xl p-5 mb-8 text-left max-w-xl mx-auto space-y-2">
+            <div className="flex items-center text-green-900 text-sm font-semibold gap-3">
+              <CheckCircle2 className="w-5 h-5 text-green-600 shrink-0" />
+              <span>Information confirmed</span>
+            </div>
+            <div className="flex items-center text-green-900 text-sm font-semibold gap-3">
+              <CheckCircle2 className="w-5 h-5 text-green-600 shrink-0" />
+              <span>Clinical summary created</span>
+            </div>
+            <div className="flex items-center text-green-900 text-sm font-semibold gap-3">
+              <CheckCircle2 className="w-5 h-5 text-green-600 shrink-0" />
+              <span>PDF generated (Ref: {handoffRef.slice(-8)})</span>
+            </div>
+            <div className="flex items-center text-green-900 text-sm font-semibold gap-3">
+              <CheckCircle2 className="w-5 h-5 text-green-600 shrink-0" />
+              <span>Sent to Doctor Dashboard</span>
+            </div>
+          </div>
 
           {/* Doctor & Room Assignment Card */}
           <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-2xl p-6 mb-8 text-left shadow-sm">
@@ -206,7 +204,7 @@ function PatientReviewContent() {
             </div>
           </div>
 
-          {/* Instructions Box */}
+          {/* Patient Next Steps */}
           <div className="bg-gray-50 p-5 rounded-xl border border-gray-200 mb-8 text-left text-sm space-y-2">
             <h3 className="font-bold text-gray-800 text-base mb-3 flex items-center gap-2">
               <Ticket className="w-4 h-4 text-primary" /> Patient Next Steps
@@ -216,40 +214,40 @@ function PatientReviewContent() {
             <p className="text-gray-700">3. Your token <strong>{token}</strong> will be announced on the display screen.</p>
           </div>
 
-          {/* Auto Reset Timer Bar */}
-          <div className="flex flex-col items-center gap-4">
-            <div className="flex items-center gap-2 text-sm font-medium text-gray-500">
-              <Clock className="w-4 h-4 text-gray-400" />
-              <span>This kiosk screen will automatically reset in <strong className="text-gray-900 font-bold">{countdown} seconds</strong></span>
-            </div>
-
-            <Button
-              className="w-full max-w-sm py-4 text-base font-semibold bg-gray-900 hover:bg-black text-white"
-              onClick={async () => {
-                try {
-                  await fetch('/api/kiosk/session/cleanup', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ sessionId, reason: 'user_cancelled' }),
-                  });
-                } catch {}
-                router.push('/kiosk');
-              }}
-            >
-              Finish Intake & Return to Kiosk Start
-            </Button>
-          </div>
+          <Button
+            className="w-full max-w-sm py-4 text-base font-bold bg-primary hover:bg-primary/90 text-white shadow-lg rounded-xl"
+            onClick={() => router.push('/kiosk')}
+          >
+            Finish
+          </Button>
         </div>
       </KioskLayout>
     );
   }
 
-  const { patient, report, timeline, documents, hasAttentionFlags } = (data as any) || {};
+  const { patient, report, documents, hasAttentionFlags } = (data as any) || {};
+
+  const primaryComplaint = report?.clinicalHistory?.chiefComplaint?.primaryComplaint || 'General checkup';
+  const narrative = report?.clinicalHistory?.historyOfPresentIllness?.patientNarrative;
+  
+  // Concise Current Problem items (max ~4 lines/items)
+  const currentProblemItems: string[] = [
+    `Primary Complaint: ${primaryComplaint}`,
+    narrative ? `Details: ${narrative}` : null,
+  ].filter(Boolean) as string[];
+
+  // Concise Past History items (max ~4 items)
+  const pastHistoryItems: Array<{ name: string; source: string }> = (report?.clinicalHistory?.pastMedicalHistory || [])
+    .slice(0, 4)
+    .map((item: any) => ({
+      name: String(item.conditionName || 'Condition'),
+      source: (item.provenance as any)?.source === 'abdm' ? '🏥 ABDM' : (item.provenance as any)?.source === 'patient_voice' ? '🗣 Patient reported' : '📄 Document'
+    }));
 
   const renderEditableSection = (title: string, fieldPath: string, value: string) => {
     const isEditing = editingField === fieldPath;
     return (
-      <div className="mb-4">
+      <div className="mb-3">
         <div className="flex justify-between items-start mb-1">
           <h4 className="font-semibold text-gray-700">{title}</h4>
           {!isEditing && (
@@ -267,7 +265,7 @@ function PatientReviewContent() {
         {isEditing ? (
           <div className="flex flex-col gap-2 mt-2">
             <textarea
-              className="w-full border p-2 rounded focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full border p-2 rounded focus:outline-none focus:ring-2 focus:ring-primary text-sm"
               rows={3}
               value={editValue}
               onChange={(e) => setEditValue(e.target.value)}
@@ -278,7 +276,7 @@ function PatientReviewContent() {
             </div>
           </div>
         ) : (
-          <p className="text-gray-900 bg-gray-50 p-3 rounded">{value || 'Not reported'}</p>
+          <p className="text-gray-900 bg-gray-50 p-3 rounded text-sm">{value || 'Not reported'}</p>
         )}
       </div>
     );
@@ -297,7 +295,7 @@ function PatientReviewContent() {
           <h3 className="font-semibold mb-1">CLINICAL HISTORY DRAFT</h3>
           <p className="text-sm">
             Generated from the information collected during this intake. 
-            This draft has not yet been verified by a healthcare professional and does not constitute a diagnosis or treatment recommendation.
+            This draft will be sent to the doctor upon confirmation.
           </p>
         </Alert>
 
@@ -309,126 +307,90 @@ function PatientReviewContent() {
         )}
 
         <div className="space-y-6">
+          {/* Patient Info Card */}
           <Card className="p-6 shadow-sm">
             <h3 className="text-lg font-bold border-b pb-2 mb-4 flex items-center">
-              <UserPlus className="w-5 h-5 mr-2" /> Patient Information
+              <UserPlus className="w-5 h-5 mr-2 text-primary" /> Patient Information
             </h3>
             <div className="grid grid-cols-2 gap-4 text-sm">
-              <div><span className="text-gray-500 block">Name</span><span className="font-medium text-gray-900">{patient?.demographics?.fullName}</span></div>
+              <div><span className="text-gray-500 block">Name</span><span className="font-medium text-gray-900">{patient?.demographics?.fullName || 'Patient'}</span></div>
               <div><span className="text-gray-500 block">Age</span><span className="font-medium text-gray-900">{patient?.demographics?.age || 'Unknown'}</span></div>
               <div><span className="text-gray-500 block">Hospital No.</span><span className="font-medium text-gray-900">{patient?.identification?.hospitalNumber || 'N/A'}</span></div>
               <div><span className="text-gray-500 block">ABHA Ref</span><span className="font-medium text-gray-900">{patient?.identification?.abhaReference || 'N/A'}</span></div>
             </div>
           </Card>
 
-          <Card className="p-6 shadow-sm">
-            <h3 className="text-lg font-bold border-b pb-2 mb-4 flex items-center">
-              <Activity className="w-5 h-5 mr-2" /> Current Complaint
+          {/* Current Problem Card — Max ~4 concise items */}
+          <Card className="p-6 shadow-sm border-l-4 border-l-blue-600">
+            <h3 className="text-lg font-bold border-b pb-2 mb-4 flex items-center text-blue-950">
+              <Activity className="w-5 h-5 mr-2 text-blue-600" /> Current Problem
             </h3>
             {renderEditableSection(
-              'Reason for Visit', 
+              'Primary Complaint', 
               'clinicalHistory.chiefComplaint.primaryComplaint', 
-              report?.clinicalHistory?.chiefComplaint?.primaryComplaint || ''
+              primaryComplaint
             )}
-            
-            <div className="mt-4">
-              <h4 className="font-semibold text-gray-700 mb-2">History of Present Illness</h4>
-              <p className="text-gray-900 bg-gray-50 p-3 rounded text-sm">
-                {report?.clinicalHistory?.historyOfPresentIllness?.patientNarrative || 'Not reported'}
-              </p>
-            </div>
+            {narrative && (
+              <div className="mt-3">
+                <h4 className="font-semibold text-gray-700 text-sm mb-1">Illness Details</h4>
+                <p className="text-gray-900 bg-gray-50 p-3 rounded text-sm line-clamp-3">
+                  {narrative}
+                </p>
+              </div>
+            )}
           </Card>
 
+          {/* Past History Card — Max ~4 concise items, explicit "Not Reported" if empty */}
+          <Card className="p-6 shadow-sm border-l-4 border-l-purple-600">
+            <h3 className="text-lg font-bold border-b pb-2 mb-4 text-purple-950">Past History</h3>
+            {pastHistoryItems.length > 0 ? (
+              <ul className="space-y-2">
+                {pastHistoryItems.map((item, idx) => (
+                  <li key={idx} className="bg-gray-50 p-3 rounded text-sm flex justify-between items-center">
+                    <span className="font-semibold text-gray-900">{item.name}</span>
+                    <span className="text-xs text-gray-500 bg-white px-2 py-1 rounded border">{item.source}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div className="bg-gray-50 p-4 rounded text-sm text-gray-600 font-medium">
+                Not Reported
+              </div>
+            )}
+          </Card>
+
+          {/* Medications Card */}
           <Card className="p-6 shadow-sm">
-            <h3 className="text-lg font-bold border-b pb-2 mb-4">Past Medical History</h3>
-            {report?.clinicalHistory?.pastMedicalHistory?.length ? (
-              <ul className="list-disc pl-5 space-y-2">
-                {report.clinicalHistory.pastMedicalHistory.map((item: Record<string, unknown>, idx: number) => (
-                  <li key={idx} className="text-gray-900">
-                    <span className="font-medium">{String(item.conditionName)}</span>
-                    <span className="text-xs text-gray-500 ml-2 bg-gray-100 px-2 py-0.5 rounded-full">
-                      Source: {(item.provenance as any)?.source === 'abdm' ? '🏥 ABDM' : (item.provenance as any)?.source === 'patient_voice' ? '🗣 Patient reported' : '📄 Document'}
+            <h3 className="text-lg font-bold border-b pb-2 mb-4">Medications</h3>
+            {report?.clinicalHistory?.medications?.length ? (
+              <ul className="space-y-2">
+                {report.clinicalHistory.medications.slice(0, 4).map((med: any, idx: number) => (
+                  <li key={idx} className="bg-gray-50 p-3 rounded border border-gray-100 flex justify-between items-center text-sm">
+                    <div>
+                      <span className="font-medium text-gray-900">{String(med.medicationName)}</span>
+                      {med.dose && <span className="text-xs text-gray-500 ml-2">({String(med.dose)})</span>}
+                    </div>
+                    <span className="text-xs text-gray-500 bg-white px-2 py-0.5 rounded border">
+                      {(med.provenance as any)?.source === 'abdm' ? '🏥 ABDM' : '🗣 Patient'}
                     </span>
                   </li>
                 ))}
               </ul>
             ) : (
-              <div className="bg-blue-50/60 border border-blue-100 p-4 rounded-lg flex items-center gap-3 text-blue-900">
-                <Info className="w-5 h-5 text-blue-600 shrink-0" />
-                <div>
-                  <p className="font-semibold text-sm">No Prior Medical History Found</p>
-                  <p className="text-xs text-blue-700">First Visit Intake — No prior chronic conditions or hospitalizations recorded for this patient.</p>
-                </div>
-              </div>
+              <p className="text-gray-500 text-sm">Not Reported</p>
             )}
           </Card>
 
-          <Card className="p-6 shadow-sm">
-            <h3 className="text-lg font-bold border-b pb-2 mb-4">Medications</h3>
-            {report?.clinicalHistory?.medications?.length ? (
-              <ul className="space-y-3">
-                {report?.clinicalHistory?.medications?.map((med: any, idx: number) => (
-                  <li key={idx} className="bg-gray-50 p-3 rounded border border-gray-100">
-                    <div className="font-medium text-gray-900">{String(med.medicationName)}</div>
-                    <div className="text-sm text-gray-600 mt-1">
-                      {String(med.dose)} {String(med.frequency)}
-                    </div>
-                    <div className="text-xs text-gray-500 mt-2 flex gap-2">
-                      <span className="bg-white px-2 py-1 rounded border">
-                        Source: {(med.provenance as any)?.source === 'abdm' ? '🏥 ABDM' : (med.provenance as any)?.source === 'patient_voice' ? '🗣 Patient reported' : '📄 Document'}
-                      </span>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-gray-500 text-sm">No regular medications reported.</p>
-            )}
-          </Card>
-
-          <Card className="p-6 shadow-sm">
-            <h3 className="text-lg font-bold border-b pb-2 mb-4">Allergies</h3>
-            {report?.clinicalHistory?.allergies?.length ? (
-              <ul className="list-disc pl-5 space-y-2">
-                {report?.clinicalHistory?.allergies?.map((alg: any, idx: number) => (
-                  <li key={idx} className="text-gray-900">
-                    <span className="font-medium">{String(alg.allergen)}</span> ({String(alg.reaction)})
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-gray-500 text-sm">No known allergies reported.</p>
-            )}
-          </Card>
-
-          {report?.ayush && Object.keys(report.ayush).length > 0 && (
-            <Card className="p-6 shadow-sm border-green-200">
-              <h3 className="text-lg font-bold border-b pb-2 mb-4 text-green-800">AYUSH Information</h3>
-              <p className="text-xs font-semibold text-green-600 uppercase tracking-wider mb-4">Patient reported — Requires practitioner assessment</p>
-              
-              <div className="space-y-4">
-                {report.ayush.prakriti && renderEditableSection('Prakriti', 'ayush.prakriti', report.ayush.prakriti)}
-                {report.ayush.agni && renderEditableSection('Agni / Digestion', 'ayush.agni', report.ayush.agni)}
-                {report.ayush.koshtha && renderEditableSection('Koshtha / Bowel', 'ayush.koshtha', report.ayush.koshtha)}
-              </div>
-            </Card>
-          )}
-
+          {/* Documents Card */}
           <Card className="p-6 shadow-sm bg-gray-50 border-dashed border-2">
-            <h3 className="text-lg font-bold border-b pb-2 mb-4">External Sources Used</h3>
-            <ul className="space-y-3 text-sm">
-              <li className="flex items-center">
-                <span className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mr-3">📄</span>
-                {documents?.length ? `✓ ${documents.length} document(s) uploaded and processed` : 'No documents uploaded'}
-              </li>
-              <li className="flex items-center">
-                <span className="w-6 h-6 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center mr-3">🏥</span>
-                {timeline?.events?.some((e: any) => (e.provenance as any)?.source === 'abdm') ? '✓ Relevant historical information found via ABDM' : 'No relevant ABDM history found for this complaint.'}
-              </li>
-            </ul>
+            <h3 className="text-lg font-bold border-b pb-2 mb-4">Uploaded Documents & Records</h3>
+            <p className="text-sm text-gray-700">
+              {documents?.length ? `✓ ${documents.length} medical document(s) attached to session` : 'No external documents uploaded'}
+            </p>
           </Card>
         </div>
 
+        {/* Sticky Confirmation Bar */}
         <div className="mt-12 bg-white p-6 rounded-xl border-2 border-primary/20 shadow-md sticky bottom-4 z-10">
           <div className="flex items-start mb-4">
             <Checkbox 
@@ -481,3 +443,4 @@ export default function PatientReviewPage() {
     </React.Suspense>
   );
 }
+

@@ -114,20 +114,7 @@ export function getNextQuestion(
 
   const currentQ = questions[currentIndex];
   
-  // 1. Check if there are explicit followUpRules to jump to a specific question
-  if (currentQ.followUpRules && currentQ.followUpRules.length > 0) {
-    const answer = answers[currentQuestionId];
-    for (const rule of currentQ.followUpRules) {
-      if (evaluateCondition(rule.condition, answer)) {
-        const targetQ = questions.find((q) => q.id === rule.nextQuestionId);
-        if (targetQ) return targetQ;
-      }
-    }
-  }
-
-  // 2. Evaluate 9 Current-Problem Domains
-  const domains = evalCurrentProblemDomains(answers);
-
+  // Question-to-domain mapping (used by both followUpRules and sequential logic)
   const questionDomainMap: Record<string, string> = {
     reason_for_visit: 'chief_complaint',
     symptom_duration: 'onset_duration',
@@ -141,25 +128,41 @@ export function getNextQuestion(
     previous_treatments: 'previous_treatments',
   };
 
+  // Evaluate domains ONCE to use for both followUpRules and sequential logic
+  const domains = evalCurrentProblemDomains(answers);
+
+  // 1. Check if there are explicit followUpRules to jump to a specific question
+  // BUT respect domain completeness - don't jump to a question whose domain is already COMPLETE
+  if (currentQ.followUpRules && currentQ.followUpRules.length > 0) {
+    const answer = answers[currentQuestionId];
+    for (const rule of currentQ.followUpRules) {
+      if (evaluateCondition(rule.condition, answer)) {
+        const targetQ = questions.find((q) => q.id === rule.nextQuestionId);
+        if (targetQ) {
+          const targetDomain = questionDomainMap[targetQ.id];
+          // Skip if target domain is already complete (info already extracted)
+          if (targetDomain && domains[targetDomain]?.status === 'COMPLETE') {
+            continue; // Try next rule or fall through to sequential logic
+          }
+          return targetQ;
+        }
+      }
+    }
+  }
+
+  // 2. Sequential logic using 9 Current-Problem Domains
   let nextIdx = currentIndex + 1;
   while (nextIdx < questions.length) {
     const candidateQ = questions[nextIdx];
     const targetDomain = questionDomainMap[candidateQ.id];
 
-    // Priority Rule: Do NOT move to past medical history or medications until all Current-Problem domains are covered
-    const isHistoryOrMedication = candidateQ.section === 'past_medical_history' || candidateQ.section === 'medications';
-    if (isHistoryOrMedication) {
-      const missingCurrentProbQ = questions.find(q => {
-        const dKey = questionDomainMap[q.id];
-        return dKey && domains[dKey]?.status === 'MISSING' && !answers[q.id];
-      });
-      if (missingCurrentProbQ) {
-        return missingCurrentProbQ;
-      }
+    // Skip candidate question if its domain is ALREADY COMPLETE (info already extracted via NLP or answered)
+    if (targetDomain && domains[targetDomain]?.status === 'COMPLETE') {
+      nextIdx++;
+      continue;
     }
 
-    // Skip candidate question if its domain is ALREADY COMPLETE and answered or extracted
-    if (targetDomain && domains[targetDomain]?.status === 'COMPLETE' && (answers[candidateQ.id] || candidateQ.required === false)) {
+    if (answers[candidateQ.id]) {
       nextIdx++;
       continue;
     }

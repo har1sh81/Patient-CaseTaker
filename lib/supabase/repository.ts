@@ -374,6 +374,9 @@ export class SupabaseRepository implements DatabaseService {
 
   async updateSession(id: string, updates: Partial<IntakeSession>): Promise<IntakeSession> {
     const dbPayload = keysToSnake(updates);
+    delete dbPayload.handoff_at;
+    delete dbPayload.handoff_snapshot_id;
+
     const { data, error } = await (await createClient())
       .from('intake_sessions')
       .update(dbPayload)
@@ -716,6 +719,9 @@ export class SupabaseRepository implements DatabaseService {
   async saveReport(report: ClinicalHistoryReport): Promise<ClinicalHistoryReport> {
     ClinicalHistoryReportSchema.parse(report);
     const dbPayload = keysToSnake(report);
+    dbPayload.id = report.reportId;
+    delete dbPayload.report_id;
+
     const { data, error } = await (await createClient())
       .from('clinical_reports')
       .upsert(dbPayload)
@@ -723,7 +729,9 @@ export class SupabaseRepository implements DatabaseService {
       .single();
 
     if (error) throw new Error(`saveReport failed: ${error.message}`);
-    return ClinicalHistoryReportSchema.parse(keysToCamel(data));
+    const camel = keysToCamel(data);
+    camel.reportId = data.id;
+    return ClinicalHistoryReportSchema.parse(camel);
   }
 
   async getReport(id: string): Promise<ClinicalHistoryReport | null> {
@@ -735,7 +743,9 @@ export class SupabaseRepository implements DatabaseService {
 
     if (error) throw new Error(`getReport failed: ${error.message}`);
     if (!data) return null;
-    return ClinicalHistoryReportSchema.parse(keysToCamel(data));
+    const camel = keysToCamel(data);
+    camel.reportId = data.id;
+    return ClinicalHistoryReportSchema.parse(camel);
   }
 
   async getReportBySession(sessionId: string): Promise<ClinicalHistoryReport | null> {
@@ -743,11 +753,15 @@ export class SupabaseRepository implements DatabaseService {
       .from('clinical_reports')
       .select()
       .eq('session_id', sessionId)
-      .maybeSingle();
+      .order('created_at', { ascending: false })
+      .limit(1);
 
     if (error) throw new Error(`getReportBySession failed: ${error.message}`);
-    if (!data) return null;
-    return ClinicalHistoryReportSchema.parse(keysToCamel(data));
+    if (!data || data.length === 0) return null;
+    const row = data[0];
+    const camel = keysToCamel(row);
+    camel.reportId = row.id;
+    return ClinicalHistoryReportSchema.parse(camel);
   }
 
   async updateClinicalReport(sessionId: string, data: Partial<ClinicalHistoryReport>): Promise<ClinicalHistoryReport> {

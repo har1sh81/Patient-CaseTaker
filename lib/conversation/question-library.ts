@@ -41,33 +41,11 @@ export const PHASE6_DEMO_QUESTIONS: Question[] = [
       { id: 'gt7', value: 'gt7', label: 'More than 1 week' },
     ],
   },
-  // SECTION B — SIMPLE FOLLOW-UP
-  {
-    id: 'symptom_progression',
-    section: 'hpi',
-    displayOrder: 3,
-    question: {
-      en: 'Is the problem getting better, worse, or staying about the same?',
-      hi: 'क्या समस्या बेहतर हो रही है, बदतर हो रही है, या लगभग वैसी ही है?',
-      ta: 'பிரச்சனை குணமாகிறதா, மோசமாகிறதா அல்லது அப்படியே இருக்கிறதா?',
-    },
-    inputType: 'single_choice',
-    informationFields: ['progression'],
-    required: true,
-    allowVoice: true,
-    allowTouch: true,
-    options: [
-      { id: 'better', value: 'better', label: 'Getting better' },
-      { id: 'worse', value: 'worse', label: 'Getting worse' },
-      { id: 'same', value: 'same', label: 'About the same' },
-      { id: 'not_sure', value: 'not_sure', label: 'Not sure' },
-    ],
-  },
-  // SECTION C — BASIC SAFETY DEMONSTRATION (Conditional Routing)
+  // SECTION B — BASIC SAFETY DEMONSTRATION (Conditional Routing)
   {
     id: 'safety_check',
     section: 'review_of_systems',
-    displayOrder: 4,
+    displayOrder: 3,
     question: {
       en: 'Are you currently experiencing any severe pain?',
       hi: 'क्या आपको वर्तमान में कोई गंभीर दर्द हो रहा है?',
@@ -100,7 +78,7 @@ export const PHASE6_DEMO_QUESTIONS: Question[] = [
   {
     id: 'pain_location',
     section: 'review_of_systems',
-    displayOrder: 3,
+    displayOrder: 4,
     question: {
       en: 'Where exactly is the pain or discomfort located?',
       hi: 'दर्द या बेचैनी ठीक किस जगह पर है?',
@@ -115,7 +93,7 @@ export const PHASE6_DEMO_QUESTIONS: Question[] = [
   {
     id: 'symptom_character',
     section: 'hpi',
-    displayOrder: 4,
+    displayOrder: 5,
     question: {
       en: 'How would you describe the feeling of the pain or discomfort (such as burning, sharp, dull, throbbing, or pressure)?',
       hi: 'आप दर्द या बेचैनी को कैसे समझाएंगे (जैसे जलन, तेज, धीमा, धड़कने वाला या दबाव)?',
@@ -130,7 +108,7 @@ export const PHASE6_DEMO_QUESTIONS: Question[] = [
   {
     id: 'pain_scale',
     section: 'review_of_systems',
-    displayOrder: 5,
+    displayOrder: 6,
     question: {
       en: 'On a scale from 1 to 10, how severe is the pain, where 1 is very mild and 10 is the worst pain?',
       hi: '1 से 10 के पैमाने पर, दर्द कितना गंभीर है, जहाँ 1 बहुत हल्का है और 10 सबसे गंभीर दर्द है?',
@@ -145,7 +123,7 @@ export const PHASE6_DEMO_QUESTIONS: Question[] = [
   {
     id: 'symptom_progression',
     section: 'hpi',
-    displayOrder: 6,
+    displayOrder: 7,
     question: {
       en: 'Is the problem getting better, worse, or staying about the same?',
       hi: 'क्या समस्या बेहतर हो रही है, बदतर हो रही है, या लगभग वैसी ही है?',
@@ -166,7 +144,7 @@ export const PHASE6_DEMO_QUESTIONS: Question[] = [
   {
     id: 'aggravating_relieving',
     section: 'hpi',
-    displayOrder: 7,
+    displayOrder: 8,
     question: {
       en: 'Does anything make the symptoms better or worse (such as eating, resting, movement, or medicines)?',
       hi: 'क्या किसी चीज से लक्षण बेहतर या बदतर होते हैं (जैसे खाना, आराम करना, चलना या दवाएं)?',
@@ -181,7 +159,7 @@ export const PHASE6_DEMO_QUESTIONS: Question[] = [
   {
     id: 'associated_symptoms',
     section: 'hpi',
-    displayOrder: 8,
+    displayOrder: 9,
     question: {
       en: 'Are you experiencing any other symptoms along with this (such as fever, nausea, dizziness, or shortness of breath)?',
       hi: 'क्या आपको इसके साथ कोई अन्य लक्षण (जैसे बुखार, मतली, चक्कर आना या सांस लेने में तकलीफ) का अनुभव हो रहा है?',
@@ -196,7 +174,7 @@ export const PHASE6_DEMO_QUESTIONS: Question[] = [
   {
     id: 'previous_treatments',
     section: 'hpi',
-    displayOrder: 9,
+    displayOrder: 10,
     question: {
       en: 'Have you taken any medicines, home remedies, or treatments for this problem so far?',
       hi: 'क्या आपने इस समस्या के लिए अब तक कोई दवाएं, घरेलू उपचार या इलाज लिया है?',
@@ -211,7 +189,7 @@ export const PHASE6_DEMO_QUESTIONS: Question[] = [
   {
     id: 'past_medical_history',
     section: 'past_medical_history',
-    displayOrder: 10,
+    displayOrder: 11,
     question: {
       en: 'Do you have any existing medical conditions (such as Diabetes, High Blood Pressure, Asthma, or Heart disease)?',
       hi: 'क्या आपको कोई पहले से मौजूद बीमारी (जैसे मधुमेह, उच्च रक्तचाप, अस्थमा या हृदय रोग) है?',
@@ -226,7 +204,7 @@ export const PHASE6_DEMO_QUESTIONS: Question[] = [
   {
     id: 'current_medications',
     section: 'medications',
-    displayOrder: 11,
+    displayOrder: 12,
     question: {
       en: 'Are you currently taking any regular medications or supplements?',
       hi: 'क्या आप वर्तमान में कोई नियमित दवाएं या पूरक ले रहे हैं?',
@@ -242,7 +220,7 @@ export const PHASE6_DEMO_QUESTIONS: Question[] = [
   {
     id: 'stomach_pain_triggers',
     section: 'hpi',
-    displayOrder: 10,
+    displayOrder: 13,
     question: {
       en: 'Does the burning stomach pain get better or worse after eating meals or taking antacids?',
       hi: 'क्या भोजन करने या एंटासिड लेने के बाद पेट की जलन बेहतर या बदतर हो जाती है?',
@@ -263,7 +241,7 @@ export const PHASE6_DEMO_QUESTIONS: Question[] = [
   {
     id: 'gi_red_flags',
     section: 'review_of_systems',
-    displayOrder: 11,
+    displayOrder: 14,
     question: {
       en: 'Have you noticed any acid regurgitation, nausea, vomiting, or dark black stools?',
       hi: 'क्या आपने खट्टी डकारें, जी मिचलाना, उल्टी, या काले रंग का मल देखा है?',
@@ -284,7 +262,7 @@ export const PHASE6_DEMO_QUESTIONS: Question[] = [
   {
     id: 'cardiac_radiation_check',
     section: 'review_of_systems',
-    displayOrder: 12,
+    displayOrder: 15,
     question: {
       en: 'Does the chest pain or tightness spread to your left arm, neck, shoulder, or jaw?',
       hi: 'क्या सीने में दर्द या दबाव आपके बाएं हाथ, गर्दन या जबड़े में फैलता है?',

@@ -35,7 +35,8 @@ export async function POST(request: Request) {
 
     }
 
-    if (isSupabaseConfigured() && process.env.NEXT_PUBLIC_MOCK_SERVICES_ENABLED !== 'true' && process.env.NODE_ENV !== 'development' && process.env.DEMO_ENVIRONMENT !== 'true') {
+    const isMockOrDemo = process.env.NEXT_PUBLIC_MOCK_SERVICES_ENABLED === 'true' || process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test' || process.env.DEMO_ENVIRONMENT === 'true';
+    if (isSupabaseConfigured() && !isMockOrDemo) {
       const supabase = await createClient();
       const { data: { user } } = await supabase.auth.getUser();
       if (!user || user.id !== session.patientId) {
@@ -45,14 +46,57 @@ export async function POST(request: Request) {
 
 
     if (session.status === 'sent_to_doctor') {
-      return NextResponse.json({ success: true, message: 'Already sent to doctor' }, { status: 200 });
+      const existingReport = await db.getReportBySession(sessionId);
+      const snapshotId = session.handoffSnapshotId || existingReport?.reportId || `snp_${sessionId}`;
+      
+      const complaintText = (existingReport?.clinicalHistory?.chiefComplaint?.primaryComplaint || '').toLowerCase();
+      let doctorAssignment = {
+        doctorName: 'Dr. Rajesh Sharma, MD',
+        specialty: 'General Medicine & Internal Care',
+        roomNumber: 'Room 204',
+        floor: '2nd Floor, Wing B',
+        tokenNumber: `MK-305`
+      };
+
+      if (complaintText.includes('heart') || complaintText.includes('chest') || complaintText.includes('palpitation')) {
+        doctorAssignment = {
+          doctorName: 'Dr. Ananya Roy, MD',
+          specialty: 'Cardiology & Critical Care',
+          roomNumber: 'Room 108',
+          floor: '1st Floor, OPD Block A',
+          tokenNumber: `MK-108`
+        };
+      } else if (complaintText.includes('bone') || complaintText.includes('joint') || complaintText.includes('knee') || complaintText.includes('back') || complaintText.includes('fracture')) {
+        doctorAssignment = {
+          doctorName: 'Dr. Vikram Patel, MS',
+          specialty: 'Orthopedics & Joint Care',
+          roomNumber: 'Room 312',
+          floor: '3rd Floor, Wing C',
+          tokenNumber: `MK-312`
+        };
+      } else if (session.departmentMode === 'ayush' || complaintText.includes('ayush') || complaintText.includes('prakriti')) {
+        doctorAssignment = {
+          doctorName: 'Dr. Meera Vaidya, BAMS',
+          specialty: 'Ayurveda & Panchakarma',
+          roomNumber: 'Room 102',
+          floor: 'Ground Floor, AYUSH OPD',
+          tokenNumber: `MK-102`
+        };
+      }
+
+      return NextResponse.json({ 
+        success: true, 
+        snapshotId,
+        doctorAssignment,
+        message: 'Already sent to doctor' 
+      }, { status: 200 });
     }
 
     // if (session.status !== 'patient_review' && session.status !== 'report_ready') {
     //   return NextResponse.json({ error: 'Session not in review state' }, { status: 400 });
     // }
 
-    if (session.expiresAt && new Date(session.expiresAt) < new Date()) {
+    if (session.expiresAt && new Date(session.expiresAt) < new Date() && !isMockOrDemo) {
       return NextResponse.json({ error: 'Session expired' }, { status: 403 });
     }
 

@@ -78,8 +78,8 @@ function TimelineContent() {
   }, [sessionId, organizeRecords, router]);
 
   const handleContinue = () => {
-    // Route to final clinical history generator preview
-    router.push(`/kiosk/interview/preview?sessionId=${sessionId}`);
+    // Route to final patient review & confirmation screen
+    router.push(`/kiosk/review?sessionId=${sessionId}`);
   };
 
   if (!sessionId) return null;
