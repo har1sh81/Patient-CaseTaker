@@ -101,12 +101,16 @@ export default function KioskPage() {
   // Format ID types reactively
   const handleIdChange = (val: string) => {
     if (method === 'abha') {
-      const digits = val.replace(/\D/g, '').slice(0, 14);
-      const parts = [];
-      for (let i = 0; i < digits.length; i += 4) {
-        parts.push(digits.slice(i, i + 4));
+      if (/[a-zA-Z]/.test(val)) {
+        setIdValue(val.toUpperCase());
+      } else {
+        const digits = val.replace(/\D/g, '').slice(0, 14);
+        const parts = [];
+        for (let i = 0; i < digits.length; i += 4) {
+          parts.push(digits.slice(i, i + 4));
+        }
+        setIdValue(parts.join('-'));
       }
-      setIdValue(parts.join('-'));
     } else if (method === 'mobile') {
       setIdValue(val.replace(/\D/g, '').slice(0, 10));
     } else if (method === 'hospital') {
