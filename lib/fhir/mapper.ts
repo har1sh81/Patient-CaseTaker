@@ -1,6 +1,6 @@
 import { ClinicalHistoryReport, IntakeSession } from '../../types';
 
-export function mapToFHIRBundle(session: IntakeSession, report: ClinicalHistoryReport): any {
+export function mapToFHIRBundle(session: IntakeSession, report: any): any {
   const bundle = {
     resourceType: 'Bundle',
     type: 'collection',
@@ -40,8 +40,18 @@ export function mapToFHIRBundle(session: IntakeSession, report: ClinicalHistoryR
   };
   bundle.entry.push({ resource: encounterResource });
 
+  // Resolve fields safely across ClinicalHistoryReport and ClinicalConsultationSummary
+  const primaryCc = report.clinicalHistory?.chiefComplaint?.primaryComplaint || report.chiefComplaint?.primaryComplaint;
+  const pastMedical = Array.isArray(report.clinicalHistory?.pastMedicalHistory) ? report.clinicalHistory.pastMedicalHistory : Array.isArray(report.relevantPreviousHistory) ? report.relevantPreviousHistory : [];
+  const meds = Array.isArray(report.clinicalHistory?.medications) ? report.clinicalHistory.medications : Array.isArray(report.medications) ? report.medications : [];
+  const algs = Array.isArray(report.clinicalHistory?.allergies) ? report.clinicalHistory.allergies : Array.isArray(report.allergies) ? report.allergies : [];
+  const surgs = Array.isArray(report.clinicalHistory?.pastSurgicalHistory) ? report.clinicalHistory.pastSurgicalHistory : [];
+  const labs = Array.isArray(report.documentSummary?.laboratoryResults) ? report.documentSummary.laboratoryResults : Array.isArray(report.investigations) ? report.investigations : [];
+  const extConds = Array.isArray(report.documentSummary?.extractedConditions) ? report.documentSummary.extractedConditions : [];
+  const docs = Array.isArray(report.documentSummary?.documents) ? report.documentSummary.documents : Array.isArray(report.uploadedDocuments) ? report.uploadedDocuments : [];
+
   // 3. Chief Complaint (Condition)
-  if (report.clinicalHistory.chiefComplaint) {
+  if (primaryCc) {
     bundle.entry.push({
       resource: {
         resourceType: 'Condition',
@@ -52,7 +62,7 @@ export function mapToFHIRBundle(session: IntakeSession, report: ClinicalHistoryR
         category: [{
           coding: [{ system: 'http://terminology.hl7.org/CodeSystem/condition-category', code: 'encounter-diagnosis' }],
         }],
-        code: { text: report.clinicalHistory.chiefComplaint.primaryComplaint },
+        code: { text: primaryCc },
         subject: { reference: `Patient/${patientResource.id}` },
         encounter: { reference: `Encounter/${encounterResource.id}` },
       }
@@ -60,29 +70,33 @@ export function mapToFHIRBundle(session: IntakeSession, report: ClinicalHistoryR
   }
 
   // 4. Past Medical History (Condition)
-  report.clinicalHistory.pastMedicalHistory.forEach((cond) => {
+  pastMedical.forEach((cond: any) => {
+    const name = cond.conditionName || cond.condition || cond.name;
+    if (!name) return;
     bundle.entry.push({
       resource: {
         resourceType: 'Condition',
-        id: cond.id,
+        id: cond.id || `pmh-${Math.random().toString(36).substring(7)}`,
         clinicalStatus: {
           coding: [{ system: 'http://terminology.hl7.org/CodeSystem/condition-clinical', code: cond.status === 'active' ? 'active' : 'resolved' }],
         },
-        code: { text: cond.conditionName },
+        code: { text: name },
         subject: { reference: `Patient/${patientResource.id}` },
-        onsetDateTime: cond.diagnosedDate,
+        onsetDateTime: cond.diagnosedDate || cond.date,
       }
     });
   });
 
   // 5. Medications (MedicationStatement)
-  report.clinicalHistory.medications.forEach((med) => {
+  meds.forEach((med: any) => {
+    const name = med.name || med.drugName || med.medicationName;
+    if (!name) return;
     bundle.entry.push({
       resource: {
         resourceType: 'MedicationStatement',
-        id: med.id,
+        id: med.id || `med-${Math.random().toString(36).substring(7)}`,
         status: med.status === 'active' ? 'active' : med.status === 'past' ? 'completed' : 'unknown',
-        medicationCodeableConcept: { text: med.name },
+        medicationCodeableConcept: { text: name },
         subject: { reference: `Patient/${patientResource.id}` },
         dosage: [{ text: `${med.dosage || ''} ${med.frequency || ''} ${med.route || ''}`.trim() }],
       }
@@ -90,13 +104,15 @@ export function mapToFHIRBundle(session: IntakeSession, report: ClinicalHistoryR
   });
 
   // 6. Allergies (AllergyIntolerance)
-  report.clinicalHistory.allergies.forEach((alg) => {
+  algs.forEach((alg: any) => {
+    const allergen = alg.allergen || alg.allergy;
+    if (!allergen) return;
     bundle.entry.push({
       resource: {
         resourceType: 'AllergyIntolerance',
-        id: alg.id,
+        id: alg.id || `alg-${Math.random().toString(36).substring(7)}`,
         category: [alg.category === 'drug' ? 'medication' : alg.category === 'food' ? 'food' : alg.category === 'environmental' ? 'environment' : 'biologic'],
-        code: { text: alg.allergen },
+        code: { text: allergen },
         patient: { reference: `Patient/${patientResource.id}` },
         reaction: alg.reaction ? [{ manifestation: [{ text: alg.reaction }] }] : undefined,
       }
@@ -104,13 +120,15 @@ export function mapToFHIRBundle(session: IntakeSession, report: ClinicalHistoryR
   });
 
   // 7. Surgeries (Procedure)
-  report.clinicalHistory.pastSurgicalHistory.forEach((surg) => {
+  surgs.forEach((surg: any) => {
+    const procName = surg.procedureName || surg.name;
+    if (!procName) return;
     bundle.entry.push({
       resource: {
         resourceType: 'Procedure',
-        id: surg.id,
+        id: surg.id || `surg-${Math.random().toString(36).substring(7)}`,
         status: 'completed',
-        code: { text: surg.procedureName },
+        code: { text: procName },
         subject: { reference: `Patient/${patientResource.id}` },
         performedDateTime: surg.date,
       }
@@ -118,45 +136,51 @@ export function mapToFHIRBundle(session: IntakeSession, report: ClinicalHistoryR
   });
 
   // 8. Labs (Observation)
-  report.documentSummary.laboratoryResults.forEach((lab) => {
+  labs.forEach((lab: any) => {
+    const testName = lab.testName || lab.test || lab.title;
+    if (!testName) return;
     bundle.entry.push({
       resource: {
         resourceType: 'Observation',
-        id: lab.id,
+        id: lab.id || `lab-${Math.random().toString(36).substring(7)}`,
         status: 'final',
-        code: { text: lab.testName },
+        code: { text: testName },
         subject: { reference: `Patient/${patientResource.id}` },
-        valueString: lab.valueRaw,
+        valueString: lab.valueRaw || lab.value || lab.result,
         referenceRange: lab.referenceRangeRaw ? [{ text: lab.referenceRangeRaw }] : undefined,
-        effectiveDateTime: lab.testDate,
+        effectiveDateTime: lab.testDate || lab.date,
       }
     });
   });
 
   // 9. Extracted Conditions (Condition)
-  report.documentSummary.extractedConditions.forEach((cond) => {
+  extConds.forEach((cond: any) => {
+    const name = cond.name || cond.conditionName;
+    if (!name) return;
     bundle.entry.push({
       resource: {
         resourceType: 'Condition',
         id: `ext-cond-${Math.random().toString(36).substring(7)}`,
-        code: { text: cond.name },
+        code: { text: name },
         subject: { reference: `Patient/${patientResource.id}` },
       }
     });
   });
 
   // 10. Documents (DocumentReference)
-  report.documentSummary.documents.forEach((doc) => {
+  docs.forEach((doc: any) => {
+    const title = doc.fileName || doc.title || doc.name;
+    if (!title) return;
     bundle.entry.push({
       resource: {
         resourceType: 'DocumentReference',
-        id: doc.id,
+        id: doc.id || `doc-${Math.random().toString(36).substring(7)}`,
         status: 'current',
-        type: { text: doc.type },
+        type: { text: doc.type || 'Medical Document' },
         subject: { reference: `Patient/${patientResource.id}` },
         content: [{
           attachment: {
-            title: doc.fileName,
+            title,
           }
         }]
       }
