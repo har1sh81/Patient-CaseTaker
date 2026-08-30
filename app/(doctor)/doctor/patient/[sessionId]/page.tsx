@@ -276,7 +276,25 @@ export default function DoctorPatientWorkspace({ params }: PageProps) {
             {patient?.demographics?.age || '--'}y • {patient?.demographics?.gender || '--'}
           </span>
         </div>
-        <div>
+        <div className="flex items-center gap-3">
+          <Button
+            variant="outline"
+            onClick={() => window.open(`/api/doctor/cases/${sessionId}/pdf`, '_blank')}
+            className="bg-slate-800 hover:bg-slate-700 text-white border-slate-700 flex items-center gap-2"
+          >
+            <FileText className="w-4 h-4 text-blue-400" />
+            <span>Open PDF</span>
+          </Button>
+
+          <Button
+            variant="outline"
+            onClick={() => window.open(`/api/doctor/cases/${sessionId}/pdf?download=true`, '_self')}
+            className="bg-slate-800 hover:bg-slate-700 text-white border-slate-700 flex items-center gap-2"
+          >
+            <FileText className="w-4 h-4 text-green-400" />
+            <span>Download PDF</span>
+          </Button>
+
           <Button onClick={handleFinalize} disabled={isFinalizing} className="bg-green-600 hover:bg-green-700 text-white">
             <CheckCircle className="w-4 h-4 mr-2" /> {isFinalizing ? 'Finalizing...' : 'Finalize Consultation'}
           </Button>

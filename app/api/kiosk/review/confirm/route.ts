@@ -5,6 +5,9 @@ import { randomUUID } from 'crypto';
 import { ClinicalHistoryReport } from '../../../../../types';
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/server';
 import { getAIProvider } from '@/lib/ai/factory';
+import { composeClinicalConsultationSummary } from '@/lib/reports/report-composer';
+import { generateClinicalSummaryPDFBuffer } from '@/lib/reports/pdf-generator';
+import { storeClinicalSummaryPDF } from '@/lib/reports/pdf-storage';
 
 const ConfirmRequestSchema = z.object({
   sessionId: z.string(),
@@ -53,49 +56,109 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Session expired' }, { status: 403 });
     }
 
-    let report = await db.getReportBySession(sessionId);
-    if (!report) {
-      const patient = await db.getPatient(session.patientId!);
-      const answers = await db.getSessionAnswers(sessionId);
-      const timeline = await db.getTimeline(sessionId);
-      const flags = await db.getSessionFlags(sessionId);
-      const provider = getAIProvider();
-      const docs = await db.getSessionDocuments(sessionId);
-      const extractions = [];
-      for (const d of docs) {
-        const ext = await db.getExtraction(d.id);
-        if (ext) extractions.push(ext);
-      }
-
-      const genResponse = await provider.generateClinicalHistoryDraft({
-        session,
-        patient: patient || {
-          id: session.patientId!,
-          demographics: { firstName: 'Patient', fullName: 'Kiosk Patient', age: 35, gender: 'other' },
-          identification: {},
-          createdAt: new Date().toISOString(),
-        },
-        answers,
-        timeline: timeline ? timeline.records : [],
-        documents: extractions,
-        flags,
-        patientReview: { sessionId, sections: [], status: 'pending' },
-      });
-      report = genResponse.report;
+    const patient = (await db.getPatient(session.patientId!)) || {
+      id: session.patientId || 'pat_demo',
+      demographics: { firstName: 'Patient', fullName: 'Kiosk Patient', age: 35, gender: 'other' },
+      identification: {},
+      createdAt: new Date().toISOString(),
+    };
+    const answers = await db.getSessionAnswers(sessionId);
+    const timeline = await db.getTimeline(sessionId);
+    const flags = await db.getSessionFlags(sessionId);
+    const docs = await db.getSessionDocuments(sessionId);
+    const extractions = [];
+    for (const d of docs) {
+      const ext = await db.getExtraction(d.id);
+      if (ext) extractions.push(ext);
     }
+
+    // 1. Compose canonical ClinicalConsultationSummary
+    const summary = composeClinicalConsultationSummary({
+      session,
+      patient,
+      answers,
+      flags,
+      timelineEvents: [],
+      documents: extractions,
+    });
+
+    // 2. Render server-side PDF snapshot
+    const pdfBuffer = await generateClinicalSummaryPDFBuffer(summary);
+    const pdfPath = await storeClinicalSummaryPDF(sessionId, pdfBuffer);
+    summary.pdfUrl = `/api/doctor/cases/${sessionId}/pdf`;
 
     // Freeze the snapshot
     const snapshotId = `snp_${randomUUID()}`;
     const frozenReport: ClinicalHistoryReport = {
-      ...report,
       reportId: snapshotId,
+      reportVersion: '1.0.0',
+      generatedAt: new Date().toISOString(),
+      sessionId,
+      patient: {
+        fullName: patient.demographics?.fullName || 'Kiosk Patient',
+        age: patient.demographics?.age,
+        gender: patient.demographics?.gender,
+        hospitalNumber: patient.identification?.hospitalNumber,
+        abhaReference: patient.identification?.abhaReference,
+      },
+      visit: {
+        generatedDate: new Date().toISOString().split('T')[0],
+        departmentMode: session.departmentMode,
+        intakeLanguage: session.language || (session as any).preferredLanguage || 'en',
+        reasonForVisit: summary.chiefComplaint.primaryComplaint,
+      },
+      clinicalHistory: {
+        chiefComplaint: {
+          primaryComplaint: summary.chiefComplaint.primaryComplaint,
+          additionalComplaints: [],
+          provenance: { source: 'patient_voice' },
+        },
+        historyOfPresentIllness: {
+          patientNarrative: summary.chiefComplaint.patientWords || summary.chiefComplaint.primaryComplaint,
+          completeness: { missingFields: summary.informationNotReported, completedFields: ['primaryComplaint'] },
+        },
+        pastMedicalHistory: summary.relevantPreviousHistory.map((h: any, idx: number) => ({
+          id: `pmh_${idx}`,
+          conditionName: h.conditionName,
+          status: 'active' as const,
+          provenance: { source: 'patient_voice' },
+        })),
+        pastSurgicalHistory: [],
+        medications: summary.medications.map((m: any, idx: number) => ({
+          id: `med_${idx}`,
+          name: m.medicationName,
+          status: 'active' as const,
+          provenance: { source: 'patient_voice' },
+        })),
+        allergies: [],
+        familyHistory: [],
+      },
+      documentSummary: {
+        uploadedDocumentCount: extractions.length,
+        documents: extractions.map((d: any) => ({ id: d.documentId, type: d.documentType, fileName: d.documentId })),
+        extractedConditions: extractions.flatMap((d: any) => d.extractedConditions || []),
+        laboratoryResults: [],
+        admissions: [],
+      },
+      medicalTimeline: [],
+      attentionFlags: flags,
       patientConfirmation: {
         confirmedByPatient: true,
+        confirmedAt: new Date().toISOString(),
         correctionsMade: (await db.getSessionCorrections(sessionId)).length,
+      },
+      physicianVerification: {
+        status: 'pending_physician_review',
+        signatureRequired: false,
+      },
+      reference: {
+        referenceNumber: summary.reference.referenceNumber,
+        qrPayload: summary.reference.qrPayload,
+        generatedAt: summary.reference.generatedAt,
       },
     };
 
-    // Save frozen report (the mock DB handles upsert, but we give it a new ID)
+    // Save frozen report
     await db.saveReport(frozenReport);
 
     await db.updateSession(sessionId, {
@@ -113,7 +176,7 @@ export async function POST(request: Request) {
     });
 
     // Determine assigned doctor based on chief complaint / department mode
-    const complaintText = (report?.clinicalHistory?.chiefComplaint?.primaryComplaint || '').toLowerCase();
+    const complaintText = (summary?.chiefComplaint?.primaryComplaint || '').toLowerCase();
     
     let doctorAssignment = {
       doctorName: 'Dr. Rajesh Sharma, MD',
