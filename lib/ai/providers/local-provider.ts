@@ -21,14 +21,19 @@ export class LocalProvider implements AIProvider {
       confidence: f.confidence > 0.8 ? ('high' as const) : ('medium' as const),
     }));
 
-    // 3. Determine Next Question ID
+    // 3. Determine Next Question ID dynamically by checking already extracted facts
     const askedIds = new Set(((request as any).answersHistory || (request as any).previousAnswers || []).map((a: any) => a.questionId));
     let nextQuestionId: string | undefined;
 
-    if (!askedIds.has('symptom_duration')) {
+    const hasDuration = Boolean(nlpResult.duration) || askedIds.has('symptom_duration');
+    const hasSeverity = Boolean(nlpResult.severity) || askedIds.has('symptom_severity') || askedIds.has('pain_scale');
+
+    if (!hasDuration) {
       nextQuestionId = 'symptom_duration';
-    } else if (!askedIds.has('symptom_severity')) {
+    } else if (!hasSeverity) {
       nextQuestionId = 'symptom_severity';
+    } else if (!askedIds.has('symptom_progression')) {
+      nextQuestionId = 'symptom_progression';
     } else if (!askedIds.has('past_medical_history')) {
       nextQuestionId = 'past_medical_history';
     } else if (!askedIds.has('current_medications')) {

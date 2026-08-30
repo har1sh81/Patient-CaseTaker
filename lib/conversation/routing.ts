@@ -1,4 +1,5 @@
 import { Question, ConversationAnswer } from '../../types';
+import { LocalClinicalNLP } from '../ai/local-nlp';
 
 /**
  * Evaluates a single rule condition against an answer's normalizedValue (or rawValue if no normalizedValue).
@@ -58,17 +59,31 @@ export function getNextQuestion(
     }
   }
 
-  // 2. Linear progression
-  // We need to skip questions that have follow-up rules pointing *to* them but their condition isn't met.
-  // Wait, the design: If a question is conditionally triggered, it's typically handled by a previous question's rule.
-  // For simplicity in Phase 6, if a question has followUpRules, we jump. If no rule matched, we just go to the next in order.
-  // We don't implement complex "skip if unmet" globally unless specified. 
-  // For the demo scenario: Question 4 (yes/no) -> rules: 'yes' -> 5, 'no' -> 6. 
-  // If Question 4 rule matches 'yes', we go to 5. 
-  // From 5, it has no rules, so it linearly goes to 6.
-  
-  const nextQ = questions[currentIndex + 1];
-  return nextQ || null;
+  // 2. Dynamic Adaptive Progress & Fact-Aware Question Skipping
+  const combinedText = Object.values(answers)
+    .map(a => String(a.transcript || a.rawValue || a.normalizedValue || ''))
+    .join(' ');
+  const nlpResult = LocalClinicalNLP.extractFacts(combinedText, 'en');
+
+  let nextIdx = currentIndex + 1;
+  while (nextIdx < questions.length) {
+    const candidateQ = questions[nextIdx];
+    const fields = candidateQ.informationFields || [];
+
+    const isDurationAnswered = fields.includes('duration') && (nlpResult.duration || Boolean(answers['symptom_duration']));
+    const isSeverityAnswered = fields.includes('severity') && (nlpResult.severity || Boolean(answers['symptom_severity']) || Boolean(answers['pain_scale']));
+    const isPainLocationAnswered = fields.includes('pain_location') && (nlpResult.location || Boolean(answers['pain_location']));
+
+    // If candidate question asks for duration, severity, or location that was ALREADY spoken/extracted, skip it!
+    if (isDurationAnswered || isSeverityAnswered || isPainLocationAnswered) {
+      nextIdx++;
+      continue;
+    }
+
+    return candidateQ;
+  }
+
+  return null;
 }
 
 /**
