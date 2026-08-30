@@ -34,15 +34,12 @@ export interface HybridRetrievalResult {
 
 export class HybridClinicalRetrievalEngine {
   public static readonly DEFAULT_WEIGHTS = {
-    semantic: 0.45,
-    lexical: 0.25,
-    category: 0.15,
+    semantic: 0.35,
+    lexical: 0.15,
+    category: 0.35,
     temporal: 0.15,
   };
 
-  /**
-   * Executes multi-stage hybrid clinical retrieval with patient scoping, category filtering, and reranking.
-   */
   public static async retrieveRelevantHistory(
     queryText: string,
     patientId: string,
@@ -52,7 +49,6 @@ export class HybridClinicalRetrievalEngine {
   ): Promise<HybridRetrievalResult> {
     const startTime = Date.now();
 
-    // 1. Strict Patient Authorization Isolation Pre-filter
     const scopedRecords = candidateRecords.filter(r => r.patientId === patientId);
 
     if (scopedRecords.length === 0) {
@@ -65,41 +61,26 @@ export class HybridClinicalRetrievalEngine {
       };
     }
 
-    // 2. Local Clinical NLP Concept Extraction
-    const queryFacts = LocalClinicalNLP.extractFacts(queryText, language);
-    const primarySymptom = queryFacts.primarySymptom || queryText;
-
-    // 3. Query Embedding Generation
     const queryEmbed = await LocalNeuralEmbeddingsEngine.generateEmbedding(queryText);
 
-    // 4. Candidate Scoring & Reranking
     const scoredRecords: HybridScoredRecord[] = await Promise.all(
       scopedRecords.map(async record => {
-        // A. Semantic Distance
         const recEmbed = await LocalNeuralEmbeddingsEngine.generateEmbedding(record.content);
         const semanticScore = LocalNeuralEmbeddingsEngine.cosineSimilarity(queryEmbed.vector, recEmbed.vector);
-
-        // B. Lexical Match
         const lexicalScore = this.computeLexicalSimilarity(queryText, record.content, language);
-
-        // C. Category Match
-        const categoryScore = this.computeCategoryMatch(primarySymptom, record.clinicalCategory);
-
-        // D. Temporal Score
+        const categoryScore = this.computeCategoryMatch(queryText, record.clinicalCategory);
         const temporalScore = record.temporalStatus === 'historical' || record.temporalStatus === 'resolved' ? 1.0 : 0.6;
 
-        // E. Hybrid Weight Calculation
         let hybridScore = 0;
         if (providerType === 'neural') {
-          hybridScore = semanticScore;
+          hybridScore = semanticScore * 0.7 + categoryScore * 0.3;
         } else if (providerType === 'feature_hash') {
           const hashVecQ = LocalEmbeddingsEngine.generateEmbedding(queryText);
           const hashVecR = LocalEmbeddingsEngine.generateEmbedding(record.content);
-          hybridScore = LocalEmbeddingsEngine.cosineSimilarity(hashVecQ, hashVecR);
+          hybridScore = LocalEmbeddingsEngine.cosineSimilarity(hashVecQ, hashVecR) * 0.7 + categoryScore * 0.3;
         } else if (providerType === 'lexical') {
-          hybridScore = lexicalScore;
+          hybridScore = lexicalScore * 0.7 + categoryScore * 0.3;
         } else {
-          // Full Hybrid
           hybridScore =
             this.DEFAULT_WEIGHTS.semantic * semanticScore +
             this.DEFAULT_WEIGHTS.lexical * lexicalScore +
@@ -107,8 +88,7 @@ export class HybridClinicalRetrievalEngine {
             this.DEFAULT_WEIGHTS.temporal * temporalScore;
         }
 
-        // F. Deterministic Relevance Filter
-        const relevanceDecision = this.applyDeterministicRelevanceFilter(primarySymptom, record.clinicalCategory, hybridScore, providerType);
+        const relevanceDecision = this.applyDeterministicRelevanceFilter(queryText, record.clinicalCategory, hybridScore);
 
         return {
           ...record,
@@ -122,10 +102,8 @@ export class HybridClinicalRetrievalEngine {
       })
     );
 
-    // 5. Rerank Candidates by Hybrid Score
     scoredRecords.sort((a, b) => b.hybridScore - a.hybridScore);
 
-    // 6. Filter by Deterministic Inclusion Rules (Top 5 included)
     const finalRecords = scoredRecords.filter(r => r.relevanceDecision === 'included').slice(0, 5);
 
     return {
@@ -141,7 +119,6 @@ export class HybridClinicalRetrievalEngine {
     const normA = textA.toLowerCase();
     const normB = textB.toLowerCase();
 
-    // Direct overlap check
     const wordsA = new Set(normA.split(/\s+/).filter(w => w.length > 2));
     const wordsB = new Set(normB.split(/\s+/).filter(w => w.length > 2));
 
@@ -150,10 +127,16 @@ export class HybridClinicalRetrievalEngine {
       if (wordsB.has(w) || normB.includes(w)) overlap++;
     });
 
-    // Medical Concept Synonyms
     if (
-      (normA.includes('stomach') || normA.includes('pet') || normA.includes('पेट') || normA.includes('வயிறு')) &&
-      (normB.includes('gastritis') || normB.includes('epigastric') || normB.includes('gi') || normB.includes('stomach'))
+      (normA.includes('stomach') || normA.includes('pet') || normA.includes('पेट') || normA.includes('வயிறு') || normA.includes('abdominal') || /\beat\b/.test(normA) || /\bfood\b/.test(normA)) &&
+      (normB.includes('gastritis') || normB.includes('epigastric') || normB.includes('gi') || normB.includes('stomach') || normB.includes('abdominal') || normB.includes('post-prandial') || normB.includes('postprandial'))
+    ) {
+      overlap += 2;
+    }
+
+    if (
+      (normA.includes('breath') || normA.includes('breathing')) &&
+      (normB.includes('dyspnea') || normB.includes('respiratory') || normB.includes('breath'))
     ) {
       overlap += 2;
     }
@@ -168,37 +151,34 @@ export class HybridClinicalRetrievalEngine {
     return Math.min(1.0, overlap / Math.max(1, wordsA.size));
   }
 
-  private static computeCategoryMatch(symptom: string, category: string): number {
-    const sLower = symptom.toLowerCase();
-    if (sLower.includes('stomach') || sLower.includes('abdominal') || sLower.includes('vomiting') || sLower.includes('nausea') || sLower.includes('gastric')) {
+  private static computeCategoryMatch(text: string, category: string): number {
+    const sLower = text.toLowerCase();
+    if (sLower.includes('stomach') || sLower.includes('abdominal') || sLower.includes('vomiting') || sLower.includes('nausea') || sLower.includes('gastric') || /\beat\b/.test(sLower) || /\bfood\b/.test(sLower) || sLower.includes('पेट') || sLower.includes('வயிறு')) {
       return category === 'gastrointestinal' ? 1.0 : 0.1;
     }
-    if (sLower.includes('chest') || sLower.includes('heart') || sLower.includes('angina')) {
+    if (sLower.includes('chest') || sLower.includes('heart') || sLower.includes('angina') || sLower.includes('सीने') || sLower.includes('மார்பு')) {
       return category === 'cardiovascular' ? 1.0 : 0.1;
     }
-    if (sLower.includes('breath') || sLower.includes('cough') || sLower.includes('asthma')) {
+    if (sLower.includes('breath') || sLower.includes('cough') || sLower.includes('asthma') || sLower.includes('dyspnea') || sLower.includes('खांसी') || sLower.includes('இருமல்')) {
       return category === 'respiratory' ? 1.0 : 0.1;
     }
-    if (sLower.includes('headache') || sLower.includes('dizziness')) {
+    if (sLower.includes('headache') || sLower.includes('dizziness') || sLower.includes('सिरदर्द') || sLower.includes('தலைவலி')) {
       return category === 'neurological' ? 1.0 : 0.1;
     }
     return 0.5;
   }
 
   private static applyDeterministicRelevanceFilter(
-    symptom: string,
+    queryText: string,
     category: string,
-    score: number,
-    providerType: string
+    score: number
   ): 'included' | 'excluded' {
-    const categoryMatchScore = this.computeCategoryMatch(symptom, category);
+    const categoryMatchScore = this.computeCategoryMatch(queryText, category);
     
-    // Explicit exclusion if category mismatch is severe
-    if (categoryMatchScore < 0.2 && score < 0.4) {
+    if (categoryMatchScore <= 0.1) {
       return 'excluded';
     }
 
-    const threshold = providerType === 'hybrid' ? 0.25 : providerType === 'neural' ? 0.15 : providerType === 'feature_hash' ? 0.15 : 0.10;
-    return score >= threshold ? 'included' : 'excluded';
+    return score > 0.01 ? 'included' : 'excluded';
   }
 }
