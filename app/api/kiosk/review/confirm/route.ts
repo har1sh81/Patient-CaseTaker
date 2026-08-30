@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { randomUUID } from 'crypto';
 import { ClinicalHistoryReport } from '../../../../../types';
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/server';
+import { getAIProvider } from '@/lib/ai/factory';
 
 const ConfirmRequestSchema = z.object({
   sessionId: z.string(),
@@ -52,9 +53,35 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Session expired' }, { status: 403 });
     }
 
-    const report = await db.getReportBySession(sessionId);
+    let report = await db.getReportBySession(sessionId);
     if (!report) {
-      return NextResponse.json({ error: 'No clinical history draft found for session' }, { status: 400 });
+      const patient = await db.getPatient(session.patientId!);
+      const answers = await db.getSessionAnswers(sessionId);
+      const timeline = await db.getTimeline(sessionId);
+      const flags = await db.getSessionFlags(sessionId);
+      const provider = getAIProvider();
+      const docs = await db.getSessionDocuments(sessionId);
+      const extractions = [];
+      for (const d of docs) {
+        const ext = await db.getExtraction(d.id);
+        if (ext) extractions.push(ext);
+      }
+
+      const genResponse = await provider.generateClinicalHistoryDraft({
+        session,
+        patient: patient || {
+          id: session.patientId!,
+          demographics: { firstName: 'Patient', fullName: 'Kiosk Patient', age: 35, gender: 'other' },
+          identification: {},
+          createdAt: new Date().toISOString(),
+        },
+        answers,
+        timeline: timeline ? timeline.records : [],
+        documents: extractions,
+        flags,
+        patientReview: { sessionId, sections: [], status: 'pending' },
+      });
+      report = genResponse.report;
     }
 
     // Freeze the snapshot

@@ -119,17 +119,34 @@ function PatientReviewContent() {
 
   if (success) {
     return (
-      <KioskLayout activeStepIndex={3}>
+      <KioskLayout activeStepIndex={4}>
         <div className="max-w-2xl mx-auto mt-12 text-center p-8 bg-white rounded-xl border-2 border-green-200 shadow-lg">
           <ShieldCheck className="w-20 h-20 text-green-500 mx-auto mb-6" />
-          <h1 className="text-3xl font-bold text-gray-900 mb-4">INFORMATION SENT</h1>
-          <p className="text-lg text-gray-600 mb-8">
-            Your confirmed information has been securely sent to your healthcare professional.
-            Please proceed to the consultation area.
+          <h1 className="text-3xl font-bold text-gray-900 mb-4">SENT TO DOCTOR&apos;S DASHBOARD</h1>
+          <p className="text-lg text-gray-600 mb-6">
+            Your intake summary, medical history, and uploaded documents have been securely transmitted directly to the Doctor&apos;s Dashboard.
+            Please take a seat in the waiting area.
           </p>
-          <div className="bg-gray-50 p-4 rounded-lg inline-block border border-gray-200">
-            <p className="text-sm text-gray-500 mb-1">Reference</p>
+          <div className="bg-gray-50 p-4 rounded-lg inline-block border border-gray-200 mb-8">
+            <p className="text-sm text-gray-500 mb-1">Case Reference ID</p>
             <p className="text-xl font-mono font-bold text-gray-900">{handoffRef.split('_')[1] || handoffRef}</p>
+          </div>
+          <div>
+            <Button
+              className="w-full max-w-sm py-4 text-base font-semibold"
+              onClick={async () => {
+                try {
+                  await fetch('/api/kiosk/session/cleanup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ sessionId, reason: 'user_cancelled' }),
+                  });
+                } catch {}
+                router.push('/kiosk');
+              }}
+            >
+              Finish Intake & Return to Start
+            </Button>
           </div>
         </div>
       </KioskLayout>

@@ -43,7 +43,7 @@ export const KioskLayout: React.FC<KioskLayoutProps> = ({
     { id: 'step_interview', label: 'Interview' },
     { id: 'step_documents', label: 'Documents' },
     { id: 'step_review', label: 'Review' },
-    { id: 'step_print', label: 'Print' },
+    { id: 'step_send', label: "Doctor's Dashboard" },
   ];
 
   const handleExitClick = () => {
