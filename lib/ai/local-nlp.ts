@@ -100,7 +100,8 @@ const DURATION_PATTERNS = [
 
 export class LocalClinicalNLP {
   public static extractFacts(text: string, language: 'en' | 'hi' | 'ta' = 'en'): LocalNLPResult {
-    const lowerText = text.toLowerCase();
+    const cleanInput = text.replace(/<[^>]*>/g, '').trim();
+    const lowerText = cleanInput.toLowerCase();
     const facts: ExtractedClinicalFact[] = [];
     const activeSymptoms: string[] = [];
     const negatedSymptoms: string[] = [];
