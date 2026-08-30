@@ -172,6 +172,70 @@ export const PHASE6_DEMO_QUESTIONS: Question[] = [
     allowVoice: true,
     allowTouch: true,
   },
+  // SECTION D — DYNAMIC CLINICAL DIFFERENTIAL QUESTIONS
+  {
+    id: 'stomach_pain_triggers',
+    section: 'hpi',
+    displayOrder: 10,
+    question: {
+      en: 'Does the burning stomach pain get better or worse after eating meals or taking antacids?',
+      hi: 'क्या भोजन करने या एंटासिड लेने के बाद पेट की जलन बेहतर या बदतर हो जाती है?',
+      ta: 'உணவு சாப்பிட்ட பிறகு அல்லது அமில எதிர்ப்பு மருந்து எடுத்த பிறகு வயிற்று எரிச்சல் குறைகிறதா அல்லது அதிகமாகிறதா?',
+    },
+    inputType: 'single_choice',
+    informationFields: ['aggravating_factors'],
+    required: false,
+    allowVoice: true,
+    allowTouch: true,
+    options: [
+      { id: 'worse_after_eating', value: 'worse_after_eating', label: 'Worse after eating meals' },
+      { id: 'better_after_eating', value: 'better_after_eating', label: 'Better after eating' },
+      { id: 'better_with_antacids', value: 'better_with_antacids', label: 'Relieved by antacids' },
+      { id: 'no_change', value: 'no_change', label: 'No difference with food' },
+    ],
+  },
+  {
+    id: 'gi_red_flags',
+    section: 'review_of_systems',
+    displayOrder: 11,
+    question: {
+      en: 'Have you noticed any acid regurgitation, nausea, vomiting, or dark black stools?',
+      hi: 'क्या आपने खट्टी डकारें, जी मिचलाना, उल्टी, या काले रंग का मल देखा है?',
+      ta: 'அமில எதிரொளிப்பு, குமட்டல், வாந்தி அல்லது கருப்பு நிற மலம் ஏதேனும் கவனித்துள்ளீர்களா?',
+    },
+    inputType: 'single_choice',
+    informationFields: ['associated_gi_symptoms'],
+    required: false,
+    allowVoice: true,
+    allowTouch: true,
+    options: [
+      { id: 'acid_reflux', value: 'acid_reflux', label: 'Acid reflux / Sour burps' },
+      { id: 'nausea_vomiting', value: 'nausea_vomiting', label: 'Nausea or vomiting' },
+      { id: 'dark_stools', value: 'dark_stools', label: 'Dark or black stools' },
+      { id: 'none', value: 'none', label: 'None of these' },
+    ],
+  },
+  {
+    id: 'cardiac_radiation_check',
+    section: 'review_of_systems',
+    displayOrder: 12,
+    question: {
+      en: 'Does the chest pain or tightness spread to your left arm, neck, shoulder, or jaw?',
+      hi: 'क्या सीने में दर्द या दबाव आपके बाएं हाथ, गर्दन या जबड़े में फैलता है?',
+      ta: 'மார்பு வலி அல்லது அழுத்தம் உங்கள் இடது கை, கழுத்து அல்லது தாடைக்கு பரவுகிறதா?',
+    },
+    inputType: 'single_choice',
+    informationFields: ['pain_radiation'],
+    required: false,
+    allowVoice: true,
+    allowTouch: true,
+    options: [
+      { id: 'left_arm', value: 'left_arm', label: 'Spreads to left arm / shoulder' },
+      { id: 'neck_jaw', value: 'neck_jaw', label: 'Spreads to neck or jaw' },
+      { id: 'back', value: 'back', label: 'Spreads to back' },
+      { id: 'localized', value: 'localized', label: 'Stays in chest only' },
+    ],
+  },
 ];
 
 export const PHASE13_AYUSH_QUESTIONS: Question[] = [

@@ -65,6 +65,27 @@ export function getNextQuestion(
     .join(' ');
   const nlpResult = LocalClinicalNLP.extractFacts(combinedText, 'en');
 
+  // Dynamic Symptom-Specific Clinical Differential Routing
+  const lowerCombined = combinedText.toLowerCase();
+  const isStomachPain = lowerCombined.includes('stomach') || lowerCombined.includes('epigastric') || lowerCombined.includes('belly') || lowerCombined.includes('abdominal');
+  const isChestPain = lowerCombined.includes('chest pain') || lowerCombined.includes('angina') || lowerCombined.includes('chest pressure');
+
+  if (isStomachPain) {
+    if (!answers['stomach_pain_triggers']) {
+      const q = questions.find(item => item.id === 'stomach_pain_triggers');
+      if (q) return q;
+    }
+    if (!answers['gi_red_flags']) {
+      const q = questions.find(item => item.id === 'gi_red_flags');
+      if (q) return q;
+    }
+  }
+
+  if (isChestPain && !answers['cardiac_radiation_check']) {
+    const q = questions.find(item => item.id === 'cardiac_radiation_check');
+    if (q) return q;
+  }
+
   let nextIdx = currentIndex + 1;
   while (nextIdx < questions.length) {
     const candidateQ = questions[nextIdx];
