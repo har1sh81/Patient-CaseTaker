@@ -5,6 +5,8 @@ import { verifyUploadToken } from '../../../../lib/crypto/token';
 import { MedicalDocumentTypeSchema } from '../../../../schemas';
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/server';
 
+import { randomUUID } from 'crypto';
+
 export async function GET(req: NextRequest) {
   let sessionId = req.nextUrl.searchParams.get('sessionId');
   const token = req.nextUrl.searchParams.get('token');
@@ -86,7 +88,7 @@ export async function POST(req: NextRequest) {
     const buffer = Buffer.from(arrayBuffer);
 
     // Using Date.now() for unique id to avoid eslint purity issues with Math.random()
-    const documentId = `doc_${Date.now().toString(36)}`;
+    const documentId = `doc_${Date.now().toString(36)}_${randomUUID().slice(0, 8)}`;
     const filePayload = {
       name: file.name,
       type: file.type,

@@ -178,8 +178,8 @@ export async function POST(request: Request) {
         familyHistory: [],
       },
       documentSummary: {
-        uploadedDocumentCount: extractions.length,
-        documents: extractions.map((d: any) => ({ id: d.documentId, type: d.documentType, fileName: d.documentId })),
+        uploadedDocumentCount: docs.length,
+        documents: docs.map((d: any) => ({ id: d.id, type: d.documentType, fileName: d.fileName || d.id })),
         extractedConditions: extractions.flatMap((d: any) => d.extractedConditions || []),
         laboratoryResults: [],
         admissions: [],

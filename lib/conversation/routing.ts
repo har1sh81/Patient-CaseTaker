@@ -1,5 +1,6 @@
 import { Question, ConversationAnswer } from '../../types';
 import { LocalClinicalNLP } from '../ai/local-nlp';
+import { buildAdaptiveContext, evaluateDomainCompleteness, selectNextQuestion } from './adaptive-logic';
 
 /**
  * Evaluates a single rule condition against an answer's normalizedValue (or rawValue if no normalizedValue).
@@ -114,7 +115,14 @@ export function getNextQuestion(
 
   const currentQ = questions[currentIndex];
   
-  // Question-to-domain mapping (used by both followUpRules and sequential logic)
+  // 1. Check if there are explicit followUpRules to jump to a specific question
+  // Build adaptive context for followUpRules domain checking
+  const allowedQuestionIds = questions.map(q => q.id);
+  const latestAnswerForRules = answers[currentQuestionId];
+  const ctxForRules = buildAdaptiveContext(answers, latestAnswerForRules || null, allowedQuestionIds);
+  const domainsForRules = evaluateDomainCompleteness(ctxForRules);
+  
+  // Question-to-domain mapping (used by followUpRules)
   const questionDomainMap: Record<string, string> = {
     reason_for_visit: 'chief_complaint',
     symptom_duration: 'onset_duration',
@@ -131,14 +139,6 @@ export function getNextQuestion(
     previous_treatments: 'previous_treatments',
   };
 
-  // Evaluate domains ONCE to use for both followUpRules and sequential logic
-  const domains = evalCurrentProblemDomains(answers);
-  const combinedText = Object.values(answers)
-    .map(a => String(a.transcript || a.rawValue || a.normalizedValue || ''))
-    .join(' ');
-
-  // 1. Check if there are explicit followUpRules to jump to a specific question
-  // BUT respect domain completeness - don't jump to a question whose domain is already COMPLETE
   if (currentQ.followUpRules && currentQ.followUpRules.length > 0) {
     const answer = answers[currentQuestionId];
     for (const rule of currentQ.followUpRules) {
@@ -147,7 +147,7 @@ export function getNextQuestion(
         if (targetQ) {
           const targetDomain = questionDomainMap[targetQ.id];
           // Skip if target domain is already complete (info already extracted)
-          if (targetDomain && domains[targetDomain]?.status === 'COMPLETE') {
+          if (targetDomain && domainsForRules[targetDomain]?.status === 'COMPLETE') {
             continue; // Try next rule or fall through to sequential logic
           }
           return targetQ;
@@ -156,42 +156,14 @@ export function getNextQuestion(
     }
   }
 
-  // 2. Sequential logic using 9 Current-Problem Domains
-  let nextIdx = currentIndex + 1;
-  while (nextIdx < questions.length) {
-    const candidateQ = questions[nextIdx];
-    const targetDomain = questionDomainMap[candidateQ.id];
-
-    // Skip cardiac radiation check if patient has not mentioned chest/cardiac symptoms
-    if (candidateQ.id === 'cardiac_radiation_check') {
-      const mentionsChest = /chest|heart|cardiac|angina|stern/i.test(combinedText);
-      if (!mentionsChest) {
-        nextIdx++;
-        continue;
-      }
-    }
-
-    // Skip GI-specific questions if patient has not mentioned stomach/abdominal/digestive symptoms
-    if (candidateQ.id === 'stomach_pain_triggers' || candidateQ.id === 'gi_red_flags') {
-      const mentionsGI = /stomach|abdomen|abdominal|epigastri|belly|digest|gastric|acid|reflux|burn/i.test(combinedText);
-      if (!mentionsGI) {
-        nextIdx++;
-        continue;
-      }
-    }
-
-    // Skip candidate question if its domain is ALREADY COMPLETE (info already extracted via NLP or answered)
-    if (targetDomain && domains[targetDomain]?.status === 'COMPLETE') {
-      nextIdx++;
-      continue;
-    }
-
-    if (answers[candidateQ.id]) {
-      nextIdx++;
-      continue;
-    }
-
-    return candidateQ;
+  // 2. Sequential logic using shared adaptive logic
+  const ctx = buildAdaptiveContext(answers, latestAnswerForRules || null, allowedQuestionIds);
+  const domains = evaluateDomainCompleteness(ctx);
+  
+  const nextQuestionId = selectNextQuestion(ctx, domains);
+  
+  if (nextQuestionId) {
+    return questions.find(q => q.id === nextQuestionId) || null;
   }
 
   return null;

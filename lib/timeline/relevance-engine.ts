@@ -21,6 +21,7 @@ export function extractComplaintContext(answers: ConversationAnswer[]): Complain
   const complaintAnswer = answers.find(
     a => a.questionId === 'reason_for_visit' ||
          a.questionId === 'chief_complaint' ||
+         a.questionId === 'initial_problem' ||
          a.section === 'chief_complaint'
   );
   const durationAnswer = answers.find(
@@ -32,13 +33,13 @@ export function extractComplaintContext(answers: ConversationAnswer[]): Complain
 
   if (!complaintAnswer) return null;
 
-  const rawText = String(complaintAnswer.rawValue || complaintAnswer.transcript || '').trim();
+  const rawText = String(complaintAnswer.transcript || complaintAnswer.rawValue || complaintAnswer.normalizedValue || '').trim();
   if (!rawText) return null;
 
   return {
     complaint: rawText,
-    duration: durationAnswer ? String(durationAnswer.rawValue || '').trim() : undefined,
-    severity: severityAnswer ? String(severityAnswer.rawValue || '').trim() : undefined,
+    duration: durationAnswer ? String(durationAnswer.transcript || durationAnswer.rawValue || durationAnswer.normalizedValue || '').trim() : undefined,
+    severity: severityAnswer ? String(severityAnswer.transcript || severityAnswer.rawValue || severityAnswer.normalizedValue || '').trim() : undefined,
   };
 }
 

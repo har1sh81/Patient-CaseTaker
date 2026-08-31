@@ -27,8 +27,8 @@ export function composeClinicalConsultationSummary(params: {
   const duration = complaintCtx?.duration || 'Not specified';
   const severity = complaintCtx?.severity ? `Level ${complaintCtx.severity}/10` : undefined;
 
-  const reasonAns = answers.find(a => a.questionId === 'reason_for_visit' || a.questionId === 'chief_complaint');
-  const patientWords = reasonAns ? String(reasonAns.transcript || reasonAns.rawValue || reasonAns.normalizedValue) : undefined;
+  const reasonAns = answers.find(a => a.questionId === 'reason_for_visit' || a.questionId === 'chief_complaint' || a.questionId === 'initial_problem' || a.section === 'chief_complaint');
+  const patientWords = reasonAns ? String(reasonAns.transcript || reasonAns.rawValue || reasonAns.normalizedValue || '') : undefined;
 
   const chiefComplaint: SummaryChiefComplaint = {
     primaryComplaint,
