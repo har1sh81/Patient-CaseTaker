@@ -4,7 +4,7 @@ import { PHASE6_DEMO_QUESTIONS, PHASE13_AYUSH_QUESTIONS } from '../../../../../l
 import { AdaptiveQuestionRequestSchema } from '../../../../../schemas/ai.schema';
 import { z } from 'zod';
 import { getAIProvider, getQuestionSelectionProvider } from '../../../../../lib/ai/factory';
-import { buildAdaptiveContext, evaluateDomainCompleteness } from '../../../../../lib/conversation/adaptive-logic';
+import { buildAdaptiveContext, evaluateDomainCompleteness, getCandidateQuestionIds } from '../../../../../lib/conversation/adaptive-logic';
 import { AdaptiveQuestionResponse } from '../../../../../types';
 
 export async function POST(request: Request) {
@@ -93,6 +93,7 @@ export async function POST(request: Request) {
     const domains = evaluateDomainCompleteness(ctx);
 
     // Step 3: Select next question via QuestionSelector (can be Gemini)
+    const candidates = getCandidateQuestionIds(ctx, domains);
     const questionTimeout = new Promise<never>((_, reject) => {
       setTimeout(() => reject(new Error('Question selection timed out')), timeoutMs);
     });
@@ -100,7 +101,7 @@ export async function POST(request: Request) {
       questionProvider.selectQuestion({
         context: ctx,
         domains,
-        candidates: allowedQuestionIds,
+        candidates,
       }),
       questionTimeout
     ]);

@@ -42,7 +42,7 @@ export function useConversationEngine(config: ConversationEngineConfig): Convers
     return map;
   });
   const [validationError, setValidationError] = React.useState<string | null>(null);
-  const [extractedFacts, setExtractedFacts] = React.useState<Record<string, unknown>[]>([]); // To hold ExtractedClinicalFact[]
+  const [extractedFacts, setExtractedFacts] = React.useState<Record<string, unknown>[]>([]);
 
   // Initialize engine based on existing answers
   React.useEffect(() => {
@@ -69,7 +69,6 @@ export function useConversationEngine(config: ConversationEngineConfig): Convers
         setStatus({ sessionId, currentQuestionId: startQuestionId, status: 'asking' });
       });
     } else {
-      // All questions in route answered
       React.startTransition(() => {
         setStatus({ sessionId, status: 'completed' });
       });
@@ -87,170 +86,198 @@ export function useConversationEngine(config: ConversationEngineConfig): Convers
     return calculateProgress(status.currentQuestionId, answers, questions);
   }, [status.currentQuestionId, answers, questions]);
 
-  // Submit Answer
+  // ──────────────────────────────────────────────────────────────────────────
+  // submitAnswer — single unified path for demo and real sessions
+  // ──────────────────────────────────────────────────────────────────────────
   const submitAnswer = React.useCallback(async (
-    value: unknown, 
-    inputMethod: 'voice' | 'touch' | 'keyboard' | 'demo', 
-    transcript?: string, 
+    value: unknown,
+    inputMethod: 'voice' | 'touch' | 'keyboard' | 'demo',
+    transcript?: string,
     editedByPatient: boolean = false
   ) => {
     if (!currentQuestion) return;
 
+    setValidationError(null);
     setStatus(s => ({ ...s, status: 'validating' }));
-    
+
     try {
-      // Note: validation checks are local logic
-      // Bypass strict option validation for voice/keyboard inputs so the AI can analyze them
+      // ── Step 0: Validate ─────────────────────────────────────────────────
+      // Bypass strict option validation for voice/keyboard so AI can analyse them
       const validation: ValidationResult = (inputMethod === 'voice' || inputMethod === 'keyboard')
         ? { isValid: true }
         : validateAnswer(currentQuestion, value);
+
       if (!validation.isValid) {
         setValidationError(validation.errorMessage || 'Invalid answer');
         setStatus({ sessionId, currentQuestionId: currentQuestion.id, status: 'asking' });
         return;
       }
-      
+
+      // ── Step 1: Build answer object ──────────────────────────────────────
       const newAnswer: ConversationAnswer = {
         id: answers[currentQuestion.id]?.id || crypto.randomUUID(),
         sessionId,
         questionId: currentQuestion.id,
         section: currentQuestion.section,
         rawValue: value,
-        normalizedValue: value, // Mapping logic goes here for real implementation
+        normalizedValue: value,
         inputMethod,
         transcript,
         provenance: {
-          source: inputMethod === 'demo' ? 'demo_data' : (inputMethod === 'voice' ? 'patient_voice' : (inputMethod === 'keyboard' ? 'patient_text' : 'patient_touch')),
-          confidence: 'high'
+          source: inputMethod === 'demo'
+            ? 'demo_data'
+            : inputMethod === 'voice'
+              ? 'patient_voice'
+              : inputMethod === 'keyboard'
+                ? 'patient_text'
+                : 'patient_touch',
+          confidence: 'high',
         },
         answeredAt: new Date().toISOString(),
-        editedByPatient: editedByPatient || false
+        editedByPatient: editedByPatient || false,
       };
 
-      if (sessionId === 'demo-session-123') {
-        const nextAnswers = { ...answers, [currentQuestion.id]: newAnswer };
-        const invalidKeys = invalidateBranch(currentQuestion.id, nextAnswers, questions);
-        invalidKeys.forEach(k => delete nextAnswers[k]);
-        setAnswers(nextAnswers);
-        setStatus({ sessionId, status: 'transitioning' });
-        return;
-      }
+      // ── Step 2: Persist answer (skipped for demo sessions) ───────────────
+      let savedAnswer: ConversationAnswer = newAnswer;
 
-      let savedAnswer = newAnswer;
-      try {
-        const res = await fetch('/api/kiosk/interview/answers', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ answer: newAnswer })
-        });
-        const data = await res.json();
-        if (!data.success) throw new Error(data.error);
-        savedAnswer = data.answer;
-      } catch {
-        setValidationError('Failed to save answer. Please try again.');
-        setStatus({ sessionId, currentQuestionId: currentQuestion.id, status: 'asking' });
-        return;
-      }
-      
-      const nextAnswers = { ...answers, [currentQuestion.id]: savedAnswer };
-      
-      // Invalidate branch logic
-      const invalidKeys = invalidateBranch(currentQuestion.id, nextAnswers, questions);
-      
-      if (invalidKeys.length > 0) {
-        const invalidDbIds = invalidKeys.map(k => nextAnswers[k].id);
-        
-        // Optimistic update
-        invalidKeys.forEach(k => delete nextAnswers[k]);
-        setAnswers(nextAnswers);
-        
-        // Option B: Recovery
+      if (sessionId !== 'demo-session-123') {
         try {
-          const delRes = await fetch('/api/kiosk/interview/answers', {
-            method: 'DELETE',
+          const res = await fetch('/api/kiosk/interview/answers', {
+            method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ answerIds: invalidDbIds })
+            body: JSON.stringify({ answer: newAnswer }),
           });
-          const delData = await delRes.json();
-          if (!delData.success) throw new Error(delData.error);
+          const data = await res.json();
+          if (!data.success) throw new Error(data.error);
+          savedAnswer = data.answer;
         } catch {
-          // Revert optimistic update
-          invalidKeys.forEach(k => {
-            nextAnswers[k] = answers[k];
-          });
-          setAnswers({ ...answers, [currentQuestion.id]: savedAnswer });
-          setValidationError('Network error: Failed to recalculate question flow. Please try again.');
+          setValidationError('Failed to save answer. Please try again.');
           setStatus({ sessionId, currentQuestionId: currentQuestion.id, status: 'asking' });
           return;
         }
-      } else {
-        setAnswers(nextAnswers);
       }
 
-      // Determine next question using Adaptive AI API
+      // ── Step 3: Merge saved answer into local state ──────────────────────
+      // NEVER delete the just-accepted answer.
+      // Only invalidate downstream answers when explicitly editing a past answer.
+      const nextAnswers: Record<string, ConversationAnswer> = {
+        ...answers,
+        [currentQuestion.id]: savedAnswer,
+      };
+
+      const isEdit = !!answers[currentQuestion.id] || editedByPatient;
+      if (isEdit && sessionId !== 'demo-session-123') {
+        const invalidKeys = invalidateBranch(currentQuestion.id, nextAnswers, questions);
+        if (invalidKeys.length > 0) {
+          const invalidDbIds = invalidKeys.map(k => nextAnswers[k].id);
+          invalidKeys.forEach(k => delete nextAnswers[k]);
+          // Fire-and-forget deletion — don't block the UI on this
+          fetch('/api/kiosk/interview/answers', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ answerIds: invalidDbIds }),
+          }).catch(err => console.warn('[engine] Failed to delete invalidated answers:', err));
+        }
+      }
+
+      setAnswers(nextAnswers);
+
+      // ── Step 4: Determine next question ─────────────────────────────────
       setStatus(s => ({ ...s, status: 'transitioning' }));
-      
+
       let nextQ: Question | null = null;
       let aiFallback = false;
+      const sessionLanguage = 'en'; // TODO: derive from session config for multilingual support
 
-      try {
-        const allowedQuestionIds = questions.filter(q => !nextAnswers[q.id]).map(q => q.id);
+      console.debug('[engine] submitAnswer', {
+        sessionId,
+        currentQuestionId: currentQuestion.id,
+        savedAnswerId: savedAnswer.id,
+        answeredIds: Object.keys(nextAnswers),
+      });
 
-        const aiReqBody = {
-          sessionId,
-          language: 'en', // Should come from session config in a real app
-          currentSection: currentQuestion.section,
-          currentQuestion: currentQuestion,
-          latestAnswer: savedAnswer,
-          previousAnswers: Object.values(nextAnswers),
-          extractedFacts,
-          structuredHistory: {}, // In full Phase 8, this would be the actual structured history
-          allowedQuestionIds,
-          questionBankContext: questions.filter(q => allowedQuestionIds.includes(q.id))
-        };
+      // Skip adaptive API for demo sessions — they have no real DB session
+      if (sessionId !== 'demo-session-123') {
+        try {
+          const allowedQuestionIds = questions
+            .filter(q => !nextAnswers[q.id])
+            .map(q => q.id);
 
-        const aiRes = await fetch('/api/kiosk/interview/adaptive', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(aiReqBody)
-        });
+          const aiReqBody = {
+            sessionId,
+            language: sessionLanguage,
+            currentSection: currentQuestion.section,
+            currentQuestion,
+            latestAnswer: savedAnswer,
+            previousAnswers: Object.values(nextAnswers),
+            extractedFacts,
+            structuredHistory: {},
+            allowedQuestionIds,
+            questionBankContext: questions.filter(q => allowedQuestionIds.includes(q.id)),
+          };
 
-        const aiData = await aiRes.json();
-        
-        if (aiData.success && aiData.response) {
-          const aiLogic = aiData.response;
-          // Apply AI logic
-          if (aiLogic.extractedFacts && aiLogic.extractedFacts.length > 0) {
-            setExtractedFacts(prev => {
-              const newFacts = [...prev];
-              for (const fact of aiLogic.extractedFacts) {
-                // simple merge, overwriting if field exists, though we might want to append
-                const existingIdx = newFacts.findIndex(f => f.field === fact.field);
-                if (existingIdx >= 0) newFacts[existingIdx] = fact;
-                else newFacts.push(fact);
-              }
-              return newFacts;
-            });
-          }
+          const aiRes = await fetch('/api/kiosk/interview/adaptive', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(aiReqBody),
+          });
 
-          if (aiLogic.nextAction === 'ask_follow_up' && aiLogic.nextQuestionId) {
-            nextQ = questions.find(q => q.id === aiLogic.nextQuestionId) || null;
-          } else if (aiLogic.nextAction === 'continue_deterministic') {
+          const aiData = await aiRes.json();
+
+          console.debug('[engine] adaptive API response', {
+            success: aiData.success,
+            nextAction: aiData.response?.nextAction,
+            nextQuestionId: aiData.response?.nextQuestionId,
+            providerUsed: aiData.response?.providerUsed,
+            fallbackUsed: aiData.response?.fallbackUsed,
+          });
+
+          if (aiData.success && aiData.response) {
+            const aiLogic = aiData.response;
+
+            // Merge extracted facts
+            if (aiLogic.extractedFacts && aiLogic.extractedFacts.length > 0) {
+              setExtractedFacts(prev => {
+                const newFacts = [...prev];
+                for (const fact of aiLogic.extractedFacts) {
+                  const idx = newFacts.findIndex(
+                    (f: Record<string, unknown>) => f.field === fact.field
+                  );
+                  if (idx >= 0) newFacts[idx] = fact;
+                  else newFacts.push(fact);
+                }
+                return newFacts;
+              });
+            }
+
+            if (aiLogic.nextAction === 'ask_follow_up' && aiLogic.nextQuestionId) {
+              nextQ = questions.find(q => q.id === aiLogic.nextQuestionId) || null;
+            } else {
+              aiFallback = true;
+            }
+          } else {
             aiFallback = true;
           }
-        } else {
+        } catch (err) {
+          console.warn('[engine] Adaptive API failed, falling back to deterministic routing', err);
           aiFallback = true;
         }
-      } catch (err) {
-        console.warn('AI Request Failed, falling back to deterministic routing', err);
+      } else {
+        // Demo session: always use local deterministic routing
         aiFallback = true;
       }
 
-      // Deterministic fallback
+      // ── Step 5: Deterministic fallback ───────────────────────────────────
       if (aiFallback || !nextQ) {
         nextQ = getNextQuestion(currentQuestion.id, nextAnswers, questions);
       }
 
+      console.debug('[engine] next question selected', {
+        nextQId: nextQ?.id ?? null,
+        aiFallback,
+      });
+
+      // ── Step 6: Advance to next question (or complete) ───────────────────
       if (nextQ) {
         setStatus({ sessionId, currentQuestionId: nextQ.id, status: 'asking' });
       } else {
@@ -258,7 +285,7 @@ export function useConversationEngine(config: ConversationEngineConfig): Convers
         onComplete?.();
       }
     } catch (err) {
-      console.error('Failed to save answer', err);
+      console.error('[engine] Fatal error in submitAnswer', err);
       const errObj = err instanceof Error ? err : new Error(String(err));
       onError?.(errObj);
       setValidationError('Failed to save answer. Please try again.');
@@ -276,7 +303,6 @@ export function useConversationEngine(config: ConversationEngineConfig): Convers
   }, [answers, currentQuestion, questions, sessionId]);
 
   const resume = React.useCallback(() => {
-    // If we're in error state, reset to asking for current question
     if (status.status === 'error' && status.currentQuestionId) {
       setValidationError(null);
       setStatus({ sessionId, currentQuestionId: status.currentQuestionId, status: 'asking' });

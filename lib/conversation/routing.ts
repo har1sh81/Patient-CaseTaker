@@ -37,68 +37,7 @@ function evaluateCondition(condition: { fieldId: string; operator: string; value
 /**
  * Determines the next valid question ID based on current question's rules and provided answers.
  */
-export interface CurrentProblemDomainStatus {
-  domain: string;
-  status: 'COMPLETE' | 'PARTIAL' | 'MISSING';
-  value?: string;
-}
 
-export function evalCurrentProblemDomains(
-  answers: Record<string, ConversationAnswer>
-): Record<string, CurrentProblemDomainStatus> {
-  const combinedText = Object.values(answers)
-    .map(a => String(a.transcript || a.rawValue || a.normalizedValue || ''))
-    .join(' ');
-  const nlpResult = LocalClinicalNLP.extractFacts(combinedText, 'en');
-
-  return {
-    chief_complaint: {
-      domain: 'chief_complaint',
-      status: (answers['reason_for_visit'] || nlpResult.primarySymptom) ? 'COMPLETE' : 'MISSING',
-      value: nlpResult.primarySymptom || (answers['reason_for_visit']?.rawValue as string),
-    },
-    onset_duration: {
-      domain: 'onset_duration',
-      status: (answers['symptom_duration'] || nlpResult.duration) ? 'COMPLETE' : 'MISSING',
-      value: nlpResult.duration || (answers['symptom_duration']?.rawValue as string),
-    },
-    location: {
-      domain: 'location',
-      status: (answers['pain_location'] || nlpResult.location) ? 'COMPLETE' : 'MISSING',
-      value: nlpResult.location || (answers['pain_location']?.rawValue as string),
-    },
-    character_quality: {
-      domain: 'character_quality',
-      status: (answers['symptom_character'] || nlpResult.character) ? 'COMPLETE' : 'MISSING',
-      value: nlpResult.character || (answers['symptom_character']?.rawValue as string),
-    },
-    severity: {
-      domain: 'severity',
-      status: (answers['pain_scale'] || nlpResult.painScore || nlpResult.severity) ? 'COMPLETE' : 'MISSING',
-      value: nlpResult.painScore ? `${nlpResult.painScore}/10` : (nlpResult.severity || (answers['pain_scale']?.rawValue as string)),
-    },
-    progression: {
-      domain: 'progression',
-      status: (answers['symptom_progression'] || nlpResult.progression) ? 'COMPLETE' : 'MISSING',
-      value: nlpResult.progression || (answers['symptom_progression']?.rawValue as string),
-    },
-    aggravating_relieving: {
-      domain: 'aggravating_relieving',
-      status: (answers['aggravating_relieving'] || answers['stomach_pain_triggers'] || nlpResult.aggravatingFactors || nlpResult.relievingFactors) ? 'COMPLETE' : 'MISSING',
-      value: nlpResult.aggravatingFactors || nlpResult.relievingFactors || (answers['aggravating_relieving']?.rawValue as string) || (answers['stomach_pain_triggers']?.rawValue as string),
-    },
-    associated_symptoms: {
-      domain: 'associated_symptoms',
-      status: (answers['associated_symptoms'] || answers['gi_red_flags'] || answers['cardiac_radiation_check'] || nlpResult.associatedSymptoms || nlpResult.negatedSymptoms.length > 0) ? 'COMPLETE' : 'MISSING',
-      value: (answers['associated_symptoms']?.rawValue as string) || (answers['gi_red_flags']?.rawValue as string) || (nlpResult.negatedSymptoms.length ? `No ${nlpResult.negatedSymptoms.join(', ')}` : undefined),
-    },
-    previous_treatments: {
-      domain: 'previous_treatments',
-      status: (answers['previous_treatments'] || nlpResult.previousTreatments) ? 'COMPLETE' : 'MISSING',
-      value: nlpResult.previousTreatments || (answers['previous_treatments']?.rawValue as string),
-    },
-  };
-}
 
 /**
  * Determines the next valid question ID based on current question's rules and 9-domain coverage.
@@ -137,6 +76,16 @@ export function getNextQuestion(
     gi_red_flags: 'associated_symptoms',
     cardiac_radiation_check: 'associated_symptoms',
     previous_treatments: 'previous_treatments',
+    fever_check: 'systemic_review',
+    sleep_quality: 'systemic_review',
+    appetite_changes: 'systemic_review',
+    fatigue_energy: 'systemic_review',
+    stress_anxiety: 'risk_factors',
+    recent_travel: 'risk_factors',
+    smoking_alcohol: 'risk_factors',
+    family_history: 'family_social_history',
+    neuro_symptoms: 'neuro_check',
+    bowel_habits: 'bowel_urinary',
   };
 
   if (currentQ.followUpRules && currentQ.followUpRules.length > 0) {
@@ -206,31 +155,11 @@ export function invalidateBranch(
   answers: Record<string, ConversationAnswer>,
   questions: Question[]
 ): string[] {
-  // If we change an answer, the new route might skip questions that were previously answered.
-  // We re-calculate the valid route from the changed question forward.
-  const validRouteIds = new Set<string>();
-  
-  let current: Question | null = questions.find(q => q.id === changedQuestionId) || null;
-  
-  while (current) {
-    validRouteIds.add(current.id);
-    current = getNextQuestion(current.id, answers, questions);
-    if (validRouteIds.has(current?.id || '')) break; // avoid infinite loop
-  }
-
-  // Any answer that is after the changed question logically, but not in the new validRouteIds, is invalidated.
-  // To be safe, we just collect all answer keys that are not in the valid route from the START.
-  
-  const absoluteValidRoute = new Set<string>();
-  let start: Question | null = questions[0];
-  while (start) {
-    absoluteValidRoute.add(start.id);
-    start = getNextQuestion(start.id, answers, questions);
-    if (absoluteValidRoute.has(start?.id || '')) break;
-  }
-
-  const invalidQuestionIds = Object.keys(answers).filter(id => !absoluteValidRoute.has(id));
-  return invalidQuestionIds;
+  // Requirement 1 & 2: Do NOT invalidate past answers in an adaptive flow 
+  // just because they are skipped in a forward route (they are skipped because they are COMPLETE).
+  // For now, the safest approach to prevent data loss is to not blindly invalidate.
+  // We explicitly protect the changedQuestionId and all previously gathered facts.
+  return [];
 }
 
 /**

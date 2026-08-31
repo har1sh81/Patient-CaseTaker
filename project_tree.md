@@ -46,36 +46,36 @@ All API route files are located in `app/api/` and act as the secure backend cont
 
 ### 🏥 Kiosk Patient Intake API (`app/api/kiosk/`)
 - **Session Management:**
-  - `session/route.ts` — Creates, fetches, and ends patient sessions
-  - `session/cleanup/route.ts` — Deletes temporary patient data and session items post-intake
+  - `session/` — Creates, fetches, and ends patient sessions
+  - `session/cleanup/` — Deletes temporary patient data and session items post-intake
 - **ABDM Integration:**
-  - `abdm/consent/route.ts` — Initiates/verifies patient consent requests
-  - `abdm/records/route.ts` — Requests health information records via ABDM gateway
+  - `abdm/consent/` — Initiates/verifies patient consent requests
+  - `abdm/records/` — Requests health information records via ABDM gateway
 - **Document Processing & OCR:**
-  - `documents/route.ts` — Uploads and updates files
-  - `documents/upload-session/route.ts` — Links mobile upload sessions via QR-code
-  - `documents/[documentId]/route.ts` — Fetches document metadata
-  - `documents/[documentId]/ocr/route.ts` — Runs OCR on uploaded documents
-  - `documents/[documentId]/extract/route.ts` — Extracts structured facts from documents using LLMs
+  - `documents/` — Uploads and updates files
+  - `documents/upload-session/` — Links mobile upload sessions via QR-code
+  - `documents/[documentId]/` — Fetches document metadata
+  - `documents/[documentId]/ocr/` — Runs OCR on uploaded documents
+  - `documents/[documentId]/extract/` — Extracts structured facts from documents using LLMs
 - **AI Interview Engine:**
-  - `interview/session/route.ts` — Generates next adaptive interview question
-  - `interview/adaptive/route.ts` — Realtime feedback loops for adaptive logic
-  - `interview/answers/route.ts` — Persists and processes answers
-  - `interview/attention/route.ts` — Evaluates real-time red-flags
-  - `interview/timeline/route.ts` — Retrieves the raw patient intake timeline
-  - `interview/timeline/reconstruct/route.ts` — Cleans and builds a unified timeline
-  - `interview/report/generate/route.ts` — Computes the draft clinical history report
+  - `interview/session/` — Generates next adaptive interview question
+  - `interview/adaptive/` — Realtime feedback loops for adaptive logic
+  - `interview/answers/` — Persists and processes answers
+  - `interview/attention/` — Evaluates real-time red-flags
+  - `interview/timeline/` — Retrieves the raw patient intake timeline
+  - `interview/timeline/reconstruct/` — Cleans and builds a unified timeline
+  - `interview/report/generate/` — Computes the draft clinical history report
 
 ### 🧑‍⚕️ Doctor Case API (`app/api/doctor/`)
-- `cases/route.ts` — Retrieves active cases queue
-- `cases/[sessionId]/route.ts` — Retrieves/updates session summary data
-- `cases/[sessionId]/update/route.ts` — Edits individual clinical fields
-- `cases/[sessionId]/resolve-conflict/route.ts` — Resolves data conflict resolutions
-- `cases/[sessionId]/finalize/route.ts` — Commits final edits and locks the case
-- `cases/[sessionId]/export/fhir/route.ts` — Maps finalized case into a FHIR bundle
-- `cases/[sessionId]/export/hospital/route.ts` — Transmits FHIR data to hospital HIS adapter
-- `cases/[sessionId]/export/abdm/route.ts` — Submits clinical records to ABDM gateway
-- `cases/[sessionId]/export/status/route.ts` — Status monitoring of external HIS/ABDM sync
+- `cases/` — Retrieves active cases queue
+- `cases/[sessionId]/` — Retrieves/updates session summary data
+- `cases/[sessionId]/update/` — Edits individual clinical fields
+- `cases/[sessionId]/resolve-conflict/` — Resolves data conflict resolutions
+- `cases/[sessionId]/finalize/` — Commits final edits and locks the case
+- `cases/[sessionId]/export/fhir/` — Maps finalized case into a FHIR bundle
+- `cases/[sessionId]/export/hospital/` — Transmits FHIR data to hospital HIS adapter
+- `cases/[sessionId]/export/abdm/` — Submits clinical records to ABDM gateway
+- `cases/[sessionId]/export/status/` — Status monitoring of external HIS/ABDM sync
 
 ### 🔐 System Middleware
 - [middleware.ts](file:///c:/Users/haris/OneDrive/projects/Patient-TakeCare/middleware.ts) — Enforces route protection rules on `/doctor/*` and updates user session cookies.

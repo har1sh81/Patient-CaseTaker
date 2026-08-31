@@ -84,8 +84,8 @@ export function evaluateDomainCompleteness(ctx: AdaptiveContext): Record<string,
     },
     severity: {
       domain: 'severity',
-      status: (answersMap['pain_scale'] || nlpResult.painScore || nlpResult.severity) ? 'COMPLETE' : 'MISSING',
-      value: nlpResult.painScore ? `${nlpResult.painScore}/10` : (nlpResult.severity || (answersMap['pain_scale']?.rawValue as string)),
+      status: (answersMap['pain_scale'] || nlpResult.painScore) ? 'COMPLETE' : 'MISSING',
+      value: nlpResult.painScore ? `${nlpResult.painScore}/10` : (answersMap['pain_scale']?.rawValue as string),
     },
     progression: {
       domain: 'progression',
@@ -106,6 +106,31 @@ export function evaluateDomainCompleteness(ctx: AdaptiveContext): Record<string,
       domain: 'previous_treatments',
       status: (answersMap['previous_treatments'] || nlpResult.previousTreatments) ? 'COMPLETE' : 'MISSING',
       value: nlpResult.previousTreatments || (answersMap['previous_treatments']?.rawValue as string),
+    },
+    systemic_review: {
+      domain: 'systemic_review',
+      status: (answersMap['fever_check'] || answersMap['sleep_quality'] || answersMap['appetite_changes'] || answersMap['fatigue_energy']) ? 'COMPLETE' : 'MISSING',
+      value: (answersMap['fever_check']?.rawValue as string) || (answersMap['sleep_quality']?.rawValue as string) || (answersMap['appetite_changes']?.rawValue as string) || (answersMap['fatigue_energy']?.rawValue as string),
+    },
+    risk_factors: {
+      domain: 'risk_factors',
+      status: (answersMap['recent_travel'] || answersMap['smoking_alcohol'] || answersMap['stress_anxiety']) ? 'COMPLETE' : 'MISSING',
+      value: (answersMap['recent_travel']?.rawValue as string) || (answersMap['smoking_alcohol']?.rawValue as string) || (answersMap['stress_anxiety']?.rawValue as string),
+    },
+    family_social_history: {
+      domain: 'family_social_history',
+      status: (answersMap['family_history'] || answersMap['smoking_alcohol']) ? 'COMPLETE' : 'MISSING',
+      value: (answersMap['family_history']?.rawValue as string) || (answersMap['smoking_alcohol']?.rawValue as string),
+    },
+    neuro_check: {
+      domain: 'neuro_check',
+      status: (answersMap['neuro_symptoms']) ? 'COMPLETE' : 'MISSING',
+      value: (answersMap['neuro_symptoms']?.rawValue as string),
+    },
+    bowel_urinary: {
+      domain: 'bowel_urinary',
+      status: (answersMap['bowel_habits']) ? 'COMPLETE' : 'MISSING',
+      value: (answersMap['bowel_habits']?.rawValue as string),
     },
   };
 }
@@ -146,6 +171,7 @@ export function selectNextQuestion(
   const hasAssoc = Boolean(nlpResult.associatedSymptoms) || askedIds.has('associated_symptoms') || askedIds.has('gi_red_flags') || askedIds.has('cardiac_radiation_check');
   const hasPrevTreat = Boolean(nlpResult.previousTreatments) || askedIds.has('previous_treatments');
 
+  // CORE HPI — always ask first (7 questions)
   if (!hasDuration && !askedIds.has('symptom_duration') && allowedQuestionIds.includes('symptom_duration')) {
     return 'symptom_duration';
   }
@@ -164,6 +190,8 @@ export function selectNextQuestion(
   if (!hasAggRel && !askedIds.has('aggravating_relieving') && allowedQuestionIds.includes('aggravating_relieving')) {
     return 'aggravating_relieving';
   }
+
+  // CONDITION-SPECIFIC — ask if relevant (2-3 questions max)
   if (mentionsGI && !askedIds.has('stomach_pain_triggers') && allowedQuestionIds.includes('stomach_pain_triggers')) {
     return 'stomach_pain_triggers';
   }
@@ -173,6 +201,8 @@ export function selectNextQuestion(
   if (mentionsChest && !askedIds.has('cardiac_radiation_check') && allowedQuestionIds.includes('cardiac_radiation_check')) {
     return 'cardiac_radiation_check';
   }
+
+  // ASSOCIATED + TREATMENTS — completes core HPI (3 questions)
   if (!hasAssoc && !askedIds.has('associated_symptoms') && allowedQuestionIds.includes('associated_symptoms')) {
     return 'associated_symptoms';
   }
@@ -186,12 +216,73 @@ export function selectNextQuestion(
     return 'current_medications';
   }
 
+  // CORE 15 COMPLETE — now check if we should expand
+  // Only ask universal questions if:
+  //   (a) red flags exist (high severity, neuro symptoms, weight loss, fever), OR
+  //   (b) fewer than 15 asked so far (fill up to 15)
+  const askedCount = askedIds.size;
+  const hasRedFlags = hasSeverity && (
+    answersContains(ctx.answersMap, askedIds, 'severe') ||
+    answersContains(ctx.answersMap, askedIds, 'high_fever') ||
+    answersContains(ctx.answersMap, askedIds, 'weight_loss')
+  );
+  const shouldExpand = askedCount < 15 || hasRedFlags;
+
+  if (shouldExpand) {
+    // UNIVERSAL — pick the most relevant ones to fill up to ~15
+    if (!askedIds.has('fever_check') && allowedQuestionIds.includes('fever_check')) {
+      return 'fever_check';
+    }
+    if (!askedIds.has('fatigue_energy') && allowedQuestionIds.includes('fatigue_energy')) {
+      return 'fatigue_energy';
+    }
+    if (!askedIds.has('appetite_changes') && allowedQuestionIds.includes('appetite_changes')) {
+      return 'appetite_changes';
+    }
+    if (!askedIds.has('sleep_quality') && allowedQuestionIds.includes('sleep_quality')) {
+      return 'sleep_quality';
+    }
+    if (!askedIds.has('neuro_symptoms') && allowedQuestionIds.includes('neuro_symptoms')) {
+      return 'neuro_symptoms';
+    }
+    if (!askedIds.has('bowel_habits') && allowedQuestionIds.includes('bowel_habits')) {
+      return 'bowel_habits';
+    }
+    if (!askedIds.has('stress_anxiety') && allowedQuestionIds.includes('stress_anxiety')) {
+      return 'stress_anxiety';
+    }
+    if (!askedIds.has('recent_travel') && allowedQuestionIds.includes('recent_travel')) {
+      return 'recent_travel';
+    }
+    if (!askedIds.has('smoking_alcohol') && allowedQuestionIds.includes('smoking_alcohol')) {
+      return 'smoking_alcohol';
+    }
+    if (!askedIds.has('family_history') && allowedQuestionIds.includes('family_history')) {
+      return 'family_history';
+    }
+  }
+
+  // FALLBACK — any remaining unasked allowed question
   return allowedQuestionIds.find(id => {
     if (askedIds.has(id)) return false;
     if (id === 'cardiac_radiation_check' && !mentionsChest) return false;
     if ((id === 'stomach_pain_triggers' || id === 'gi_red_flags') && !mentionsGI) return false;
     return true;
   });
+}
+
+function answersContains(
+  answersMap: Record<string, ConversationAnswer>,
+  askedIds: Set<string>,
+  value: string
+): boolean {
+  for (const id of askedIds) {
+    const a = answersMap[id];
+    if (a && (a.normalizedValue === value || a.rawValue === value || a.transcript?.includes(value))) {
+      return true;
+    }
+  }
+  return false;
 }
 
 export function getCandidateQuestionIds(
@@ -210,9 +301,21 @@ export function getCandidateQuestionIds(
     aggravating_relieving: 'aggravating_relieving',
     associated_symptoms: 'associated_symptoms',
     previous_treatments: 'previous_treatments',
+    systemic_review: 'fever_check',
+    risk_factors: 'recent_travel',
+    family_social_history: 'family_history',
+    neuro_check: 'neuro_symptoms',
+    bowel_urinary: 'bowel_habits',
   };
 
+  const universalQuestions = [
+    'fever_check', 'sleep_quality', 'appetite_changes', 'fatigue_energy',
+    'bowel_habits', 'neuro_symptoms', 'stress_anxiety', 'recent_travel',
+    'smoking_alcohol', 'family_history',
+  ];
+
   const candidates: string[] = [];
+  const askedCount = askedIds.size;
 
   for (const [domainKey, domainObj] of Object.entries(domains)) {
     if (domainObj.status !== 'COMPLETE') {
@@ -238,12 +341,25 @@ export function getCandidateQuestionIds(
     }
   }
 
-  // Include general medical & medication history if unasked
+  // Include general medical & medication history
   if (allowedQuestionIds.includes('past_medical_history') && !askedIds.has('past_medical_history')) {
     if (!candidates.includes('past_medical_history')) candidates.push('past_medical_history');
   }
   if (allowedQuestionIds.includes('current_medications') && !askedIds.has('current_medications')) {
     if (!candidates.includes('current_medications')) candidates.push('current_medications');
+  }
+
+  // UNIVERSAL — only add if under 15 asked OR red flags exist
+  const hasRedFlags = answersContains(ctx.answersMap, askedIds, 'severe') ||
+    answersContains(ctx.answersMap, askedIds, 'high_fever') ||
+    answersContains(ctx.answersMap, askedIds, 'weight_loss');
+
+  if (askedCount < 15 || hasRedFlags) {
+    for (const qId of universalQuestions) {
+      if (allowedQuestionIds.includes(qId) && !askedIds.has(qId)) {
+        if (!candidates.includes(qId)) candidates.push(qId);
+      }
+    }
   }
 
   return candidates;
