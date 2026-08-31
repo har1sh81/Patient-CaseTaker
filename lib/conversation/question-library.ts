@@ -264,7 +264,7 @@ export const PHASE6_DEMO_QUESTIONS: Question[] = [
     section: 'review_of_systems',
     displayOrder: 15,
     question: {
-      en: 'Does the chest pain or tightness spread to your left arm, neck, shoulder, or jaw?',
+      en: 'Does the pain or tightness spread to any other parts?',
       hi: 'क्या सीने में दर्द या दबाव आपके बाएं हाथ, गर्दन या जबड़े में फैलता है?',
       ta: 'மார்பு வலி அல்லது அழுத்தம் உங்கள் இடது கை, கழுத்து அல்லது தாடைக்கு பரவுகிறதா?',
     },
