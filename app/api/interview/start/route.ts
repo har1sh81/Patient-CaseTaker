@@ -18,6 +18,7 @@ export async function POST(request: Request) {
       consultationMode = 'general_medicine',
       language = 'en',
       chiefComplaint,
+      sessionId,
     } = body;
 
     const result = await startInterviewSession({
@@ -27,6 +28,7 @@ export async function POST(request: Request) {
       consultationMode,
       language,
       chiefComplaint,
+      sessionId,
     });
 
     if (!result.success) {

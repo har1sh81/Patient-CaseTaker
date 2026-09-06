@@ -13,6 +13,8 @@ import { evaluateSessionSafety } from './safety-controller';
 import { updateStateAfterAnswer } from './interview-state';
 import type { InterviewState, AnswerInput, ProcessAnswerResult } from './types';
 
+import { analyzeAndUpdateInterviewState } from './interview-state-analyzer';
+
 export async function processInterviewAnswer(
   state: InterviewState,
   input: AnswerInput
@@ -33,7 +35,7 @@ export async function processInterviewAnswer(
       source_language: state.language || 'en',
       raw_text: answerString,
       normalized_english_text: input.nativeTranscript || answerString,
-      input_method: input.inputMethod,
+      input_method: input.inputMethod || 'touch',
       created_at: timestamp,
     });
 
@@ -63,7 +65,16 @@ export async function processInterviewAnswer(
   }
 
   // 3. Update State with Answer and Extracted Facts
-  let newState = updateStateAfterAnswer(state, input, extractedFacts);
+  const turn: import('./types').ConversationTurn = {
+    role: 'patient',
+    text: answerString,
+    timestamp,
+    questionId: input.questionId,
+  };
+  let newState = updateStateAfterAnswer(state, input, turn, extractedFacts);
+
+  // 3b. Phase 4: Reason over evolving clinical state BEFORE next question / safety
+  newState = await analyzeAndUpdateInterviewState(newState);
 
   // 4. Run Task #14 Red-Flag Evaluation
   const safetyRes = await evaluateSessionSafety(newState);

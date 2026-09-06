@@ -7,11 +7,22 @@
 
 import type { InterviewState, StartInterviewOptions, AnswerInput, InterviewSessionStatus, LanguageCode } from './types';
 
+// Generic/default chief complaint values that are NOT real clinical symptoms
+const GENERIC_CHIEF_COMPLAINTS = new Set([
+  'general checkup', 'general check up', 'checkup', 'check up', 'general', '',
+]);
+
+function isRealChiefComplaint(cc?: string): boolean {
+  if (!cc || !cc.trim()) return false;
+  return !GENERIC_CHIEF_COMPLAINTS.has(cc.toLowerCase().trim());
+}
+
 export function createInitialInterviewState(
   sessionId: string,
   options: StartInterviewOptions
 ): InterviewState {
   const timestamp = new Date().toISOString();
+  const hasRealCC = isRealChiefComplaint(options.chiefComplaint);
   return {
     sessionId,
     patientId: options.patientId,
@@ -20,29 +31,51 @@ export function createInitialInterviewState(
     consultationMode: options.consultationMode || 'general_medicine',
     language: options.language || 'en',
     chiefComplaint: options.chiefComplaint,
-    askedQuestionIds: [],
-    answeredQuestionIds: [],
-    skippedQuestionIds: [],
-    collectedFacts: [],
+    conversationTurns: [],
+    extractedFacts: [],
+    coveredTopics: [],
+    missingInformation: [],
     redFlags: [],
+    askedQuestions: [],
+    lastQuestion: null,
+    lastAnswer: null,
     progress: 0,
     status: 'active',
-    startedAt: timestamp,
+    turnCount: 0,
+    knownSymptoms: hasRealCC ? [options.chiefComplaint!] : [],
+    newSymptoms: hasRealCC ? [options.chiefComplaint!] : [],
+    explicitNegatives: [],
+    unresolvedTopics: hasRealCC
+      ? [`location of ${options.chiefComplaint}`, `onset of ${options.chiefComplaint}`, `severity of ${options.chiefComplaint}`]
+      : [],
+    activeTopic: hasRealCC ? options.chiefComplaint! : 'general',
+    recentTopics: hasRealCC ? [options.chiefComplaint!] : [],
+    clarificationsNeeded: [],
+    createdAt: timestamp,
     updatedAt: timestamp,
   };
 }
 
 export function updateStateAfterQuestionAsked(
   state: InterviewState,
-  questionId: string
+  question: import('./types').ConversationalQuestion
 ): InterviewState {
-  const asked = new Set(state.askedQuestionIds);
-  asked.add(questionId);
+  const asked = new Set(state.askedQuestions);
+  asked.add(question.id);
+  
+  const turn: import('./types').ConversationTurn = {
+    role: 'assistant',
+    text: question.text,
+    timestamp: new Date().toISOString(),
+    questionId: question.id,
+    intentId: question.intentId
+  };
 
   return {
     ...state,
-    currentQuestionId: questionId,
-    askedQuestionIds: Array.from(asked),
+    lastQuestion: question.id,
+    askedQuestions: Array.from(asked),
+    conversationTurns: [...state.conversationTurns, turn],
     updatedAt: new Date().toISOString(),
   };
 }
@@ -50,30 +83,27 @@ export function updateStateAfterQuestionAsked(
 export function updateStateAfterAnswer(
   state: InterviewState,
   input: AnswerInput,
-  facts: Array<Record<string, unknown>> = [],
-  flags: Array<Record<string, unknown>> = []
+  turn: import('./types').ConversationTurn,
+  facts: import('./types').ClinicalFacts = [],
+  flags: import('./types').RedFlagState[] = []
 ): InterviewState {
-  const answered = new Set(state.answeredQuestionIds);
-  const skipped = new Set(state.skippedQuestionIds);
-
-  if (input.answerStatus === 'unknown' || input.answerStatus === 'skipped') {
-    skipped.add(input.questionId);
-  } else {
-    answered.add(input.questionId);
-  }
-
-  const existingFacts = [...state.collectedFacts];
+  const existingFacts = [...state.extractedFacts];
   facts.forEach((f) => existingFacts.push(f));
 
   const existingFlags = [...state.redFlags];
   flags.forEach((fl) => existingFlags.push(fl));
 
+  const answerString = Array.isArray(input.answer)
+    ? input.answer.join(', ')
+    : String(input.answer || '');
+
   return {
     ...state,
-    answeredQuestionIds: Array.from(answered),
-    skippedQuestionIds: Array.from(skipped),
-    collectedFacts: existingFacts,
+    conversationTurns: [...state.conversationTurns, turn],
+    extractedFacts: existingFacts,
     redFlags: existingFlags,
+    lastAnswer: answerString,
+    turnCount: state.turnCount + 1,
     updatedAt: new Date().toISOString(),
   };
 }
@@ -92,9 +122,7 @@ export function setInterviewStatus(
 }
 
 export function calculateProgress(state: InterviewState, totalEstimatedQuestions: number = 10): number {
-  const answeredCount = state.answeredQuestionIds.length;
-  const skippedCount = state.skippedQuestionIds.length;
-  const totalCovered = answeredCount + skippedCount;
+  const totalCovered = state.turnCount;
 
   if (totalCovered === 0) return 0;
   const rawProgress = Math.round((totalCovered / Math.max(totalEstimatedQuestions, 1)) * 100);

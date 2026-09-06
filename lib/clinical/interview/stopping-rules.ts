@@ -28,7 +28,7 @@ export function evaluateStoppingRules(
     return { shouldStop: true, reason: 'USER_COMPLETED' };
   }
 
-  const totalAsked = state.askedQuestionIds.length;
+  const totalAsked = state.askedQuestions.length;
   if (totalAsked >= MAXIMUM_QUESTION_LIMIT) {
     return { shouldStop: true, reason: 'MAX_LIMIT_REACHED' };
   }
