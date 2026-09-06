@@ -48,13 +48,33 @@ export async function POST(request: Request) {
       console.warn("No ABDM history found for timeline fusion");
     }
 
+    // Attempt to get historical database records
+    let historicalSymptoms: any[] = [];
+    let historicalMedications: any[] = [];
+    let historicalDiagnoses: any[] = [];
+    try {
+      const [symptoms, meds, diagnoses] = await Promise.all([
+        db.getHistoricalSymptoms(patientId),
+        db.getHistoricalMedications(patientId),
+        db.getHistoricalDiagnoses(patientId)
+      ]);
+      historicalSymptoms = symptoms;
+      historicalMedications = meds;
+      historicalDiagnoses = diagnoses;
+    } catch {
+      console.warn("No historical DB records found");
+    }
+
     // 3. Build Timeline
     const timeline = buildTimeline(
       sessionId,
       patientId,
       answers,
       extractions,
-      abdmHistory
+      abdmHistory,
+      historicalSymptoms,
+      historicalMedications,
+      historicalDiagnoses
     );
 
     // 4. Save Timeline

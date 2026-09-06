@@ -58,6 +58,7 @@ export default function KioskPage() {
   const [mobileNum, setMobileNum] = React.useState('');
   const [abhaRef, setAbhaRef] = React.useState('');
   const [hspRef, setHspRef] = React.useState('');
+  const [patientId, setPatientId] = React.useState<string | null>(null);
   const [isCorrectingDetails, setIsCorrectingDetails] = React.useState(false);
 
   // ABDM states
@@ -156,10 +157,10 @@ export default function KioskPage() {
         setLastName(p.demographics.lastName || '');
         setDob(p.demographics.dateOfBirth || '');
         setManualAge(p.demographics.age?.toString() || '');
-        setGender(p.demographics.gender || '');
         setMobileNum(p.identification?.mobileNumber || p.contact?.mobileNumber || '');
         setAbhaRef(p.identification?.abhaReference || '');
         setHspRef(p.identification?.hospitalNumber || '');
+        setPatientId(p.id);
         setIsCorrectingDetails(false);
         setStep('REGISTRATION'); // Proceed to confirm details
       } else {
@@ -215,7 +216,7 @@ export default function KioskPage() {
     setSearchError(null);
 
     const now = Date.now();
-    const validUuid = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : 'a1111111-1111-4111-8111-000000000001';
+    const validUuid = patientId || (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `new-patient-${now}`);
     const newPatientData = {
       id: validUuid,
       identification: {

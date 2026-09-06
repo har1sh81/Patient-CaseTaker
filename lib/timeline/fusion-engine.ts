@@ -47,7 +47,10 @@ export function buildTimeline(
   patientId: string,
   answers: ConversationAnswer[],
   extractions: DocumentExtractionResult[],
-  abdmHistory?: ClinicalHistory
+  abdmHistory?: ClinicalHistory,
+  historicalSymptoms?: any[],
+  historicalMedications?: any[],
+  historicalDiagnoses?: any[]
 ): MedicalTimeline {
   
   const records: FusedClinicalRecord[] = [];
@@ -182,10 +185,66 @@ export function buildTimeline(
     }
   });
 
-  // 4. Detect Conflicts
+  // 4. Process Historical Database Symptoms
+  if (historicalSymptoms && historicalSymptoms.length > 0) {
+    historicalSymptoms.forEach(sym => {
+      // Don't include symptoms from the current session/encounter to avoid duplication
+      if (sym.encounter_id === sessionId) return;
+
+      addOrMergeRecord(records, {
+        sessionId,
+        patientId,
+        category: 'symptom',
+        originalValue: sym.symptom_name,
+        dateStr: sym.onset_date || sym.created_at,
+        provenance: { 
+          source: sym.provenance_source || 'patient_touch', 
+          sourceId: sym.id 
+        }
+      });
+    });
+  }
+  
+  if (historicalMedications && historicalMedications.length > 0) {
+    historicalMedications.forEach(med => {
+      if (med.encounter_id === sessionId) return;
+
+      addOrMergeRecord(records, {
+        sessionId,
+        patientId,
+        category: 'medication',
+        originalValue: `${med.medication_name} ${med.dosage || ''} ${med.frequency || ''}`.trim(),
+        dateStr: med.created_at,
+        provenance: { 
+          source: med.provenance_source || 'patient_touch', 
+          sourceId: med.id 
+        }
+      });
+    });
+  }
+
+  if (historicalDiagnoses && historicalDiagnoses.length > 0) {
+    historicalDiagnoses.forEach(diag => {
+      if (diag.encounter_id === sessionId) return;
+
+      addOrMergeRecord(records, {
+        sessionId,
+        patientId,
+        category: 'condition',
+        originalValue: diag.condition_name,
+        dateStr: diag.diagnosed_at || diag.created_at,
+        provenance: { 
+          source: diag.provenance_source || 'physician', 
+          sourceId: diag.id 
+        }
+      });
+    });
+  }
+
+  // 5. Detect Conflicts
   detectConflicts(records);
 
-  // 5. Sort Chronologically
+  // 6. Sort Chronologically
   records.sort((a, b) => {
     // Known dates first, unknown last
     if (a.datePrecision === 'unknown' && b.datePrecision !== 'unknown') return 1;
@@ -221,6 +280,11 @@ function addOrMergeRecord(records: FusedClinicalRecord[], input: RecordInput) {
 
   const normalized = normalizeClinicalFact(input.originalValue);
   const { date, datePrecision } = parseDatePrecision(input.dateStr);
+  
+  const VALID_SOURCES = ["patient_voice", "patient_touch", "patient_text", "uploaded_document", "ocr", "ai_extraction", "system_rule", "demo_data", "physician", "abdm"];
+  if (!VALID_SOURCES.includes(input.provenance.source)) {
+    input.provenance.source = 'system_rule'; // Fallback
+  }
 
   // Check if we can fuse with an existing record
   // Rules for fusion: Same category AND same normalized fact.

@@ -126,7 +126,7 @@ export default function DoctorPatientWorkspace({ params }: PageProps) {
         const err = await res.json();
         throw new Error(err.error || err.failureReason || 'Hospital export failed');
       }
-      alert('Hospital export successful (Mock)');
+      alert('Hospital export successful');
       fetchDetail();
     } catch (err: any) {
       alert(err.message);
@@ -143,7 +143,7 @@ export default function DoctorPatientWorkspace({ params }: PageProps) {
         const err = await res.json();
         throw new Error(err.error || err.failureReason || 'ABDM export failed');
       }
-      alert('ABDM export successful (Mock)');
+      alert('ABDM export successful');
       fetchDetail();
     } catch (err: any) {
       alert(err.message);
@@ -513,7 +513,7 @@ export default function DoctorPatientWorkspace({ params }: PageProps) {
                     </div>
                     {!exportStatuses.find(r => r.exportType === 'fhir_abdm' && r.status === 'sent') && (
                       <Button size="sm" className="w-full text-xs h-8 bg-orange-600 hover:bg-orange-700" onClick={handleExportABDM} disabled={isExportingABDM}>
-                        {isExportingABDM ? 'Publishing...' : 'Publish to ABDM (Mock)'}
+                        {isExportingABDM ? 'Publishing...' : 'Publish to ABDM'}
                       </Button>
                     )}
                   </div>

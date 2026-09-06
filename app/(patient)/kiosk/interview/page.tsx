@@ -30,23 +30,6 @@ function InterviewContent() {
       return;
     }
 
-    if (sessionId === 'demo-session-123') {
-      // Demo mode bypass
-      React.startTransition(() => {
-        setSession({
-          id: 'demo-session-123',
-          patientId: 'demo-patient',
-          departmentMode: 'standard',
-          language: 'en',
-          status: 'active',
-          createdAt: new Date(),
-          updatedAt: new Date().toISOString()
-        } as unknown as IntakeSession);
-        setInitialAnswers([]);
-      });
-      return;
-    }
-
     let isMounted = true;
 
     async function loadData() {
@@ -221,6 +204,14 @@ function InterviewEngineWrapper({ session, initialAnswers }: { session: IntakeSe
 
         {/* Controls */}
         <div className="mt-auto pt-8">
+          <div className="flex justify-center mb-2">
+            <button
+              onClick={() => router.push(`/kiosk/documents?sessionId=${session.id}`)}
+              className="text-sm font-bold text-primary underline hover:text-primary-dark transition-colors px-4 py-2 rounded-lg hover:bg-primary/5"
+            >
+              Skip rest of interview & Go to Documents
+            </button>
+          </div>
           <ConversationControls
             onBack={engine.goBack}
             onCancel={handleCancel}

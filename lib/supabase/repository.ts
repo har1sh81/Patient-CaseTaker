@@ -214,6 +214,9 @@ export interface DatabaseService {
   // Clinical Histories
   saveClinicalHistory(history: ClinicalHistory): Promise<ClinicalHistory>;
   getClinicalHistory(sessionId: string): Promise<ClinicalHistory | null>;
+  getHistoricalSymptoms(patientId: string): Promise<any[]>;
+  getHistoricalMedications(patientId: string): Promise<any[]>;
+  getHistoricalDiagnoses(patientId: string): Promise<any[]>;
 
   // Medical Timeline
   saveTimeline(timeline: MedicalTimeline): Promise<MedicalTimeline>;
@@ -586,7 +589,13 @@ export class SupabaseRepository implements DatabaseService {
 
   async saveAnswer(answer: ConversationAnswer): Promise<ConversationAnswer> {
     ConversationAnswerSchema.parse(answer);
-    const dbPayload = keysToSnake(answer);
+    const dbPayload: any = keysToSnake(answer);
+    // map sessionId to encounter_id
+    if (dbPayload.session_id) {
+      dbPayload.encounter_id = dbPayload.session_id;
+      delete dbPayload.session_id;
+    }
+    
     try {
       const { data, error } = await (await createClient())
         .from('conversation_answers')
@@ -614,10 +623,18 @@ export class SupabaseRepository implements DatabaseService {
       const { data, error } = await (await createClient())
         .from('conversation_answers')
         .select()
-        .eq('session_id', sessionId)
+        .eq('encounter_id', sessionId)
         .order('answered_at', { ascending: true });
 
-      if (!error && data) return data.map((row) => ConversationAnswerSchema.parse(keysToCamel(row)));
+      if (!error && data) {
+        return data.map((row) => {
+          const camelRow: any = keysToCamel(row);
+          if (camelRow.encounterId && !camelRow.sessionId) {
+            camelRow.sessionId = camelRow.encounterId;
+          }
+          return ConversationAnswerSchema.parse(camelRow);
+        });
+      }
     } catch { /* ignore */ }
     return [];
   }
@@ -634,7 +651,11 @@ export class SupabaseRepository implements DatabaseService {
 
   async saveDocument(doc: MedicalDocument): Promise<MedicalDocument> {
     MedicalDocumentSchema.parse(doc);
-    const dbPayload = keysToSnake(doc);
+    const dbPayload: any = keysToSnake(doc);
+    if (dbPayload.session_id) {
+      dbPayload.encounter_id = dbPayload.session_id;
+      delete dbPayload.session_id;
+    }
     try {
       const { data, error } = await (await createClient())
         .from('medical_documents')
@@ -665,7 +686,12 @@ export class SupabaseRepository implements DatabaseService {
         .maybeSingle();
 
       if (error || !data) return null;
-      return MedicalDocumentSchema.parse(keysToCamel(data));
+      
+      const camelRow: any = keysToCamel(data);
+      if (camelRow.encounterId && !camelRow.sessionId) {
+        camelRow.sessionId = camelRow.encounterId;
+      }
+      return MedicalDocumentSchema.parse(camelRow);
     } catch {
       return null;
     }
@@ -678,10 +704,16 @@ export class SupabaseRepository implements DatabaseService {
       const { data, error } = await client
         .from('medical_documents')
         .select()
-        .eq('session_id', sessionId);
+        .eq('encounter_id', sessionId);
 
       if (!error && data && data.length > 0) {
-        return data.map((row) => MedicalDocumentSchema.parse(keysToCamel(row)));
+        return data.map((row) => {
+          const camelRow: any = keysToCamel(row);
+          if (camelRow.encounterId && !camelRow.sessionId) {
+            camelRow.sessionId = camelRow.encounterId;
+          }
+          return MedicalDocumentSchema.parse(camelRow);
+        });
       }
     } catch { /* ignore */ }
     return [];
@@ -699,15 +731,54 @@ export class SupabaseRepository implements DatabaseService {
   // --- OCR Responses ---
 
   async saveOcrResponse(response: OCRResponse): Promise<OCRResponse> {
-    // ocr_responses table does not exist in the live schema — no-op
     OCRResponseSchema.parse(response);
-    console.warn('[saveOcrResponse] ocr_responses table not in schema — returning input as-is');
-    return response;
+    try {
+      const dbPayload = {
+        document_id: response.documentId,
+        raw_ocr_text: response.rawText,
+        extracted_json: { pages: response.pages, status: response.status, error: response.error },
+        confidence_score: response.confidence === 'high' ? 0.95 : response.confidence === 'medium' ? 0.75 : 0.5,
+      };
+      const client = await createClient();
+      
+      // Delete existing to avoid duplicate since there is no unique constraint on document_id
+      await client.from('document_extractions').delete().eq('document_id', response.documentId);
+      
+      await client
+        .from('document_extractions')
+        .insert(dbPayload);
+      return response;
+    } catch (e: any) {
+      console.warn('[saveOcrResponse] Error:', e?.message);
+      return response;
+    }
   }
 
-  async getOcrResponse(_documentId: string): Promise<OCRResponse | null> {
-    // ocr_responses table does not exist in the live schema
-    return null;
+  async getOcrResponse(documentId: string): Promise<OCRResponse | null> {
+    try {
+      const { data, error } = await (await createClient())
+        .from('document_extractions')
+        .select()
+        .eq('document_id', documentId)
+        .maybeSingle();
+
+      if (error || !data) return null;
+      
+      const extractedJson = data.extracted_json || {};
+      const status = extractedJson.status || (data.raw_ocr_text ? 'completed' : 'processing');
+      const confidenceStr = data.confidence_score > 0.9 ? 'high' : data.confidence_score > 0.6 ? 'medium' : 'low';
+      
+      return OCRResponseSchema.parse({
+        documentId: data.document_id,
+        rawText: data.raw_ocr_text || '',
+        pages: extractedJson.pages || [],
+        confidence: confidenceStr,
+        status: status,
+        error: extractedJson.error,
+      });
+    } catch {
+      return null;
+    }
   }
 
   // --- Extractions ---
@@ -715,21 +786,20 @@ export class SupabaseRepository implements DatabaseService {
   async saveExtraction(extraction: DocumentExtractionResult): Promise<DocumentExtractionResult> {
     DocumentExtractionResultSchema.parse(extraction);
     try {
-      const dbPayload = keysToSnake(extraction);
-      const { data, error } = await (await createClient())
+      const dbPayload = {
+        document_id: extraction.documentId,
+        extracted_json: extraction,
+        confidence_score: extraction.confidence === 'high' ? 0.95 : extraction.confidence === 'medium' ? 0.75 : 0.5,
+      };
+      
+      const client = await createClient();
+      await client.from('document_extractions').delete().eq('document_id', extraction.documentId);
+      
+      await client
         .from('document_extractions')
-        .upsert(dbPayload)
-        .select()
-        .single();
-
-      if (error) {
-        if (error.message?.includes('column') || error.message?.includes('does not exist')) {
-          console.warn('[saveExtraction] Schema mismatch — returning input as-is');
-          return extraction;
-        }
-        throw new Error(`saveExtraction failed: ${error.message}`);
-      }
-      return DocumentExtractionResultSchema.parse(keysToCamel(data));
+        .insert(dbPayload);
+        
+      return extraction;
     } catch (e: any) {
       console.warn('[saveExtraction] Error (non-fatal):', e?.message);
       return extraction;
@@ -744,8 +814,8 @@ export class SupabaseRepository implements DatabaseService {
         .eq('document_id', documentId)
         .maybeSingle();
 
-      if (error || !data) return null;
-      return DocumentExtractionResultSchema.parse(keysToCamel(data));
+      if (error || !data || !data.extracted_json || !data.extracted_json.diagnoses) return null;
+      return DocumentExtractionResultSchema.parse(data.extracted_json);
     } catch {
       return null;
     }
@@ -784,6 +854,51 @@ export class SupabaseRepository implements DatabaseService {
       return ClinicalHistorySchema.parse(keysToCamel(data));
     } catch {
       return null;
+    }
+  }
+
+  async getHistoricalSymptoms(patientId: string): Promise<any[]> {
+    try {
+      const { data, error } = await (await createClient())
+        .from('clinical_symptoms')
+        .select('*')
+        .eq('patient_id', patientId);
+
+      if (error || !data) return [];
+      return data;
+    } catch (e) {
+      console.error('Error fetching historical symptoms:', e);
+      return [];
+    }
+  }
+
+  async getHistoricalMedications(patientId: string): Promise<any[]> {
+    try {
+      const { data, error } = await (await createClient())
+        .from('clinical_medications')
+        .select('*')
+        .eq('patient_id', patientId);
+
+      if (error || !data) return [];
+      return data;
+    } catch (e) {
+      console.error('Error fetching historical medications:', e);
+      return [];
+    }
+  }
+
+  async getHistoricalDiagnoses(patientId: string): Promise<any[]> {
+    try {
+      const { data, error } = await (await createClient())
+        .from('clinical_diagnoses')
+        .select('*')
+        .eq('patient_id', patientId);
+
+      if (error || !data) return [];
+      return data;
+    } catch (e) {
+      console.error('Error fetching historical diagnoses:', e);
+      return [];
     }
   }
 
@@ -864,7 +979,8 @@ export class SupabaseRepository implements DatabaseService {
       const client = await createClient();
       const { data, error } = await client
         .from('attention_flags')
-        .select();
+        .select()
+        .eq('encounter_id', sessionId);
 
       if (error || !data) return [];
       return data.map((row: any) => ({

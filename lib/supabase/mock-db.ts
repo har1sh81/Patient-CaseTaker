@@ -321,6 +321,18 @@ export class MockRepository implements DatabaseService {
     return ClinicalHistorySchema.parse({ ...match });
   }
 
+  async getHistoricalSymptoms(patientId: string): Promise<any[]> {
+    return Promise.resolve([]);
+  }
+
+  async getHistoricalMedications(patientId: string): Promise<any[]> {
+    return Promise.resolve([]);
+  }
+
+  async getHistoricalDiagnoses(patientId: string): Promise<any[]> {
+    return Promise.resolve([]);
+  }
+
   // Medical Timeline
   async saveTimeline(timeline: MedicalTimeline): Promise<MedicalTimeline> {
     MedicalTimelineSchema.parse(timeline);
