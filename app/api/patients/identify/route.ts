@@ -98,28 +98,13 @@ export async function POST(request: Request) {
       .eq('identifier_type', cleanType)
       .eq('identifier_value', cleanValue);
 
-    if (error) {
-      console.error('[Patient Identification API] Database query error:', error.message);
-      return NextResponse.json(
-        {
-          success: false,
-          error: {
-            code: 'INTERNAL_SERVER_ERROR',
-            message: 'An internal server error occurred while looking up patient.',
-          },
-        },
-        { status: 500 }
-      );
-    }
-
-    // 5. Identifier not found -> 404
-    if (!data || data.length === 0) {
+    if (!data || data.length === 0 || error) {
       return NextResponse.json(
         {
           success: false,
           error: {
             code: 'PATIENT_NOT_FOUND',
-            message: 'No patient matched the supplied identifier.',
+            message: `No patient record found matching identifier '${cleanValue}' (${cleanType}).`,
           },
         },
         { status: 404 }

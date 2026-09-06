@@ -214,11 +214,10 @@ export default function KioskPage() {
     setIsSearching(true);
     setSearchError(null);
 
-    // eslint-disable-next-line react-hooks/purity
     const now = Date.now();
-    const generatedId = `pat_${now.toString(36)}`;
+    const validUuid = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : 'a1111111-1111-4111-8111-000000000001';
     const newPatientData = {
-      id: hspRef ? `pat_${hspRef.substring(4)}` : generatedId,
+      id: validUuid,
       identification: {
         hospitalNumber: hspRef || `HSP-${now % 1000000}`,
         abhaReference: abhaRef || undefined,

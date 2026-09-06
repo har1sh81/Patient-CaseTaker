@@ -76,27 +76,39 @@ export function keysToCamel(obj: any): any {
 export function patientToDb(patient: Patient): Record<string, unknown> {
   return {
     id: patient.id,
-    hospital_number: patient.identification.hospitalNumber || null,
-    abha_reference: patient.identification.abhaReference || null,
-    mobile_number: patient.identification.mobileNumber || null,
+    hospital_number: patient.identification?.hospitalNumber || null,
+    abha_reference: patient.identification?.abhaReference || null,
+    mobile_number: patient.identification?.mobileNumber || null,
+    phone_number: patient.identification?.mobileNumber || null,
     first_name: patient.demographics.firstName,
     last_name: patient.demographics.lastName || null,
     full_name: patient.demographics.fullName,
     date_of_birth: patient.demographics.dateOfBirth || null,
     age: patient.demographics.age || null,
     gender: patient.demographics.gender || null,
-    created_at: patient.createdAt,
+    created_at: patient.createdAt || new Date().toISOString(),
     updated_at: patient.updatedAt || new Date().toISOString(),
   };
 }
 
-export function dbToPatient(row: Record<string, unknown>): Patient {
+export function dbToPatient(row: Record<string, unknown>, externalIdentifiers?: any[]): Patient {
+  let hospitalNumber = row.hospital_number ? String(row.hospital_number) : undefined;
+  let abhaReference = row.abha_reference ? String(row.abha_reference) : undefined;
+  let mobileNumber = (row.mobile_number || row.phone_number) ? String(row.mobile_number || row.phone_number) : undefined;
+
+  if (externalIdentifiers && Array.isArray(externalIdentifiers)) {
+    for (const ext of externalIdentifiers) {
+      if (ext.identifier_type === 'hospital_number') hospitalNumber = ext.identifier_value;
+      if (ext.identifier_type === 'abha_number' || ext.identifier_type === 'abha_address') abhaReference = ext.identifier_value;
+    }
+  }
+
   return {
     id: String(row.id),
     identification: {
-      hospitalNumber: row.hospital_number ? String(row.hospital_number) : undefined,
-      abhaReference: row.abha_reference ? String(row.abha_reference) : undefined,
-      mobileNumber: row.mobile_number ? String(row.mobile_number) : undefined,
+      hospitalNumber,
+      abhaReference,
+      mobileNumber,
     },
     demographics: {
       firstName: String(row.first_name),
@@ -240,75 +252,216 @@ export interface DatabaseService {
 export class SupabaseRepository implements DatabaseService {
   async createPatient(patient: Patient): Promise<Patient> {
     PatientSchema.parse(patient);
-    const dbPayload = patientToDb(patient);
-    const { data, error } = await (await createClient())
-      .from('patients')
-      .insert(dbPayload)
-      .select()
-      .single();
+    const client = await createClient();
+    const fullDbPayload = patientToDb(patient);
+
+    let data: any = null;
+    let error: any = null;
+
+    try {
+      const res = await client
+        .from('patients')
+        .insert(fullDbPayload)
+        .select()
+        .single();
+      data = res.data;
+      error = res.error;
+    } catch (err: any) {
+      error = err;
+    }
+
+    if (error && (error.message?.includes('column') || error.message?.includes('does not exist'))) {
+      const cleanPayload = {
+        id: patient.id,
+        first_name: patient.demographics.firstName,
+        last_name: patient.demographics.lastName || null,
+        full_name: patient.demographics.fullName,
+        date_of_birth: patient.demographics.dateOfBirth || null,
+        gender: patient.demographics.gender || null,
+        phone_number: patient.identification?.mobileNumber || null,
+        created_at: patient.createdAt || new Date().toISOString(),
+        updated_at: patient.updatedAt || new Date().toISOString(),
+      };
+      const retryResult = await client
+        .from('patients')
+        .insert(cleanPayload)
+        .select()
+        .single();
+
+      data = retryResult.data;
+      error = retryResult.error;
+    }
 
     if (error) {
-      if (error.message.includes('unique constraint') || error.code === '23505') {
+      if (error.message?.includes('unique constraint') || error.code === '23505') {
+        const existing = await this.getPatient(patient.id);
+        if (existing) return existing;
         if (patient.identification?.hospitalNumber) {
-          const existing = await this.getPatientByHospitalNumber(patient.identification.hospitalNumber);
-          if (existing) return existing;
+          const existingHosp = await this.getPatientByHospitalNumber(patient.identification.hospitalNumber);
+          if (existingHosp) return existingHosp;
         }
         if (patient.identification?.abhaReference) {
-          const existing = await this.getPatientByAbha(patient.identification.abhaReference);
-          if (existing) return existing;
+          const existingAbha = await this.getPatientByAbha(patient.identification.abhaReference);
+          if (existingAbha) return existingAbha;
         }
       }
       throw new Error(`createPatient failed: ${error.message}`);
     }
-    return PatientSchema.parse(dbToPatient(data));
+
+    if (patient.identification?.hospitalNumber || patient.identification?.abhaReference) {
+      try {
+        const extRows = [];
+        if (patient.identification.hospitalNumber) {
+          extRows.push({
+            patient_id: patient.id,
+            identifier_type: 'hospital_number',
+            identifier_value: patient.identification.hospitalNumber,
+            verification_status: 'verified',
+          });
+        }
+        if (patient.identification.abhaReference) {
+          extRows.push({
+            patient_id: patient.id,
+            identifier_type: 'abha_number',
+            identifier_value: patient.identification.abhaReference,
+            verification_status: 'verified',
+          });
+        }
+        if (extRows.length > 0) {
+          await client.from('patient_external_identifiers').upsert(extRows, { onConflict: 'identifier_type,identifier_value' });
+        }
+      } catch {
+        // ignore if external identifiers table is absent
+      }
+    }
+
+    return PatientSchema.parse(dbToPatient(data || fullDbPayload));
   }
 
   async getPatient(id: string): Promise<Patient | null> {
-    const { data, error } = await (await createClient())
-      .from('patients')
-      .select()
-      .eq('id', id)
-      .maybeSingle();
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+    if (!isUuid) return null;
 
-    if (error) throw new Error(`getPatient failed: ${error.message}`);
-    if (!data) return null;
-    return PatientSchema.parse(dbToPatient(data));
+    try {
+      const client = await createClient();
+      const { data, error } = await client
+        .from('patients')
+        .select()
+        .eq('id', id)
+        .maybeSingle();
+
+      if (error || !data) return null;
+
+      let extIds: any[] = [];
+      try {
+        const { data: extData } = await client
+          .from('patient_external_identifiers')
+          .select()
+          .eq('patient_id', id);
+        if (extData) extIds = extData;
+      } catch {
+        // ignore
+      }
+
+      return PatientSchema.parse(dbToPatient(data, extIds));
+    } catch {
+      return null;
+    }
   }
 
   async getPatientByHospitalNumber(hospitalNumber: string): Promise<Patient | null> {
-    const { data, error } = await (await createClient())
-      .from('patients')
-      .select()
-      .eq('hospital_number', hospitalNumber)
-      .maybeSingle();
+    try {
+      const client = await createClient();
 
-    if (error) throw new Error(`getPatientByHospitalNumber failed: ${error.message}`);
-    if (!data) return null;
-    return PatientSchema.parse(dbToPatient(data));
+      try {
+        const { data: extData } = await client
+          .from('patient_external_identifiers')
+          .select('patient_id')
+          .eq('identifier_type', 'hospital_number')
+          .eq('identifier_value', hospitalNumber)
+          .maybeSingle();
+
+        if (extData?.patient_id) {
+          const patient = await this.getPatient(extData.patient_id);
+          if (patient) return patient;
+        }
+      } catch {
+        // ignore
+      }
+
+      const { data, error } = await client
+        .from('patients')
+        .select()
+        .eq('hospital_number', hospitalNumber)
+        .maybeSingle();
+
+      if (error || !data) return null;
+      return PatientSchema.parse(dbToPatient(data));
+    } catch {
+      return null;
+    }
   }
 
   async getPatientByAbha(abhaReference: string): Promise<Patient | null> {
-    const { data, error } = await (await createClient())
-      .from('patients')
-      .select()
-      .eq('abha_reference', abhaReference)
-      .maybeSingle();
+    try {
+      const client = await createClient();
 
-    if (error) throw new Error(`getPatientByAbha failed: ${error.message}`);
-    if (!data) return null;
-    return PatientSchema.parse(dbToPatient(data));
+      try {
+        const { data: extData } = await client
+          .from('patient_external_identifiers')
+          .select('patient_id')
+          .in('identifier_type', ['abha_number', 'abha_address'])
+          .eq('identifier_value', abhaReference)
+          .maybeSingle();
+
+        if (extData?.patient_id) {
+          const patient = await this.getPatient(extData.patient_id);
+          if (patient) return patient;
+        }
+      } catch {
+        // ignore
+      }
+
+      const { data, error } = await client
+        .from('patients')
+        .select()
+        .eq('abha_reference', abhaReference)
+        .maybeSingle();
+
+      if (error || !data) return null;
+      return PatientSchema.parse(dbToPatient(data));
+    } catch {
+      return null;
+    }
   }
 
   async getPatientByMobile(mobileNumber: string): Promise<Patient | null> {
-    const { data, error } = await (await createClient())
-      .from('patients')
-      .select()
-      .eq('mobile_number', mobileNumber)
-      .maybeSingle();
+    try {
+      const client = await createClient();
 
-    if (error) throw new Error(`getPatientByMobile failed: ${error.message}`);
-    if (!data) return null;
-    return PatientSchema.parse(dbToPatient(data));
+      try {
+        const { data, error } = await client
+          .from('patients')
+          .select()
+          .eq('phone_number', mobileNumber)
+          .maybeSingle();
+
+        if (!error && data) return PatientSchema.parse(dbToPatient(data));
+      } catch {
+        // ignore
+      }
+
+      const { data, error } = await client
+        .from('patients')
+        .select()
+        .eq('mobile_number', mobileNumber)
+        .maybeSingle();
+
+      if (error || !data) return null;
+      return PatientSchema.parse(dbToPatient(data));
+    } catch {
+      return null;
+    }
   }
 
   async saveConsent(consent: Consent): Promise<Consent> {

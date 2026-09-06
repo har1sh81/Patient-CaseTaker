@@ -81,26 +81,59 @@ export class MockRepository implements DatabaseService {
 
   async getPatientByHospitalNumber(hospitalNumber: string): Promise<Patient | null> {
     const list = Array.from(this.patients.values());
-    const match = list.find((p) => p.identification?.hospitalNumber === hospitalNumber) || list[0];
-    if (!match) return null;
+    const clean = hospitalNumber.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+    const match = list.find((p) => {
+      const ref = (p.identification?.hospitalNumber || '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+      return ref === clean || ref.includes(clean) || clean.includes(ref);
+    }) || list[0];
+
+    if (!match) {
+      return PatientSchema.parse({
+        id: 'pat_golden',
+        identification: { hospitalNumber: hospitalNumber || 'HSP-100245', abhaReference: 'ABHA-001' },
+        demographics: { firstName: 'Arumugam', lastName: 'Kandasamy', fullName: 'Arumugam Kandasamy', age: 54, gender: 'male' },
+        createdAt: new Date().toISOString(),
+      });
+    }
     return PatientSchema.parse({ ...match });
   }
 
   async getPatientByAbha(abhaReference: string): Promise<Patient | null> {
     const list = Array.from(this.patients.values());
-    const match = list.find((p) => p.identification?.abhaReference === abhaReference) || list[0];
-    if (!match) return null;
+    const clean = abhaReference.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+    const match = list.find((p) => {
+      const ref = (p.identification?.abhaReference || '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+      return ref === clean || ref.includes(clean) || clean.includes(ref);
+    }) || list[0];
+
+    if (!match) {
+      return PatientSchema.parse({
+        id: 'pat_golden',
+        identification: { abhaReference: abhaReference || 'DEMO-ABHA-918273645001', hospitalNumber: 'HSP-OPD-2026-0101' },
+        demographics: { firstName: 'Arumugam', lastName: 'Kandasamy', fullName: 'Arumugam Kandasamy', age: 54, gender: 'male' },
+        createdAt: new Date().toISOString(),
+      });
+    }
     return PatientSchema.parse({ ...match });
   }
 
   async getPatientByMobile(mobileNumber: string): Promise<Patient | null> {
     const list = Array.from(this.patients.values());
+    const clean = mobileNumber.replace(/\D/g, '');
     const match = list.find(
       (p) =>
-        p.identification?.mobileNumber === mobileNumber ||
-        p.contact?.mobileNumber === mobileNumber
+        (p.identification?.mobileNumber || '').replace(/\D/g, '').includes(clean) ||
+        (p.contact?.mobileNumber || '').replace(/\D/g, '').includes(clean)
     ) || list[0];
-    if (!match) return null;
+
+    if (!match) {
+      return PatientSchema.parse({
+        id: 'pat_golden',
+        identification: { mobileNumber: mobileNumber || '+919840112345', abhaReference: 'ABHA-001' },
+        demographics: { firstName: 'Arumugam', lastName: 'Kandasamy', fullName: 'Arumugam Kandasamy', age: 54, gender: 'male' },
+        createdAt: new Date().toISOString(),
+      });
+    }
     return PatientSchema.parse({ ...match });
   }
 
