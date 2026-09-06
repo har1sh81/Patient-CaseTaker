@@ -61,7 +61,7 @@ function InterviewContent() {
 =======
   // Session metadata
   const [language, setLanguage] = React.useState<SupportedLanguage>('en');
->>>>>>> 9b15b55e6bfc5248cad871ac756bf1cd79d85166
+
   const [loadError, setLoadError] = React.useState<string | null>(null);
   const [sessionReady, setSessionReady] = React.useState(false);
 
@@ -104,7 +104,7 @@ function InterviewContent() {
         if (isMounted) {
           React.startTransition(() => {
             setLoadError(err instanceof Error ? err.message : 'Failed to load session');
-=======
+
         const sess = sessJson.session;
         const lang = (sess.language as SupportedLanguage) || 'en';
         setLanguage(lang);
@@ -391,7 +391,7 @@ function InterviewEngineWrapper({ session, patient, initialAnswers }: { session:
           <p className="text-text-secondary text-lg text-center max-w-md">
             Your responses indicate a need for immediate medical attention. Please inform the kiosk attendant or go to the emergency desk.
           </p>
->>>>>>> 9b15b55e6bfc5248cad871ac756bf1cd79d85166
+
           <button
             type="button"
             onClick={() => router.push('/kiosk')}
