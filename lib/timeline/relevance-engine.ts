@@ -33,13 +33,13 @@ export function extractComplaintContext(answers: ConversationAnswer[]): Complain
 
   if (!complaintAnswer) return null;
 
-  const rawText = String(complaintAnswer.transcript || complaintAnswer.rawValue || complaintAnswer.normalizedValue || '').trim();
+  const rawText = String(complaintAnswer.normalizedValue || complaintAnswer.transcript || complaintAnswer.rawValue || '').trim();
   if (!rawText) return null;
 
   return {
     complaint: rawText,
-    duration: durationAnswer ? String(durationAnswer.transcript || durationAnswer.rawValue || durationAnswer.normalizedValue || '').trim() : undefined,
-    severity: severityAnswer ? String(severityAnswer.transcript || severityAnswer.rawValue || severityAnswer.normalizedValue || '').trim() : undefined,
+    duration: durationAnswer ? String(durationAnswer.normalizedValue || durationAnswer.transcript || durationAnswer.rawValue || '').trim() : undefined,
+    severity: severityAnswer ? String(severityAnswer.normalizedValue || severityAnswer.transcript || severityAnswer.rawValue || '').trim() : undefined,
   };
 }
 

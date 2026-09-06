@@ -1,6 +1,8 @@
-export type SupportedLanguage = 'en' | 'hi' | 'ta';
+import { SupportedLanguage } from '../language/config';
 
-export const translations = {
+export type { SupportedLanguage };
+
+const baseTranslations = {
   en: {
     welcome: 'Welcome to MediKiosk',
     tagline: 'Your AI-Assisted Patient Intake Companion',
@@ -153,5 +155,14 @@ export const translations = {
     female: 'பெண்',
     other: 'மற்றவை',
     preferNotToSay: 'கூற விரும்பவில்லை',
+  },
+};
+
+export const translations: Record<string, typeof baseTranslations['en']> = new Proxy(
+  baseTranslations as any,
+  {
+    get(target, prop: string) {
+      return target[prop] || target['en'];
+    },
   }
-} as const;
+);

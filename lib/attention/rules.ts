@@ -20,6 +20,15 @@ export interface AttentionRule {
   evaluate: (context: EvaluationContext) => EvaluationResult | null;
 }
 
+function matchesAnswerKeywords(a: ConversationAnswer | undefined, validKeywords: string[]): boolean {
+  if (!a) return false;
+  const valuesToTest = [a.rawValue, a.normalizedValue, a.transcript]
+    .filter((v): v is string => typeof v === 'string' && v.trim().length > 0)
+    .map((v) => v.toLowerCase());
+
+  return validKeywords.some((kw) => valuesToTest.some((v) => v === kw || v.includes(kw)));
+}
+
 export const ATTENTION_RULES: AttentionRule[] = [
   {
     ruleId: 'chest_pain_with_breathlessness',
@@ -27,27 +36,26 @@ export const ATTENTION_RULES: AttentionRule[] = [
     description: 'Patient reports chest discomfort combined with breathing difficulty.',
     severity: 'high',
     evaluate: (context) => {
-      // Find chest pain
+      // Find chest pain answer
       const chestPainAnswer = context.answers.find(
         (a) =>
           a.questionId.includes('chest_pain') &&
-          typeof a.rawValue === 'string' &&
-          ['yes', 'true', 'severe'].includes(a.rawValue.toLowerCase())
+          matchesAnswerKeywords(a, ['yes', 'true', 'severe', 'chest pain', 'discomfort'])
       );
-      
+
       const breathlessnessAnswer = context.answers.find(
         (a) =>
           a.questionId.includes('breathing') &&
-          typeof a.rawValue === 'string' &&
-          ['yes', 'true', 'severe'].includes(a.rawValue.toLowerCase())
+          matchesAnswerKeywords(a, ['yes', 'true', 'severe', 'shortness of breath', 'breathlessness'])
       );
 
       if (chestPainAnswer && breathlessnessAnswer) {
         return {
-          message: 'Potentially urgent symptoms (chest discomfort and breathing difficulty) reported. Prompt clinical assessment recommended.',
+          message:
+            'Potentially urgent symptoms (chest discomfort and breathing difficulty) reported. Prompt clinical assessment recommended.',
           evidence: [
-            `Question: ${chestPainAnswer.questionId} - Answer: ${String(chestPainAnswer.rawValue)}`,
-            `Question: ${breathlessnessAnswer.questionId} - Answer: ${String(breathlessnessAnswer.rawValue)}`,
+            `Question: ${chestPainAnswer.questionId} - Answer: ${String(chestPainAnswer.normalizedValue || chestPainAnswer.rawValue)}`,
+            `Question: ${breathlessnessAnswer.questionId} - Answer: ${String(breathlessnessAnswer.normalizedValue || breathlessnessAnswer.rawValue)}`,
           ],
           provenance: [
             { source: 'patient_text', sourceId: chestPainAnswer.questionId },
@@ -68,23 +76,22 @@ export const ATTENTION_RULES: AttentionRule[] = [
       const weaknessAnswer = context.answers.find(
         (a) =>
           a.questionId.includes('weakness') &&
-          typeof a.rawValue === 'string' &&
-          ['yes', 'true', 'sudden', 'severe'].includes(a.rawValue.toLowerCase())
+          matchesAnswerKeywords(a, ['yes', 'true', 'sudden', 'severe', 'weakness'])
       );
 
       const speechAnswer = context.answers.find(
         (a) =>
           a.questionId.includes('speech') &&
-          typeof a.rawValue === 'string' &&
-          ['yes', 'true', 'slurred'].includes(a.rawValue.toLowerCase())
+          matchesAnswerKeywords(a, ['yes', 'true', 'slurred', 'speech difficulty'])
       );
 
       if (weaknessAnswer && speechAnswer) {
         return {
-          message: 'Potential emergency symptoms (sudden weakness and speech difficulty) detected. Immediate clinical assessment required.',
+          message:
+            'Potential emergency symptoms (sudden weakness and speech difficulty) detected. Immediate clinical assessment required.',
           evidence: [
-            `Question: ${weaknessAnswer.questionId} - Answer: ${String(weaknessAnswer.rawValue)}`,
-            `Question: ${speechAnswer.questionId} - Answer: ${String(speechAnswer.rawValue)}`,
+            `Question: ${weaknessAnswer.questionId} - Answer: ${String(weaknessAnswer.normalizedValue || weaknessAnswer.rawValue)}`,
+            `Question: ${speechAnswer.questionId} - Answer: ${String(speechAnswer.normalizedValue || speechAnswer.rawValue)}`,
           ],
           provenance: [
             { source: 'patient_text', sourceId: weaknessAnswer.questionId },
@@ -111,7 +118,9 @@ export const ATTENTION_RULES: AttentionRule[] = [
         const provenance: DataProvenance[] = [];
 
         conflictingRecords.forEach((record) => {
-          evidence.push(`Conflicting record found for category: ${record.category}. Original values: ${record.originalValues.join(', ')}`);
+          evidence.push(
+            `Conflicting record found for category: ${record.category}. Original values: ${record.originalValues.join(', ')}`
+          );
           if (record.provenances) {
             provenance.push(...record.provenances);
           }

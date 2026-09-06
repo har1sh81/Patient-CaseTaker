@@ -122,6 +122,7 @@ function InterviewEngineWrapper({ session, initialAnswers }: { session: IntakeSe
   // Initialize engine
   const engine = useConversationEngine({
     sessionId: session.id,
+    language: session.language,
     questions: session.departmentMode === 'ayush' ? PHASE13_AYUSH_QUESTIONS : PHASE6_DEMO_QUESTIONS,
     initialAnswers,
     onComplete: () => {
@@ -129,6 +130,7 @@ function InterviewEngineWrapper({ session, initialAnswers }: { session: IntakeSe
       router.push(`/kiosk/documents?sessionId=${session.id}`);
     },
   });
+
 
   const handleCancel = () => {
     // In a real app, hit an API to cancel the session and delete data

@@ -80,6 +80,7 @@ export const QuestionRenderer: React.FC<QuestionRendererProps> = ({
         <div className="w-full max-w-2xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-300">
           <VoiceCorrection
             transcript={sr.result.finalTranscript}
+            language={language}
             onAccept={handleVoiceAccept}
             onRetryVoice={handleVoiceRetry}
             onSwitchToTouch={handleSwitchToTouch}

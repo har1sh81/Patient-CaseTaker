@@ -20,8 +20,9 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
   disabled = false,
 }) => {
   const tts = useTTS();
-  const text = question.question[language] || question.question.en;
-  const helpText = question.helpText?.[language] || question.helpText?.en;
+  const text = (question.question as Record<string, string>)[language] || question.question.en;
+  const helpText = (question.helpText as Record<string, string> | undefined)?.[language] || question.helpText?.en;
+
 
   // Auto-play TTS on mount if supported (optional based on UX design)
   // For now, let's make it manual via the button, or auto-play. Let's do manual to avoid annoyance in testing.

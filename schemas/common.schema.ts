@@ -48,5 +48,18 @@ export const DataProvenanceSchema = z.object({
   extractedAt: ISODateStringSchema.optional(),
   confidence: ConfidenceLevelSchema.optional(),
 });
+export const ProvenanceSourceSchema = z.enum([
+  'patient_reported',
+  'ocr_extracted',
+  'abdm_imported',
+  'ai_generated',
+]);
 
-export const SupportedLanguageSchema = z.enum(['en', 'hi', 'ta']);
+export const VerificationStatusSchema = z.enum([
+  'unverified',
+  'reviewed',
+  'doctor_verified',
+  'rejected',
+]);import { SUPPORTED_LANGUAGE_IDS } from '../lib/language/config';
+
+export const SupportedLanguageSchema = z.enum(SUPPORTED_LANGUAGE_IDS as unknown as [string, ...string[]]);

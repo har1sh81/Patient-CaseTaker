@@ -26,10 +26,10 @@ export function buildAdaptiveContext(
 ): AdaptiveContext {
   const prevAnswers = Object.values(answers);
   const latestText = latestAnswer
-    ? String(latestAnswer.transcript || latestAnswer.rawValue || latestAnswer.normalizedValue || '')
+    ? String(latestAnswer.normalizedValue || latestAnswer.transcript || latestAnswer.rawValue || '')
     : '';
 
-  const combinedText = [...prevAnswers.map(a => String(a.transcript || a.rawValue || a.normalizedValue || '')), latestText]
+  const combinedText = [...prevAnswers.map(a => String(a.normalizedValue || a.transcript || a.rawValue || '')), latestText]
     .filter(Boolean)
     .join(' ');
 

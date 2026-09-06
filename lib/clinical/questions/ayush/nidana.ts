@@ -1,0 +1,51 @@
+import { ClinicalQuestion } from '../types';
+
+export const NIDANA_QUESTIONS: ClinicalQuestion[] = [
+  {
+    id: 'AY-NIDANA-TRIGGERS-001',
+    version: '1.0',
+    mode: 'ayush',
+    complaint: 'nidana',
+    section: 'ayush_nidana',
+    category: 'dietary_triggers',
+    questionText: {
+      en: 'Have you noticed any specific foods or drinks that seem to trigger or worsen your health issues?',
+      ta: 'குறிப்பிட்ட உணவுகள் அல்லது பானங்கள் உங்கள் பிரச்சனையைக் கூட்டுவதாக உணர்கிறீர்களா?',
+      hi: 'क्या आपने ध्यान दिया है कि किसी खास खाने या पीने की चीज से आपकी तकलीफ बढ़ती है?',
+    },
+    answerType: 'free_text',
+    targetField: 'dietary_aggravating_factors',
+    priority: 85,
+    required: false,
+    voiceEnabled: true,
+    touchEnabled: true,
+    sourceType: 'patient_input',
+  },
+  {
+    id: 'AY-NIDANA-ROUTINE-001',
+    version: '1.0',
+    mode: 'ayush',
+    complaint: 'nidana',
+    section: 'ayush_nidana',
+    category: 'lifestyle_triggers',
+    questionText: {
+      en: 'Did any recent changes happen before your illness began, such as late nights, skipped meals, stress, or travel?',
+      ta: 'நோய் தொடங்குவதற்கு முன் இரவு விழித்தல், உணவு தவித்தல், மனஅழுத்தம் அல்லது பயணம் நடந்ததா?',
+      hi: 'क्या बीमारी शुरू होने से पहले देर रात तक जागना, खाना छोड़ना, तनाव या यात्रा जैसी कोई बात हुई थी?',
+    },
+    answerType: 'multi_choice',
+    targetField: 'lifestyle_etiological_factors',
+    priority: 80,
+    required: false,
+    voiceEnabled: true,
+    touchEnabled: true,
+    sourceType: 'patient_input',
+    choices: [
+      { value: 'late_nights', label: { en: 'Late night sleeping / sleep disruption', ta: 'இரவு தாமதமாக தூங்குதல்', hi: 'देर रात तक जागना' } },
+      { value: 'irregular_meals', label: { en: 'Skipping meals or eating at irregular times', ta: 'முறையற்ற நேரத்தில் உணவருந்துதல்', hi: 'अनियमित समय पर खाना' } },
+      { value: 'high_stress', label: { en: 'Significant emotional stress or worry', ta: 'அதிக மனஅழுத்தம்', hi: 'अधिक मानसिक तनाव' } },
+      { value: 'heavy_physical_exertion', label: { en: 'Unusual physical over-exertion', ta: 'அதிக உடலுழைப்பு / களைப்பு', hi: 'अत्यधिक शारीरिक मेहनत' } },
+      { value: 'recent_travel', label: { en: 'Recent long travel or climate changes', ta: 'சமீபத்திய பயணம் / காலநிலை மாற்றம்', hi: 'हाल ही में यात्रा या मौसम का बदलाव' } },
+    ],
+  },
+];

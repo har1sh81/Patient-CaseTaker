@@ -28,7 +28,7 @@ export function composeClinicalConsultationSummary(params: {
   const severity = complaintCtx?.severity ? `Level ${complaintCtx.severity}/10` : undefined;
 
   const reasonAns = answers.find(a => a.questionId === 'reason_for_visit' || a.questionId === 'chief_complaint' || a.questionId === 'initial_problem' || a.section === 'chief_complaint');
-  const patientWords = reasonAns ? String(reasonAns.transcript || reasonAns.rawValue || reasonAns.normalizedValue || '') : undefined;
+  const patientWords = reasonAns ? String(reasonAns.normalizedValue || reasonAns.transcript || reasonAns.rawValue || '') : undefined;
 
   const chiefComplaint: SummaryChiefComplaint = {
     primaryComplaint,
@@ -47,13 +47,13 @@ export function composeClinicalConsultationSummary(params: {
   const assocAns = answers.find(a => a.questionId === 'associated_symptoms' || a.questionId === 'gi_red_flags');
 
   const hpi: SummaryHPI = {
-    duration: durationAns ? String(durationAns.rawValue || durationAns.transcript) : duration,
-    location: locationAns ? String(locationAns.rawValue || locationAns.transcript) : undefined,
-    character: characterAns ? String(characterAns.rawValue || characterAns.transcript) : undefined,
-    aggravatingRelieving: aggRelAns ? String(aggRelAns.rawValue || aggRelAns.transcript) : undefined,
-    previousTreatments: prevTreatAns ? String(prevTreatAns.rawValue || prevTreatAns.transcript) : undefined,
-    associatedSymptoms: assocAns ? String(assocAns.rawValue || assocAns.transcript) : undefined,
-    progression: progressionAns ? String(progressionAns.rawValue || progressionAns.transcript) : undefined,
+    duration: durationAns ? String(durationAns.normalizedValue || durationAns.rawValue || durationAns.transcript) : duration,
+    location: locationAns ? String(locationAns.normalizedValue || locationAns.rawValue || locationAns.transcript) : undefined,
+    character: characterAns ? String(characterAns.normalizedValue || characterAns.rawValue || characterAns.transcript) : undefined,
+    aggravatingRelieving: aggRelAns ? String(aggRelAns.normalizedValue || aggRelAns.rawValue || aggRelAns.transcript) : undefined,
+    previousTreatments: prevTreatAns ? String(prevTreatAns.normalizedValue || prevTreatAns.rawValue || prevTreatAns.transcript) : undefined,
+    associatedSymptoms: assocAns ? String(assocAns.normalizedValue || assocAns.rawValue || assocAns.transcript) : undefined,
+    progression: progressionAns ? String(progressionAns.normalizedValue || progressionAns.rawValue || progressionAns.transcript) : undefined,
   };
 
   // 2. Extract past history & medications
@@ -62,7 +62,7 @@ export function composeClinicalConsultationSummary(params: {
 
   const relevantPreviousHistory: SummaryHistoryItem[] = [];
   if (pastHistAns) {
-    const rawHist = String(pastHistAns.rawValue || pastHistAns.transcript || '');
+    const rawHist = String(pastHistAns.normalizedValue || pastHistAns.rawValue || pastHistAns.transcript || '');
     if (rawHist && !rawHist.toLowerCase().includes('no') && rawHist !== 'none') {
       relevantPreviousHistory.push({
         conditionName: rawHist,
@@ -85,7 +85,7 @@ export function composeClinicalConsultationSummary(params: {
 
   const medications: SummaryMedicationItem[] = [];
   if (medAns) {
-    const rawMed = String(medAns.rawValue || medAns.transcript || '');
+    const rawMed = String(medAns.normalizedValue || medAns.rawValue || medAns.transcript || '');
     if (rawMed && !rawMed.toLowerCase().includes('no') && rawMed !== 'none') {
       medications.push({
         medicationName: rawMed,

@@ -38,3 +38,13 @@ export function parseClinicalVitals(rawText: string): Vitals {
 
   return vitals;
 }
+
+export * from './fact-extraction';
+export * from './clinical-history-service';
+export * from './questions';
+export * from './ayush/dashavidha-types';
+export * from './ayush/dashavidha-service';
+export * from './vitals/vitals-types';
+export * from './vitals/vitals-service';
+
+

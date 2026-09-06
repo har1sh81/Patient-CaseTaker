@@ -21,17 +21,18 @@ import { useTTS } from '../../../hooks/use-tts';
 import type { SupportedLanguage } from '../../../lib/kiosk/translation';
 import { LANGUAGE_DISPLAY_NAME } from '../../../lib/voice/language-map';
 
-const DEMO_TRANSCRIPTS: Record<SupportedLanguage, string> = {
+const DEMO_TRANSCRIPTS: Record<string, string> = {
   en: 'I have had a headache and fever for three days.',
   hi: 'मुझे तीन दिनों से सिरदर्द और बुखार है।',
   ta: 'எனக்கு மூன்று நாட்களாக தலைவலி மற்றும் காய்ச்சல் இருக்கிறது.',
 };
 
-const TTS_TEXTS: Record<SupportedLanguage, string> = {
+const TTS_TEXTS: Record<string, string> = {
   en: 'How long have you had this symptom?',
   hi: 'यह लक्षण कब से है?',
   ta: 'இந்த அறிகுறி எத்தனை நாட்களாக இருக்கிறது?',
 };
+
 
 const MOCK_OPTIONS: ChoiceOption[] = [
   { id: 'opt1', label: 'Less than 1 day', value: 'lt1' },

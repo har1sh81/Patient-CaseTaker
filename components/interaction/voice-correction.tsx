@@ -13,11 +13,14 @@
  */
 
 import * as React from 'react';
-import { CheckCircle, Pencil, RefreshCw, Keyboard } from 'lucide-react';
+import { CheckCircle, Pencil, RefreshCw, Keyboard, Globe } from 'lucide-react';
 import { Button } from '../ui/button';
+import { Spinner } from '../ui/spinner';
+import { translatePatientText } from '../../lib/translation/indictrans-client';
 
 export interface VoiceCorrectionProps {
   transcript: string;
+  language?: string;
   onAccept: (finalText: string) => void;
   onRetryVoice: () => void;
   onSwitchToTouch: () => void;
@@ -26,6 +29,7 @@ export interface VoiceCorrectionProps {
 
 export const VoiceCorrection: React.FC<VoiceCorrectionProps> = ({
   transcript,
+  language = 'en',
   onAccept,
   onRetryVoice,
   onSwitchToTouch,
@@ -33,14 +37,68 @@ export const VoiceCorrection: React.FC<VoiceCorrectionProps> = ({
 }) => {
   const [isEditing, setIsEditing] = React.useState(false);
   const [editedText, setEditedText] = React.useState(transcript);
+  const [translatedText, setTranslatedText] = React.useState<string | null>(null);
+  const [isTranslating, setIsTranslating] = React.useState(false);
 
-  // Sync edited text if parent updates transcript (e.g. on retry)
+  const textToTranslate = isEditing ? editedText : transcript;
+
+  const cacheRef = React.useRef<Record<string, string>>({});
+
+  // Sync edited text
   React.useEffect(() => {
     React.startTransition(() => {
       setEditedText(transcript);
       setIsEditing(false);
     });
   }, [transcript]);
+
+  // Fetch translation with debouncing and memory caching
+  React.useEffect(() => {
+    if (!language || language === 'en' || !textToTranslate.trim()) {
+      setTranslatedText(null);
+      return;
+    }
+
+    const cacheKey = `${language}:${textToTranslate.trim()}`;
+    if (cacheRef.current[cacheKey]) {
+      setTranslatedText(cacheRef.current[cacheKey]);
+      setIsTranslating(false);
+      return;
+    }
+
+    let isSubscribed = true;
+    setIsTranslating(true);
+
+    const timer = setTimeout(() => {
+      translatePatientText({
+        patientText: textToTranslate,
+        sourceLanguage: language,
+        targetLanguage: 'eng_Latn',
+      })
+        .then((res) => {
+          if (isSubscribed) {
+            if (res.success && res.translatedText) {
+              cacheRef.current[cacheKey] = res.translatedText;
+              setTranslatedText(res.translatedText);
+            } else {
+              setTranslatedText(null);
+            }
+          }
+        })
+        .catch((err) => {
+          console.warn('[VoiceCorrection] Live translation preview failed:', err);
+          if (isSubscribed) setTranslatedText(null);
+        })
+        .finally(() => {
+          if (isSubscribed) setIsTranslating(false);
+        });
+    }, 200);
+
+    return () => {
+      isSubscribed = false;
+      clearTimeout(timer);
+    };
+  }, [textToTranslate, language]);
 
   const handleAccept = () => {
     onAccept(isEditing ? editedText : transcript);
@@ -51,7 +109,7 @@ export const VoiceCorrection: React.FC<VoiceCorrectionProps> = ({
       {/* Transcript display / edit area */}
       <div className="rounded-xl border border-border-light bg-surface-muted p-4">
         <p className="text-xs font-bold text-text-muted uppercase tracking-wider mb-2">
-          We heard:
+          We heard ({language.toUpperCase()}):
         </p>
         {isEditing ? (
           <textarea
@@ -65,6 +123,37 @@ export const VoiceCorrection: React.FC<VoiceCorrectionProps> = ({
           <p className="text-base text-text-main font-medium leading-relaxed min-h-[40px]">
             &ldquo;{transcript}&rdquo;
           </p>
+        )}
+
+        {/* Live IndicTrans2 Translation Preview for Non-English Inputs */}
+        {language !== 'en' && (
+          <div className="mt-3 rounded-xl border border-primary/30 bg-primary/5 p-3.5 animate-in fade-in slide-in-from-top-1">
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center gap-1.5">
+                <Globe className="h-4 w-4 text-primary shrink-0" />
+                <span className="text-xs font-bold text-primary uppercase tracking-wider">
+                  AI Translation (IndicTrans2 → English)
+                </span>
+              </div>
+              <span className="text-[10px] font-bold bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                Local AI
+              </span>
+            </div>
+            {isTranslating ? (
+              <div className="flex items-center gap-2 text-xs text-text-secondary py-1">
+                <Spinner size="sm" />
+                <span>Translating to English for doctor summary...</span>
+              </div>
+            ) : translatedText ? (
+              <p className="text-base text-secondary font-bold leading-relaxed pt-0.5">
+                &ldquo;{translatedText}&rdquo;
+              </p>
+            ) : (
+              <p className="text-xs text-text-muted italic pt-0.5">
+                Translation will be auto-generated for clinical history report.
+              </p>
+            )}
+          </div>
         )}
       </div>
 

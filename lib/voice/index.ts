@@ -15,3 +15,8 @@ export { MockSpeechRecognition } from './mock-speech-recognition';
 export { BrowserTTS } from './browser-tts';
 export { MockTTS } from './mock-tts';
 export { getLangCode, selectVoice, LANGUAGE_BCP47, LANGUAGE_DISPLAY_NAME } from './language-map';
+
+export * from './asr';
+export * from './translation/voice-translator';
+export * from './pipeline/voice-pipeline';
+

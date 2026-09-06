@@ -18,13 +18,16 @@ import { ToastProvider } from '../../../components/ui/toast';
 import { useToast } from '../../../hooks/use-toast';
 import { KioskLayout } from '../../../components/kiosk/kiosk-layout';
 import { PrintLayout } from '../../../components/print/print-layout';
+import type { SupportedLanguage } from '../../../lib/language/config';
+
 import { Printer, Bell, Eye, Info } from 'lucide-react';
 
 export default function DesignSystemShowcase() {
   const { addToast } = useToast();
   const [activeStep, setActiveStep] = React.useState(0);
   const [departmentMode, setDepartmentMode] = React.useState<'standard' | 'ayush'>('standard');
-  const [language, setLanguage] = React.useState<'en' | 'hi' | 'ta'>('en');
+  const [language, setLanguage] = React.useState<SupportedLanguage>('en');
+
 
   // Input states
   const [inputText, setInputText] = React.useState('');

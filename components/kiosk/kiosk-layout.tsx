@@ -4,8 +4,10 @@ import * as React from 'react';
 import { Button } from '../ui/button';
 import { Steps } from '../ui/steps';
 import { Badge } from '../ui/badge';
-import { HelpCircle, LogOut, ShieldAlert } from 'lucide-react';
+import { HelpCircle, LogOut, ShieldAlert, Globe, Check, Search } from 'lucide-react';
 import { Dialog } from '../ui/dialog';
+import { Input } from '../ui/input';
+import { SCHEDULED_LANGUAGES, getLanguageInfo, SupportedLanguage } from '../../lib/language/config';
 
 export interface KioskLayoutProps {
   children: React.ReactNode;
@@ -18,8 +20,8 @@ export interface KioskLayoutProps {
   backLabel?: string;
   nextLabel?: string;
   departmentMode?: 'standard' | 'ayush';
-  language?: 'en' | 'hi' | 'ta';
-  onLanguageChange?: (lang: 'en' | 'hi' | 'ta') => void;
+  language?: string;
+  onLanguageChange?: (lang: SupportedLanguage) => void;
 }
 
 export const KioskLayout: React.FC<KioskLayoutProps> = ({
@@ -37,6 +39,21 @@ export const KioskLayout: React.FC<KioskLayoutProps> = ({
   onLanguageChange,
 }) => {
   const [isExitDialogOpen, setIsExitDialogOpen] = React.useState(false);
+  const [isLangDialogOpen, setIsLangDialogOpen] = React.useState(false);
+  const [langSearch, setLangSearch] = React.useState('');
+
+  const activeLangInfo = getLanguageInfo(language);
+
+  const filteredLanguages = React.useMemo(() => {
+    if (!langSearch.trim()) return SCHEDULED_LANGUAGES;
+    const q = langSearch.toLowerCase().trim();
+    return SCHEDULED_LANGUAGES.filter(
+      (l) =>
+        l.name.toLowerCase().includes(q) ||
+        l.nativeName.toLowerCase().includes(q) ||
+        l.id.toLowerCase().includes(q)
+    );
+  }, [langSearch]);
 
   const steps = [
     { id: 'step_consent', label: 'Consent' },
@@ -81,22 +98,19 @@ export const KioskLayout: React.FC<KioskLayoutProps> = ({
             <Badge variant="info">Standard Mode</Badge>
           )}
 
-          {/* Language Switcher */}
+          {/* Multilingual IndicTrans2 Language Switcher */}
           {onLanguageChange && (
-            <div className="flex items-center gap-1 bg-surface-muted p-1 rounded-lg border border-border-light">
-              {(['en', 'hi', 'ta'] as const).map((lang) => (
-                <button
-                  key={lang}
-                  onClick={() => onLanguageChange(lang)}
-                  className={`px-3 py-1 text-xs font-bold rounded-md transition-all cursor-pointer
-                    ${language === lang
-                      ? 'bg-primary text-white shadow-sm'
-                      : 'text-text-secondary hover:text-text-main'}`}
-                >
-                  {lang === 'en' ? 'EN' : lang === 'hi' ? 'हिं' : 'தமிழ்'}
-                </button>
-              ))}
-            </div>
+            <button
+              onClick={() => setIsLangDialogOpen(true)}
+              className="flex items-center gap-2 bg-surface-muted hover:bg-primary-light/20 p-2 px-3.5 rounded-xl border border-border-light text-xs font-bold text-text-main transition-all cursor-pointer shadow-sm hover:border-primary/40"
+              title="Select Patient Language"
+            >
+              <Globe className="h-4 w-4 text-primary" />
+              <span>{activeLangInfo.nativeName}</span>
+              {activeLangInfo.id !== 'en' && (
+                <span className="text-text-muted text-[10px]">({activeLangInfo.name})</span>
+              )}
+            </button>
           )}
 
           {/* Help Button */}
@@ -121,9 +135,7 @@ export const KioskLayout: React.FC<KioskLayoutProps> = ({
 
       {/* Scrollable Content Workspace */}
       <main className="flex-1 overflow-y-auto p-8 flex justify-center items-start">
-        <div className="max-w-3xl w-full flex flex-col gap-6">
-          {children}
-        </div>
+        <div className="max-w-3xl w-full flex flex-col gap-6">{children}</div>
       </main>
 
       {/* Fixed bottom navigation panel */}
@@ -171,6 +183,63 @@ export const KioskLayout: React.FC<KioskLayoutProps> = ({
         </div>
       </footer>
 
+      {/* Multilingual 22 Scheduled Indian Languages Selection Modal */}
+      <Dialog
+        isOpen={isLangDialogOpen}
+        onClose={() => setIsLangDialogOpen(false)}
+        title="Select Patient Language / भाषा चुनें / மொழியைத் தேர்ந்தெடுக்கவும்"
+      >
+        <div className="flex flex-col gap-4 max-h-[70vh]">
+          {/* Search bar */}
+          <div className="relative">
+            <Search className="absolute left-3 top-3 h-4 w-4 text-text-muted" />
+            <Input
+              value={langSearch}
+              onChange={(e) => setLangSearch(e.target.value)}
+              placeholder="Search Indian languages... (e.g., Hindi, Tamil, Telugu, Marathi)"
+              className="pl-9 text-sm"
+            />
+          </div>
+
+          <p className="text-xs text-text-secondary">
+            MediKiosk supports all 22 scheduled Indian languages using local IndicTrans2 AI models.
+          </p>
+
+          {/* Language grid */}
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5 overflow-y-auto max-h-[360px] p-1 pr-2">
+            {filteredLanguages.map((lang) => {
+              const isSelected = language === lang.id;
+              return (
+                <button
+                  key={lang.id}
+                  onClick={() => {
+                    onLanguageChange?.(lang.id as SupportedLanguage);
+                    setIsLangDialogOpen(false);
+                  }}
+                  className={`p-3 rounded-xl border text-left flex flex-col gap-0.5 transition-all cursor-pointer relative ${
+                    isSelected
+                      ? 'bg-primary/10 border-primary text-primary font-bold shadow-sm'
+                      : 'border-border-light hover:border-primary/50 hover:bg-surface-muted text-text-main'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-base font-bold leading-tight">{lang.nativeName}</span>
+                    {isSelected && <Check className="h-4 w-4 text-primary shrink-0" />}
+                  </div>
+                  <span className="text-xs text-text-secondary">{lang.name}</span>
+                </button>
+              );
+            })}
+
+            {filteredLanguages.length === 0 && (
+              <div className="col-span-full py-8 text-center text-text-muted text-sm">
+                No matching languages found.
+              </div>
+            )}
+          </div>
+        </div>
+      </Dialog>
+
       {/* Exit confirmation dialog */}
       <Dialog
         isOpen={isExitDialogOpen}
@@ -179,16 +248,10 @@ export const KioskLayout: React.FC<KioskLayoutProps> = ({
         destructive
         footer={
           <>
-            <Button
-              variant="outline"
-              onClick={() => setIsExitDialogOpen(false)}
-            >
+            <Button variant="outline" onClick={() => setIsExitDialogOpen(false)}>
               No, Continue
             </Button>
-            <Button
-              variant="destructive"
-              onClick={handleConfirmExit}
-            >
+            <Button variant="destructive" onClick={handleConfirmExit}>
               Yes, Cancel & Clear Data
             </Button>
           </>
@@ -197,8 +260,13 @@ export const KioskLayout: React.FC<KioskLayoutProps> = ({
         <div className="flex gap-4 items-start">
           <ShieldAlert className="h-10 w-10 text-error shrink-0" />
           <div>
-            <p className="font-semibold text-text-main mb-1">Are you sure you want to cancel the check-in?</p>
-            <p className="text-sm text-text-secondary">All your entered details, voice answers, and uploaded documents will be permanently cleared to protect your privacy.</p>
+            <p className="font-semibold text-text-main mb-1">
+              Are you sure you want to cancel the check-in?
+            </p>
+            <p className="text-sm text-text-secondary">
+              All your entered details, voice answers, and uploaded documents will be permanently
+              cleared to protect your privacy.
+            </p>
           </div>
         </div>
       </Dialog>

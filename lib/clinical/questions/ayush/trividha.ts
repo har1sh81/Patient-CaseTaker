@@ -1,0 +1,70 @@
+import { ClinicalQuestion } from '../types';
+
+export const TRIVIDHA_QUESTIONS: ClinicalQuestion[] = [
+  // 1. Darshana (Visual Inspection)
+  {
+    id: 'AY-TRI-DARSHANA-001',
+    version: '1.0',
+    mode: 'ayush',
+    complaint: 'trividha',
+    section: 'trividha_pariksha',
+    category: 'darshana',
+    ayushDomain: 'darshana',
+    questionText: {
+      en: 'Visual observation of patient’s complexion, eyes, tongue coating, body posture, and visible swelling.',
+      ta: 'நோயாளியின் தோற்றம், கண்கள், நாக்கு படிவு மற்றும் வீக்கம் பற்றிய காட்சி பரிசோதனை.',
+      hi: 'रोगी के रंग, आंखें, जीभ का लेप और सूजन का दृश्य निरीक्षण।',
+    },
+    answerType: 'free_text',
+    targetField: 'darshana_inspection_findings',
+    priority: 85,
+    required: false,
+    voiceEnabled: false,
+    touchEnabled: true,
+    sourceType: 'clinician_assessment',
+  },
+  // 2. Sparshana (Palpation / Physical Touch)
+  {
+    id: 'AY-TRI-SPARSHANA-001',
+    version: '1.0',
+    mode: 'ayush',
+    complaint: 'trividha',
+    section: 'trividha_pariksha',
+    category: 'sparshana',
+    ayushDomain: 'sparshana',
+    questionText: {
+      en: 'Palpation assessment of skin temperature, moisture, tenderness, edema, and arterial pulse.',
+      ta: 'தோல் வெப்பநிலை, ஈரப்பதம், தொடு வலி மற்றும் நாடி தொடுதல் பரிசோதனை.',
+      hi: 'त्वचा का तापमान, नमी, स्पर्श असहनशीलता और नाड़ी स्पर्श परीक्षण।',
+    },
+    answerType: 'free_text',
+    targetField: 'sparshana_palpation_findings',
+    priority: 85,
+    required: false,
+    voiceEnabled: false,
+    touchEnabled: true,
+    sourceType: 'clinician_assessment',
+  },
+  // 3. Prashna (Interrogation / Detailed Patient Questioning)
+  {
+    id: 'AY-TRI-PRASHNA-001',
+    version: '1.0',
+    mode: 'ayush',
+    complaint: 'trividha',
+    section: 'trividha_pariksha',
+    category: 'prashna',
+    ayushDomain: 'prashna',
+    questionText: {
+      en: 'What primary health issues or symptoms brought you to the clinic today?',
+      ta: 'இன்று மருத்துவமனைக்கு வரக்காரணமான முக்கிய உடல்நலப் பிரச்சனை என்ன?',
+      hi: 'आज क्लिनिक आने की आपकी मुख्य स्वास्थ्य समस्या क्या है?',
+    },
+    answerType: 'free_text',
+    targetField: 'prashna_patient_narrative',
+    priority: 95,
+    required: true,
+    voiceEnabled: true,
+    touchEnabled: true,
+    sourceType: 'patient_input',
+  },
+];

@@ -45,6 +45,9 @@ export const AuditActionSchema = z.enum([
   'case_sent_to_doctor',
   'physician_finalized',
   'conflict_resolved',
+  'adaptive_question_completed',
+  'adaptive_question_fallback',
+  'adaptive_question_failed',
 ]);
 
 export const AuditLogSchema = z.object({
