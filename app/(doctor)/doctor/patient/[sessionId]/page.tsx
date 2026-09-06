@@ -275,6 +275,18 @@ export default function DoctorPatientWorkspace({ params }: PageProps) {
           <span className="text-slate-300 bg-slate-800 px-3 py-1 rounded-full text-xs border border-slate-700">
             {patient?.demographics?.age || '--'}y • {patient?.demographics?.gender || '--'}
           </span>
+          {session?.departmentMode === 'ayush' ? (
+            <span className="text-emerald-300 bg-emerald-950/80 px-3 py-1 rounded-full text-xs font-bold border border-emerald-700">
+              🌿 AYUSH Mode
+            </span>
+          ) : (
+            <span className="text-blue-300 bg-blue-950/80 px-3 py-1 rounded-full text-xs font-bold border border-blue-700">
+              🩺 General Medicine
+            </span>
+          )}
+          <span className="text-slate-400 font-mono text-xs hidden lg:inline">
+            Session: {sessionId}
+          </span>
         </div>
         <div className="flex items-center gap-3">
           <Button

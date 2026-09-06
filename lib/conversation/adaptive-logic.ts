@@ -216,6 +216,14 @@ export function selectNextQuestion(
     return 'current_medications';
   }
 
+  // AYUSH SPECIFIC DOMAINS (if present in allowedQuestionIds)
+  const ayushQuestions = ['ayush_prakriti', 'ayush_digestion', 'ayush_bowel', 'ayush_sleep', 'ayush_diet', 'ayush_exercise', 'ayush_mind'];
+  for (const qId of ayushQuestions) {
+    if (!askedIds.has(qId) && allowedQuestionIds.includes(qId)) {
+      return qId;
+    }
+  }
+
   // CORE 15 COMPLETE — now check if we should expand
   // Only ask universal questions if:
   //   (a) red flags exist (high severity, neuro symptoms, weight loss, fever), OR

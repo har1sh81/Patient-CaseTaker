@@ -23,10 +23,12 @@ export async function GET(request: Request) {
     }
 
     const answers = await db.getSessionAnswers(activeSession.id);
+    const patient = activeSession.patientId ? await db.getPatient(activeSession.patientId) : null;
 
     return NextResponse.json({
       success: true,
       session: activeSession,
+      patient,
       answers,
     });
   } catch (error) {

@@ -15,21 +15,33 @@ function DocumentsContent() {
   const sessionId = searchParams.get('sessionId');
 
   const [documents, setDocuments] = React.useState<MedicalDocument[]>([]);
+  const [session, setSession] = React.useState<any>(null);
+  const [patient, setPatient] = React.useState<any>(null);
   const [loading, setLoading] = React.useState(true);
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
 
-  const fetchDocuments = React.useCallback(async () => {
+  const fetchSessionAndDocuments = React.useCallback(async () => {
     if (!sessionId) return;
     try {
-      const res = await fetch(`/api/kiosk/documents?sessionId=${sessionId}`);
-      const data = await res.json();
-      if (res.ok && data.success) {
-        setDocuments(data.documents || []);
+      const [docRes, sessRes] = await Promise.all([
+        fetch(`/api/kiosk/documents?sessionId=${sessionId}`),
+        fetch(`/api/kiosk/interview/session?sessionId=${sessionId}`),
+      ]);
+      const docData = await docRes.json();
+      const sessData = await sessRes.json();
+
+      if (sessRes.ok && sessData.success) {
+        setSession(sessData.session);
+        setPatient(sessData.patient);
+      }
+
+      if (docRes.ok && docData.success) {
+        setDocuments(docData.documents || []);
       } else {
-        if (data.status === 403 || data.status === 404) {
+        if (docData.status === 403 || docData.status === 404) {
           router.push('/kiosk');
         } else {
-          setErrorMsg(data.error || 'Failed to load documents');
+          setErrorMsg(docData.error || 'Failed to load documents');
         }
       }
     } catch (err) {
@@ -46,19 +58,19 @@ function DocumentsContent() {
     }
     // Wait a tick to avoid synchronous setState warning
     const timer = setTimeout(() => {
-      void fetchDocuments();
+      void fetchSessionAndDocuments();
     }, 0);
     
     // Poll for new documents every 3 seconds
     const pollInterval = setInterval(() => {
-      void fetchDocuments();
+      void fetchSessionAndDocuments();
     }, 3000);
     
     return () => {
       clearTimeout(timer);
       clearInterval(pollInterval);
     };
-  }, [sessionId, fetchDocuments, router]);
+  }, [sessionId, fetchSessionAndDocuments, router]);
 
   const handleDocumentRemoved = (documentId: string) => {
     setDocuments((prev) => prev.filter((d) => d.id !== documentId));
@@ -73,7 +85,12 @@ function DocumentsContent() {
 
   if (loading) {
     return (
-      <KioskLayout activeStepIndex={2}>
+      <KioskLayout 
+        activeStepIndex={2}
+        departmentMode={session?.departmentMode}
+        patientName={patient?.demographics?.fullName}
+        sessionId={sessionId}
+      >
         <div className="flex flex-col items-center justify-center h-[50vh] gap-4">
           <Spinner size="lg" />
           <p className="text-text-secondary font-medium">Loading documents...</p>
@@ -83,7 +100,12 @@ function DocumentsContent() {
   }
 
   return (
-    <KioskLayout activeStepIndex={2}>
+    <KioskLayout 
+      activeStepIndex={2}
+      departmentMode={session?.departmentMode}
+      patientName={patient?.demographics?.fullName}
+      sessionId={sessionId}
+    >
       <div className="w-full max-w-4xl mx-auto flex flex-col pt-8 pb-24 px-4 gap-8 min-h-[calc(100vh-100px)] animate-in fade-in zoom-in-95">
         
         <div className="text-center">

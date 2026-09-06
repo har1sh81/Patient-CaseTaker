@@ -149,6 +149,15 @@ export default function DoctorQueuePage() {
                   </div>
 
                   <div className="flex flex-wrap gap-2 mb-5">
+                    {c.departmentMode === 'ayush' ? (
+                      <span className="flex items-center text-xs font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded border border-emerald-300">
+                        🌿 AYUSH (Ayurveda)
+                      </span>
+                    ) : (
+                      <span className="flex items-center text-xs font-bold text-blue-800 bg-blue-100 px-2 py-0.5 rounded border border-blue-300">
+                        🩺 General Medicine
+                      </span>
+                    )}
                     {c.attentionFlagsCount > 0 && (
                       <span className="flex items-center text-xs font-medium text-red-700 bg-red-50 px-2 py-1 rounded border border-red-100">
                         <AlertTriangle className="w-3 h-3 mr-1" /> {c.attentionFlagsCount} Attention

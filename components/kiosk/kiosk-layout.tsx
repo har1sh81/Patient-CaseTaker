@@ -20,6 +20,8 @@ export interface KioskLayoutProps {
   backLabel?: string;
   nextLabel?: string;
   departmentMode?: 'standard' | 'ayush';
+  patientName?: string;
+  sessionId?: string;
   language?: string;
   onLanguageChange?: (lang: SupportedLanguage) => void;
 }
@@ -35,6 +37,8 @@ export const KioskLayout: React.FC<KioskLayoutProps> = ({
   backLabel = 'Back',
   nextLabel = 'Continue',
   departmentMode = 'standard',
+  patientName,
+  sessionId,
   language = 'en',
   onLanguageChange,
 }) => {
@@ -90,12 +94,33 @@ export const KioskLayout: React.FC<KioskLayoutProps> = ({
         </div>
 
         {/* Badges & Actions */}
-        <div className="flex items-center gap-4">
-          {/* Department badge */}
+        <div className="flex items-center gap-3">
+          {/* Patient identity & session info badge */}
+          {(patientName || sessionId) && (
+            <div className="hidden md:flex items-center gap-2 bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-lg text-xs shadow-sm">
+              {patientName && (
+                <span className="font-semibold text-slate-800">
+                  Patient: <span className="text-primary font-bold">{patientName}</span>
+                </span>
+              )}
+              {patientName && sessionId && <span className="text-slate-400">•</span>}
+              {sessionId && (
+                <span className="text-slate-600 font-mono">
+                  Session: {sessionId.slice(0, 10)}...
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* Clear Department Mode badge */}
           {departmentMode === 'ayush' ? (
-            <Badge variant="ayush">AYUSH Mode</Badge>
+            <Badge variant="ayush" className="px-3 py-1 text-xs font-bold uppercase tracking-wider">
+              AYUSH Mode (Ayurveda)
+            </Badge>
           ) : (
-            <Badge variant="info">Standard Mode</Badge>
+            <Badge variant="info" className="px-3 py-1 text-xs font-bold uppercase tracking-wider">
+              General Medicine
+            </Badge>
           )}
 
           {/* Multilingual IndicTrans2 Language Switcher */}

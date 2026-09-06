@@ -22,11 +22,22 @@ function TimelineContent() {
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
   const [viewMode, setViewMode] = React.useState<'complaint' | 'full'>('complaint');
 
+  const [session, setSession] = React.useState<any>(null);
+  const [patient, setPatient] = React.useState<any>(null);
+
   const organizeRecords = React.useCallback(async () => {
     if (!sessionId) return;
     setLoading(true);
     setErrorMsg(null);
     try {
+      // Fetch session info
+      const sessRes = await fetch(`/api/kiosk/interview/session?sessionId=${sessionId}`);
+      const sessData = await sessRes.json();
+      if (sessRes.ok && sessData.success) {
+        setSession(sessData.session);
+        setPatient(sessData.patient);
+      }
+
       // Fetch base timeline
       const res = await fetch('/api/kiosk/interview/timeline', {
         method: 'POST',
@@ -85,91 +96,96 @@ function TimelineContent() {
   if (!sessionId) return null;
 
   return (
-    <div className="w-full max-w-4xl mx-auto flex flex-col pt-8 pb-24 px-4 gap-8 min-h-[calc(100vh-100px)] animate-in fade-in zoom-in-95">
-      
-      <div className="text-center">
-        <h1 className="text-3xl font-black text-secondary mb-3">Your Medical Timeline</h1>
-        <p className="text-text-secondary text-lg max-w-2xl mx-auto">
-          We have gathered information from your interview, uploaded documents, and digital health records to build a chronological timeline.
-        </p>
-      </div>
-
-      {flags.some(f => f.severity === 'high' || f.severity === 'critical') && (
-        <Alert variant="warning" title="Clinical Review Recommended">
-          Your responses contain information that may require prompt attention from healthcare staff.
-        </Alert>
-      )}
-
-      {errorMsg && (
-        <Alert variant="error" title="Error Generating Timeline">
-          {errorMsg}
-        </Alert>
-      )}
-
-      {loading ? (
-        <div className="flex flex-col items-center justify-center p-12 gap-4 border border-border rounded-xl bg-surface/50">
-          <Spinner size="lg" />
-          <p className="text-text-secondary font-medium">Organizing and fusing records...</p>
+    <KioskLayout 
+      activeStepIndex={2}
+      departmentMode={session?.departmentMode}
+      patientName={patient?.demographics?.fullName}
+      sessionId={sessionId}
+    >
+      <div className="w-full max-w-4xl mx-auto flex flex-col pt-8 pb-24 px-4 gap-8 min-h-[calc(100vh-100px)] animate-in fade-in zoom-in-95">
+        
+        <div className="text-center">
+          <h1 className="text-3xl font-black text-secondary mb-3">Your Medical Timeline</h1>
+          <p className="text-text-secondary text-lg max-w-2xl mx-auto">
+            We have gathered information from your interview, uploaded documents, and digital health records to build a chronological timeline.
+          </p>
         </div>
-      ) : (
-        <>
-          <div className="flex justify-center mb-4">
-            <div className="bg-gray-100 p-1 rounded-lg inline-flex">
-              <button
-                className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${viewMode === 'complaint' ? 'bg-white shadow-sm text-blue-700' : 'text-gray-600 hover:text-gray-900'}`}
-                onClick={() => setViewMode('complaint')}
-              >
-                Complaint-Focused View
-              </button>
-              <button
-                className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${viewMode === 'full' ? 'bg-white shadow-sm text-blue-700' : 'text-gray-600 hover:text-gray-900'}`}
-                onClick={() => setViewMode('full')}
-              >
-                Full Medical History
-              </button>
+
+        {flags.some(f => f.severity === 'high' || f.severity === 'critical') && (
+          <Alert variant="warning" title="Clinical Review Recommended">
+            Your responses contain information that may require prompt attention from healthcare staff.
+          </Alert>
+        )}
+
+        {errorMsg && (
+          <Alert variant="error" title="Error Generating Timeline">
+            {errorMsg}
+          </Alert>
+        )}
+
+        {loading ? (
+          <div className="flex flex-col items-center justify-center p-12 gap-4 border border-border rounded-xl bg-surface/50">
+            <Spinner size="lg" />
+            <p className="text-text-secondary font-medium">Organizing and fusing records...</p>
+          </div>
+        ) : (
+          <>
+            <div className="flex justify-center mb-4">
+              <div className="bg-gray-100 p-1 rounded-lg inline-flex">
+                <button
+                  className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${viewMode === 'complaint' ? 'bg-white shadow-sm text-blue-700' : 'text-gray-600 hover:text-gray-900'}`}
+                  onClick={() => setViewMode('complaint')}
+                >
+                  Complaint-Focused View
+                </button>
+                <button
+                  className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${viewMode === 'full' ? 'bg-white shadow-sm text-blue-700' : 'text-gray-600 hover:text-gray-900'}`}
+                  onClick={() => setViewMode('full')}
+                >
+                  Full Medical History
+                </button>
+              </div>
+            </div>
+            
+            {viewMode === 'complaint' && reconstructed && (
+              <ComplaintHistoryView history={reconstructed} />
+            )}
+            
+            {viewMode === 'full' && timeline && (
+              <MedicalTimelineView timeline={timeline} />
+            )}
+          </>
+        )}
+
+        {!loading && (
+          <div className="flex justify-between items-center mt-8 pt-8 border-t border-border">
+            <Button variant="outline" size="lg" onClick={() => router.back()}>
+              Back
+            </Button>
+            <div className="flex gap-4">
+              {process.env.NODE_ENV === 'development' && flags.length > 0 && (
+                <Button variant="outline" size="lg" onClick={() => console.dir(flags, { depth: null })}>
+                  Log Dev Flags
+                </Button>
+              )}
+              <Button variant="outline" size="lg" onClick={organizeRecords}>
+                Re-organize Records
+              </Button>
+              <Button variant="primary" size="lg" onClick={handleContinue} disabled={!timeline}>
+                Continue
+              </Button>
             </div>
           </div>
-          
-          {viewMode === 'complaint' && reconstructed && (
-            <ComplaintHistoryView history={reconstructed} />
-          )}
-          
-          {viewMode === 'full' && timeline && (
-            <MedicalTimelineView timeline={timeline} />
-          )}
-        </>
-      )}
-
-      {!loading && (
-        <div className="flex justify-between items-center mt-8 pt-8 border-t border-border">
-          <Button variant="outline" size="lg" onClick={() => router.back()}>
-            Back
-          </Button>
-          <div className="flex gap-4">
-            {process.env.NODE_ENV === 'development' && flags.length > 0 && (
-              <Button variant="outline" size="lg" onClick={() => console.dir(flags, { depth: null })}>
-                Log Dev Flags
-              </Button>
-            )}
-            <Button variant="outline" size="lg" onClick={organizeRecords}>
-              Re-organize Records
-            </Button>
-            <Button variant="primary" size="lg" onClick={handleContinue} disabled={!timeline}>
-              Continue
-            </Button>
-          </div>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
+    </KioskLayout>
   );
 }
 
 export default function TimelinePage() {
   return (
-    <KioskLayout activeStepIndex={3}>
-      <React.Suspense fallback={<div className="flex items-center justify-center h-[50vh]"><Spinner size="lg" /></div>}>
-        <TimelineContent />
-      </React.Suspense>
-    </KioskLayout>
+    <React.Suspense fallback={<div className="flex items-center justify-center h-[50vh]"><Spinner size="lg" /></div>}>
+      <TimelineContent />
+    </React.Suspense>
   );
 }

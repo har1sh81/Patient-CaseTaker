@@ -88,6 +88,40 @@ export const SummaryConfirmationStatusSchema = z.object({
 });
 export type SummaryConfirmationStatus = z.infer<typeof SummaryConfirmationStatusSchema>;
 
+export const SummaryVitalsSchema = z.object({
+  bloodPressure: z.string().optional(),
+  heartRate: z.string().optional(),
+  temperature: z.string().optional(),
+  spo2: z.string().optional(),
+  respiratoryRate: z.string().optional(),
+  status: z.string().optional(),
+});
+export type SummaryVitals = z.infer<typeof SummaryVitalsSchema>;
+
+export const SummaryClinicalFactSchema = z.object({
+  category: z.string(),
+  fact: z.string(),
+  source: z.string().optional(),
+});
+export type SummaryClinicalFact = z.infer<typeof SummaryClinicalFactSchema>;
+
+export const SummaryInterviewItemSchema = z.object({
+  question: z.string(),
+  answer: z.string(),
+  section: z.string().optional(),
+});
+export type SummaryInterviewItem = z.infer<typeof SummaryInterviewItemSchema>;
+
+export const SummaryDoctorReviewSchema = z.object({
+  doctorNotes: z.string().optional(),
+  corrections: z.string().optional(),
+  confirmationStatus: z.string().optional(),
+  finalAssessment: z.string().optional(),
+  verifiedAt: z.string().optional(),
+  doctorName: z.string().optional(),
+});
+export type SummaryDoctorReview = z.infer<typeof SummaryDoctorReviewSchema>;
+
 export const ClinicalConsultationSummarySchema = z.object({
   reportId: z.string(),
   sessionId: z.string(),
@@ -106,6 +140,10 @@ export const ClinicalConsultationSummarySchema = z.object({
   personalHistory: z.array(z.string()),
   socialHistory: SummarySocialHistorySchema.optional(),
   reviewOfSystems: z.record(z.string(), z.string()).optional(),
+  vitals: SummaryVitalsSchema.optional(),
+  clinicalFacts: z.array(SummaryClinicalFactSchema).optional(),
+  interviewSummary: z.array(SummaryInterviewItemSchema).optional(),
+  doctorReview: SummaryDoctorReviewSchema.optional(),
   informationNotReported: z.array(z.string()),
   medicalJourney: z.array(MedicalTimelineEventSchema),
   uploadedDocuments: DocumentSummaryReportSectionSchema,
@@ -116,3 +154,4 @@ export const ClinicalConsultationSummarySchema = z.object({
 });
 
 export type ClinicalConsultationSummary = z.infer<typeof ClinicalConsultationSummarySchema>;
+

@@ -100,12 +100,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Session expired' }, { status: 403 });
     }
 
-    const patient = (await db.getPatient(session.patientId!)) || {
-      id: session.patientId || 'pat_demo',
-      demographics: { firstName: 'Patient', fullName: 'Kiosk Patient', age: 35, gender: 'other' },
-      identification: {},
-      createdAt: new Date().toISOString(),
-    };
+    const patient = session.patientId ? await db.getPatient(session.patientId) : null;
+    if (!patient) {
+      return NextResponse.json({ error: 'Patient session could not be loaded.' }, { status: 404 });
+    }
     const answers = await db.getSessionAnswers(sessionId);
     const timeline = await db.getTimeline(sessionId);
     const flags = await db.getSessionFlags(sessionId);
@@ -259,7 +257,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ 
       success: true, 
       snapshotId,
-      doctorAssignment 
+      doctorAssignment,
+      pdfUrl: `/api/doctor/cases/${sessionId}/pdf`,
+      downloadUrl: `/api/doctor/cases/${sessionId}/pdf?download=true`
     }, { status: 200 });
   } catch (error: unknown) {
     console.error('Failed to confirm session:', error);

@@ -27,36 +27,35 @@ export async function GET(request: Request) {
 
 
     const patient = session.patientId ? await db.getPatient(session.patientId) : null;
+    if (!patient) {
+      return NextResponse.json({ error: 'Patient session could not be loaded.' }, { status: 404 });
+    }
     let report = await db.getReportBySession(sessionId);
     const answers = await db.getSessionAnswers(sessionId);
     const flags = await db.getSessionFlags(sessionId);
     const timeline = await db.getTimeline(sessionId);
     const documents = await db.getSessionDocuments(sessionId);
 
+    // Compose the clinical consultation summary for structured data
+    const { composeClinicalConsultationSummary } = await import('@/lib/reports/report-composer');
+    const extractions = [];
+    for (const d of (documents || [])) {
+      const ext = await db.getExtraction(d.id);
+      if (ext) extractions.push(ext);
+    }
+
+    const activePatient = patient;
+
+    const summary = composeClinicalConsultationSummary({
+      session,
+      patient: activePatient,
+      answers: answers || [],
+      flags: flags || [],
+      timelineEvents: [],
+      documents: extractions,
+    });
+
     if (!report) {
-      const { composeClinicalConsultationSummary } = await import('@/lib/reports/report-composer');
-      const extractions = [];
-      for (const d of (documents || [])) {
-        const ext = await db.getExtraction(d.id);
-        if (ext) extractions.push(ext);
-      }
-
-      const activePatient = patient || {
-        id: session.patientId || 'pat_demo',
-        demographics: { firstName: 'Patient', fullName: 'Kiosk Patient', age: 35, gender: 'other' },
-        identification: {},
-        createdAt: new Date().toISOString(),
-      };
-
-      const summary = composeClinicalConsultationSummary({
-        session,
-        patient: activePatient,
-        answers: answers || [],
-        flags: flags || [],
-        timelineEvents: [],
-        documents: extractions,
-      });
-
       const draftReport: any = {
         reportId: `rep_${sessionId}`,
         reportVersion: '1.0.0',
@@ -130,8 +129,74 @@ export async function GET(request: Request) {
       report = draftReport;
     }
 
-    // Filter flags to just show there are flags, without clinical logic
+    // Compute lightweight red flags for UI display (not using full AttentionFlag schema)
+    const computedRedFlags: Array<{ id: string; level: 'critical' | 'warning' | 'info'; title: string; description: string }> = [];
+
+    // Severe pain
+    const painAns = (answers || []).find(a => a.questionId === 'pain_scale');
+    if (painAns) {
+      const painVal = String(painAns.rawValue || painAns.normalizedValue || '');
+      const painNum = parseInt(painVal, 10);
+      if (painNum >= 7 || painVal.includes('7') || painVal.includes('8') || painVal.includes('9') || painVal.includes('10')) {
+        computedRedFlags.push({
+          id: 'rf_severe_pain',
+          level: 'critical',
+          title: '⚠️ Severe Pain Reported',
+          description: `Patient reported pain level ${painVal}/10. High priority consultation recommended.`,
+        });
+      }
+    }
+
+    // Chest/cardiac
+    const hasChestMention = (answers || []).some(a =>
+      String(a.rawValue || a.transcript || '').toLowerCase().match(/chest|cardiac|angina|heart/)
+    );
+    if (hasChestMention) {
+      computedRedFlags.push({
+        id: 'rf_cardiac',
+        level: 'critical',
+        title: '🫀 Potential Cardiac Symptom',
+        description: 'Patient reported chest-related symptoms. Immediate ECG / Triage review required.',
+      });
+    }
+
+    // GI red flags
+    const giAns = (answers || []).find(a => a.questionId === 'gi_red_flags');
+    if (giAns) {
+      const giVal = String(giAns.rawValue || giAns.transcript || '').toLowerCase();
+      if (giVal && giVal !== 'no' && giVal !== 'none') {
+        computedRedFlags.push({
+          id: 'rf_gi',
+          level: 'warning',
+          title: '🔴 Gastrointestinal Red Flags',
+          description: `GI concern: ${giAns.rawValue || giAns.transcript}. Further investigation advised.`,
+        });
+      }
+    }
+
+    // DB flags
     const hasAttentionFlags = (flags || []).some(f => f.status === 'active' && (f.severity === 'high' || f.severity === 'critical'));
+
+    // Build structured HPI for frontend
+    const structuredHPI = {
+      duration: summary.hpi.duration,
+      location: summary.hpi.location,
+      character: summary.hpi.character,
+      aggravatingRelieving: summary.hpi.aggravatingRelieving,
+      previousTreatments: summary.hpi.previousTreatments,
+      associatedSymptoms: summary.hpi.associatedSymptoms,
+      progression: summary.hpi.progression,
+    };
+
+    // Suggested doctor questions based on gaps
+    const suggestedDoctorQuestions: string[] = [];
+    if (!summary.hpi.location) suggestedDoctorQuestions.push('Please clarify the exact anatomical location of the symptom.');
+    if (!summary.hpi.character) suggestedDoctorQuestions.push('Can you describe the character/quality of the symptom?');
+    if (!summary.hpi.associatedSymptoms) suggestedDoctorQuestions.push('Are there any associated systemic symptoms?');
+    if (summary.familyHistory.length === 0) suggestedDoctorQuestions.push('Does the patient have any relevant family medical history?');
+    if (summary.medications.length === 0) suggestedDoctorQuestions.push('Is the patient currently taking any medications?');
+    if (hasChestMention) suggestedDoctorQuestions.push('Consider immediate ECG and cardiac workup.');
+    if (computedRedFlags.length > 0) suggestedDoctorQuestions.push('Red flags detected — prioritize clinical assessment.');
 
     return NextResponse.json({
       session,
@@ -140,10 +205,22 @@ export async function GET(request: Request) {
       answers,
       timeline,
       documents,
-      hasAttentionFlags,
+      hasAttentionFlags: hasAttentionFlags || computedRedFlags.length > 0,
+      // New structured data for enhanced review page
+      computedRedFlags,
+      structuredHPI,
+      chiefComplaint: summary.chiefComplaint,
+      informationNotReported: summary.informationNotReported,
+      suggestedDoctorQuestions,
+      ayush: summary.ayush,
+      referenceInfo: summary.reference,
+      socialHistory: summary.socialHistory,
+      familyHistory: summary.familyHistory,
+      reviewOfSystems: summary.reviewOfSystems,
     });
   } catch (error: any) {
     console.error('Failed to fetch review data:', error);
     return NextResponse.json({ error: 'Internal server error', details: error.message || String(error) }, { status: 500 });
   }
 }
+

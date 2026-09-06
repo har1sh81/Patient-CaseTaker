@@ -51,7 +51,7 @@ export async function POST(request: Request) {
       patient.id = crypto.randomUUID();
     }
 
-    // 1. Ensure patient exists in repository
+    // 1. Ensure patient exists in repository or create new record
     let existingPatient = await db.getPatient(patient.id);
     if (!existingPatient && patient.identification?.hospitalNumber) {
       existingPatient = await db.getPatientByHospitalNumber(patient.identification.hospitalNumber);
@@ -60,26 +60,18 @@ export async function POST(request: Request) {
       existingPatient = await db.getPatientByAbha(patient.identification.abhaReference);
     }
     if (!existingPatient) {
-      try {
-        existingPatient = await db.createPatient(patient);
-      } catch (err: any) {
-        // Fallback catch if duplicate constraint fires
-        if (patient.identification?.hospitalNumber) {
-          existingPatient = await db.getPatientByHospitalNumber(patient.identification.hospitalNumber);
-        }
-        if (!existingPatient && patient.identification?.abhaReference) {
-          existingPatient = await db.getPatientByAbha(patient.identification.abhaReference);
-        }
-        if (!existingPatient) {
-          // Final fallback to synthetic patient record with valid UUID
-          existingPatient = {
-            id: patient.id,
-            identification: patient.identification || { hospitalNumber: 'HSP-100245', abhaReference: 'ABHA-001' },
-            demographics: patient.demographics || { firstName: 'Arumugam', lastName: 'Kandasamy', fullName: 'Arumugam Kandasamy', age: 54, gender: 'male' },
-            createdAt: new Date().toISOString(),
-          };
-        }
-      }
+      existingPatient = await db.createPatient(patient);
+    } else {
+      // If patient exists, update demographics with any new details entered by the user
+      existingPatient.demographics = {
+        ...existingPatient.demographics,
+        ...patient.demographics,
+      };
+      existingPatient.identification = {
+        ...existingPatient.identification,
+        ...patient.identification,
+      };
+      existingPatient = await db.createPatient(existingPatient);
     }
 
     // 2. Initialize Intake Session (without consentId first to prevent foreign key violation)

@@ -21,6 +21,7 @@ function InterviewContent() {
   const sessionId = searchParams.get('sessionId');
 
   const [session, setSession] = React.useState<IntakeSession | null>(null);
+  const [patient, setPatient] = React.useState<any>(null);
   const [initialAnswers, setInitialAnswers] = React.useState<ConversationAnswer[] | null>(null);
   const [loadError, setLoadError] = React.useState<string | null>(null);
 
@@ -49,6 +50,7 @@ function InterviewContent() {
         }
 
         setSession(data.session);
+        setPatient(data.patient);
         setInitialAnswers(data.answers);
       } catch (err) {
         if (isMounted) {
@@ -96,10 +98,10 @@ function InterviewContent() {
     );
   }
 
-  return <InterviewEngineWrapper session={session} initialAnswers={initialAnswers} />;
+  return <InterviewEngineWrapper session={session} patient={patient} initialAnswers={initialAnswers} />;
 }
 
-function InterviewEngineWrapper({ session, initialAnswers }: { session: IntakeSession, initialAnswers: ConversationAnswer[] }) {
+function InterviewEngineWrapper({ session, patient, initialAnswers }: { session: IntakeSession; patient: any; initialAnswers: ConversationAnswer[] }) {
   const router = useRouter();
 
   // Initialize engine
@@ -114,9 +116,7 @@ function InterviewEngineWrapper({ session, initialAnswers }: { session: IntakeSe
     },
   });
 
-
   const handleCancel = () => {
-    // In a real app, hit an API to cancel the session and delete data
     router.push('/kiosk');
   };
 
@@ -124,7 +124,13 @@ function InterviewEngineWrapper({ session, initialAnswers }: { session: IntakeSe
 
   if (status.status === 'starting' || status.status === 'idle') {
     return (
-      <KioskLayout activeStepIndex={1}>
+      <KioskLayout 
+        activeStepIndex={1} 
+        departmentMode={session.departmentMode} 
+        language={session.language}
+        patientName={patient?.demographics?.fullName}
+        sessionId={session.id}
+      >
         <div className="flex flex-col items-center justify-center h-[50vh] gap-4">
           <Spinner size="lg" />
           <p className="text-text-secondary font-medium">Preparing your interview...</p>
@@ -135,7 +141,13 @@ function InterviewEngineWrapper({ session, initialAnswers }: { session: IntakeSe
 
   if (status.status === 'error') {
     return (
-      <KioskLayout activeStepIndex={1}>
+      <KioskLayout 
+        activeStepIndex={1} 
+        departmentMode={session.departmentMode} 
+        language={session.language}
+        patientName={patient?.demographics?.fullName}
+        sessionId={session.id}
+      >
         <div className="max-w-2xl mx-auto pt-12">
           <Alert variant="error" title="Something went wrong" className="mb-6">
             <p>{status.error || 'Failed to load conversation.'}</p>
@@ -154,7 +166,13 @@ function InterviewEngineWrapper({ session, initialAnswers }: { session: IntakeSe
 
   if (status.status === 'completed') {
     return (
-      <KioskLayout activeStepIndex={1}>
+      <KioskLayout 
+        activeStepIndex={1} 
+        departmentMode={session.departmentMode} 
+        language={session.language}
+        patientName={patient?.demographics?.fullName}
+        sessionId={session.id}
+      >
         <div className="flex flex-col items-center justify-center h-[50vh] gap-4 animate-in fade-in zoom-in-95">
           <div className="w-20 h-20 bg-success/20 text-success rounded-full flex items-center justify-center mb-4">
             <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -169,7 +187,13 @@ function InterviewEngineWrapper({ session, initialAnswers }: { session: IntakeSe
   }
 
   return (
-    <KioskLayout activeStepIndex={1}>
+    <KioskLayout 
+      activeStepIndex={1} 
+      departmentMode={session.departmentMode} 
+      language={session.language}
+      patientName={patient?.demographics?.fullName}
+      sessionId={session.id}
+    >
       <div className="w-full max-w-4xl mx-auto flex flex-col pt-8 pb-24 px-4 min-h-[calc(100vh-100px)]">
         
         {/* Progress Bar */}

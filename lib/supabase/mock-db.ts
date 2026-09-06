@@ -59,81 +59,49 @@ export class MockRepository implements DatabaseService {
   }
 
   async getPatient(id: string): Promise<Patient | null> {
-    let data = this.patients.get(id);
-    if (!data && (id.startsWith('pat_') || id.startsWith('ses_'))) {
-      const pId = id.startsWith('pat_') ? id : `pat_${id.substring(4)}`;
-      data = {
-        id: pId,
-        identification: {},
-        demographics: {
-          firstName: 'Kiosk',
-          fullName: 'Kiosk Patient',
-          age: 35,
-          gender: 'other',
-        },
-        createdAt: new Date().toISOString(),
-      };
-      this.patients.set(pId, data);
-    }
+    const data = this.patients.get(id);
     if (!data) return null;
     return PatientSchema.parse({ ...data });
   }
 
   async getPatientByHospitalNumber(hospitalNumber: string): Promise<Patient | null> {
+    if (!hospitalNumber) return null;
     const list = Array.from(this.patients.values());
     const clean = hospitalNumber.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
     const match = list.find((p) => {
       const ref = (p.identification?.hospitalNumber || '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
-      return ref === clean || ref.includes(clean) || clean.includes(ref);
-    }) || list[0];
+      return ref && (ref === clean || ref.includes(clean) || clean.includes(ref));
+    });
 
-    if (!match) {
-      return PatientSchema.parse({
-        id: 'pat_golden',
-        identification: { hospitalNumber: hospitalNumber || 'HSP-100245', abhaReference: 'ABHA-001' },
-        demographics: { firstName: 'Arumugam', lastName: 'Kandasamy', fullName: 'Arumugam Kandasamy', age: 54, gender: 'male' },
-        createdAt: new Date().toISOString(),
-      });
-    }
+    if (!match) return null;
     return PatientSchema.parse({ ...match });
   }
 
   async getPatientByAbha(abhaReference: string): Promise<Patient | null> {
+    if (!abhaReference) return null;
     const list = Array.from(this.patients.values());
     const clean = abhaReference.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
     const match = list.find((p) => {
       const ref = (p.identification?.abhaReference || '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
-      return ref === clean || ref.includes(clean) || clean.includes(ref);
-    }) || list[0];
+      return ref && (ref === clean || ref.includes(clean) || clean.includes(ref));
+    });
 
-    if (!match) {
-      return PatientSchema.parse({
-        id: 'pat_golden',
-        identification: { abhaReference: abhaReference || 'DEMO-ABHA-918273645001', hospitalNumber: 'HSP-OPD-2026-0101' },
-        demographics: { firstName: 'Arumugam', lastName: 'Kandasamy', fullName: 'Arumugam Kandasamy', age: 54, gender: 'male' },
-        createdAt: new Date().toISOString(),
-      });
-    }
+    if (!match) return null;
     return PatientSchema.parse({ ...match });
   }
 
   async getPatientByMobile(mobileNumber: string): Promise<Patient | null> {
+    if (!mobileNumber) return null;
     const list = Array.from(this.patients.values());
     const clean = mobileNumber.replace(/\D/g, '');
+    if (!clean) return null;
     const match = list.find(
       (p) =>
-        (p.identification?.mobileNumber || '').replace(/\D/g, '').includes(clean) ||
-        (p.contact?.mobileNumber || '').replace(/\D/g, '').includes(clean)
-    ) || list[0];
+        (p.identification?.mobileNumber && (p.identification.mobileNumber || '').replace(/\D/g, '').includes(clean)) ||
+        (p.contact?.mobileNumber && (p.contact.mobileNumber || '').replace(/\D/g, '').includes(clean))
+    );
 
-    if (!match) {
-      return PatientSchema.parse({
-        id: 'pat_golden',
-        identification: { mobileNumber: mobileNumber || '+919840112345', abhaReference: 'ABHA-001' },
-        demographics: { firstName: 'Arumugam', lastName: 'Kandasamy', fullName: 'Arumugam Kandasamy', age: 54, gender: 'male' },
-        createdAt: new Date().toISOString(),
-      });
-    }
+    if (!match) return null;
     return PatientSchema.parse({ ...match });
   }
 
@@ -158,29 +126,7 @@ export class MockRepository implements DatabaseService {
   }
 
   async getSession(id: string): Promise<IntakeSession | null> {
-    let data = this.sessions.get(id);
-    if (!data && id.startsWith('ses_')) {
-      const patientId = `pat_${id.substring(4)}`;
-      await this.getPatient(patientId);
-
-      data = {
-        id,
-        patientId,
-        status: 'active',
-        language: 'en',
-        departmentMode: 'standard',
-        startedAt: new Date().toISOString(),
-        expiresAt: new Date(Date.now() + 30 * 60000).toISOString(),
-        currentStep: 'documents',
-        progress: {
-          completedSections: ['consent', 'interview'],
-          pendingSections: ['documents', 'review'],
-          percentage: 40,
-        },
-        cleanupStatus: { temporaryDataDeleted: false },
-      };
-      this.sessions.set(id, data);
-    }
+    const data = this.sessions.get(id);
     if (!data) return null;
     return IntakeSessionSchema.parse({ ...data });
   }

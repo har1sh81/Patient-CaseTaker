@@ -6,6 +6,7 @@ import { getNextQuestion, getPreviousQuestion, invalidateBranch, getValidRoute }
 import { validateAnswer, ValidationResult } from './validation';
 import { calculateProgress, ProgressResult } from './progress';
 import { translatePatientText } from '../translation/indictrans-client';
+import { LocalClinicalNLP } from '../ai/local-nlp';
 
 export interface ConversationEngineConfig {
   sessionId: string;
@@ -221,6 +222,44 @@ export function useConversationEngine(config: ConversationEngineConfig): Convers
         }
 
         setAnswers(nextAnswers);
+
+        // ── Step 3.5: Local NLP Fact Extraction ──────────────────────────────
+        try {
+          const combinedText = Object.values(nextAnswers)
+            .map(a => String(a.normalizedValue || a.transcript || a.rawValue || ''))
+            .filter(Boolean)
+            .join(' ');
+          const langCode = (language === 'hi' ? 'hi' : language === 'ta' ? 'ta' : 'en') as 'en' | 'hi' | 'ta';
+          const nlpResult = LocalClinicalNLP.extractFacts(combinedText, langCode);
+          
+          // Merge NLP facts into extractedFacts state
+          const nlpFacts: Record<string, unknown>[] = nlpResult.facts.map(f => ({
+            field: f.entityType,
+            value: f.normalizedValue,
+            status: f.status,
+            confidence: f.confidence,
+            negated: f.negated,
+          }));
+          if (nlpResult.primarySymptom) nlpFacts.push({ field: 'primarySymptom', value: nlpResult.primarySymptom });
+          if (nlpResult.duration) nlpFacts.push({ field: 'duration', value: nlpResult.duration });
+          if (nlpResult.severity) nlpFacts.push({ field: 'severity', value: nlpResult.severity });
+          if (nlpResult.location) nlpFacts.push({ field: 'location', value: nlpResult.location });
+          if (nlpResult.character) nlpFacts.push({ field: 'character', value: nlpResult.character });
+
+          setExtractedFacts(prev => {
+            const merged = [...prev];
+            for (const newFact of nlpFacts) {
+              const idx = merged.findIndex(f => f.field === newFact.field && f.value === newFact.value);
+              if (idx >= 0) merged[idx] = newFact;
+              else merged.push(newFact);
+            }
+            return merged;
+          });
+
+          console.debug('[engine] Local NLP extracted', nlpFacts.length, 'facts from combined text');
+        } catch (nlpErr) {
+          console.warn('[engine] Local NLP extraction failed (non-fatal):', nlpErr);
+        }
 
         // ── Step 4: Determine next question ─────────────────────────────────
         setStatus((s) => ({ ...s, status: 'transitioning' }));

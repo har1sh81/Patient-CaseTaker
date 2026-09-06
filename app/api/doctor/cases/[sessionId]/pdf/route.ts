@@ -24,9 +24,9 @@ export async function GET(
 
     // If PDF snapshot is missing, generate on demand from authoritative report data
     if (!pdfBuffer) {
-      const patient = await db.getPatient(session.patientId!) || {
-        id: session.patientId || 'pat_demo',
-        demographics: { firstName: 'Patient', fullName: 'Kiosk Patient', age: 35, gender: 'other' },
+      const patient = (session.patientId ? await db.getPatient(session.patientId) : null) || {
+        id: session.patientId || `pat_${sessionId}`,
+        demographics: { firstName: 'Patient', fullName: 'Intake Patient', age: undefined, gender: 'other' },
         identification: {},
         createdAt: new Date().toISOString(),
       };
