@@ -54,14 +54,8 @@ function InterviewContent() {
   const searchParams = useSearchParams();
   const sessionId = searchParams.get('sessionId');
 
-<<<<<<< HEAD
-  const [session, setSession] = React.useState<IntakeSession | null>(null);
-  const [patient, setPatient] = React.useState<any>(null);
-  const [initialAnswers, setInitialAnswers] = React.useState<ConversationAnswer[] | null>(null);
-=======
   // Session metadata
   const [language, setLanguage] = React.useState<SupportedLanguage>('en');
-
   const [loadError, setLoadError] = React.useState<string | null>(null);
   const [sessionReady, setSessionReady] = React.useState(false);
 
@@ -95,15 +89,6 @@ function InterviewContent() {
           router.push('/kiosk');
           return;
         }
-
-<<<<<<< HEAD
-        setSession(data.session);
-        setPatient(data.patient);
-        setInitialAnswers(data.answers);
-      } catch (err) {
-        if (isMounted) {
-          React.startTransition(() => {
-            setLoadError(err instanceof Error ? err.message : 'Failed to load session');
 
         const sess = sessJson.session;
         const lang = (sess.language as SupportedLanguage) || 'en';
@@ -316,70 +301,6 @@ function InterviewContent() {
   if (engineStatus === 'urgent') {
     return (
       <KioskLayout activeStepIndex={1}>
-<<<<<<< HEAD
-        <div className="flex flex-col items-center justify-center h-[50vh] gap-4">
-          <Spinner size="lg" />
-          <p className="text-text-secondary font-medium">Loading session...</p>
-        </div>
-      </KioskLayout>
-    );
-  }
-
-  return <InterviewEngineWrapper session={session} patient={patient} initialAnswers={initialAnswers} />;
-}
-
-function InterviewEngineWrapper({ session, patient, initialAnswers }: { session: IntakeSession; patient: any; initialAnswers: ConversationAnswer[] }) {
-  const router = useRouter();
-
-  // Initialize engine
-  const engine = useConversationEngine({
-    sessionId: session.id,
-    language: session.language,
-    questions: session.departmentMode === 'ayush' ? PHASE13_AYUSH_QUESTIONS : PHASE6_DEMO_QUESTIONS,
-    initialAnswers,
-    onComplete: () => {
-      // Transition to Document Capture phase
-      router.push(`/kiosk/documents?sessionId=${session.id}`);
-    },
-  });
-
-  const handleCancel = () => {
-    router.push('/kiosk');
-  };
-
-  const { status, currentQuestion, progress, validationError } = engine;
-
-  if (status.status === 'starting' || status.status === 'idle') {
-    return (
-      <KioskLayout 
-        activeStepIndex={1} 
-        departmentMode={session.departmentMode} 
-        language={session.language}
-        patientName={patient?.demographics?.fullName}
-        sessionId={session.id}
-      >
-        <div className="flex flex-col items-center justify-center h-[50vh] gap-4">
-          <Spinner size="lg" />
-          <p className="text-text-secondary font-medium">Preparing your interview...</p>
-        </div>
-      </KioskLayout>
-    );
-  }
-
-  if (status.status === 'error') {
-    return (
-      <KioskLayout 
-        activeStepIndex={1} 
-        departmentMode={session.departmentMode} 
-        language={session.language}
-        patientName={patient?.demographics?.fullName}
-        sessionId={session.id}
-      >
-        <div className="max-w-2xl mx-auto pt-12">
-          <Alert variant="error" title="Something went wrong" className="mb-6">
-            <p>{status.error || 'Failed to load conversation.'}</p>
-          </Alert>
-=======
         <div className="flex flex-col items-center justify-center h-[60vh] gap-6 animate-in fade-in zoom-in-95">
           <div className="w-20 h-20 bg-red-100 text-red-600 rounded-full flex items-center justify-center">
             <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -391,7 +312,6 @@ function InterviewEngineWrapper({ session, patient, initialAnswers }: { session:
           <p className="text-text-secondary text-lg text-center max-w-md">
             Your responses indicate a need for immediate medical attention. Please inform the kiosk attendant or go to the emergency desk.
           </p>
-
           <button
             type="button"
             onClick={() => router.push('/kiosk')}
@@ -407,13 +327,7 @@ function InterviewEngineWrapper({ session, patient, initialAnswers }: { session:
   // -- 6. Completed -------------------------------------------------------
   if (engineStatus === 'completed') {
     return (
-      <KioskLayout 
-        activeStepIndex={1} 
-        departmentMode={session.departmentMode} 
-        language={session.language}
-        patientName={patient?.demographics?.fullName}
-        sessionId={session.id}
-      >
+      <KioskLayout activeStepIndex={1}>
         <div className="flex flex-col items-center justify-center h-[50vh] gap-4 animate-in fade-in zoom-in-95">
           <div className="w-20 h-20 bg-success/20 text-success rounded-full flex items-center justify-center mb-4">
             <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -436,13 +350,7 @@ function InterviewEngineWrapper({ session, patient, initialAnswers }: { session:
   const isDisabled = engineStatus === 'saving';
 
   return (
-    <KioskLayout 
-      activeStepIndex={1} 
-      departmentMode={session.departmentMode} 
-      language={session.language}
-      patientName={patient?.demographics?.fullName}
-      sessionId={session.id}
-    >
+    <KioskLayout activeStepIndex={1}>
       <div className="w-full max-w-4xl mx-auto flex flex-col pt-8 pb-24 px-4 min-h-[calc(100vh-100px)]">
 
         {/* Progress Bar */}
