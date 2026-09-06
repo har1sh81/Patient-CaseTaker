@@ -14,3 +14,8 @@ export * from './interview-service';
 export * from './conversational-question-generator';
 export * from './conversational-question-validator';
 export * from './clinical-interview-question-provider';
+export * from './interview-state-analyzer';
+export * from './dynamic-question-engine';
+export * from './question-fingerprint';
+export * from './interview-completion-evaluator';
+

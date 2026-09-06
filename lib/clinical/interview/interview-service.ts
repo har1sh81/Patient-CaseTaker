@@ -11,8 +11,20 @@ import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { hasValidConsent } from '@/lib/consent/consent-service';
 import { createInitialInterviewState, updateStateAfterQuestionAsked, setInterviewStatus, calculateProgress } from './interview-state';
 import { selectNextQuestion, selectNextQuestionIntent, getLocalizedQuestionText, normalizeChiefComplaint } from './question-selector';
+import { generateDynamicNextQuestion, buildStateDerivedFallbackQuestion } from './dynamic-question-engine';
+
+/** Wrapper: never throws — falls back to a state-derived question on LLM error. */
+async function safeGenerateQuestion(state: InterviewState): Promise<ConversationalQuestion> {
+  try {
+    return await generateDynamicNextQuestion(state);
+  } catch (err: any) {
+    console.warn('[Interview Service] LLM question generation failed, using fallback:', err.message);
+    return buildStateDerivedFallbackQuestion(state);
+  }
+}
 import { getClinicalInterviewQuestionProvider } from './clinical-interview-question-provider';
 import { processInterviewAnswer } from './answer-processor';
+import { URGENT_SAFETY_MESSAGE } from './safety-controller';
 import { evaluateStoppingRules } from './stopping-rules';
 import { saveInterviewSession, getInterviewSession, getActiveSessionForEncounter } from './interview-session';
 import type { StartInterviewOptions, AnswerInput, ProcessAnswerResult, InterviewState, InterviewServiceResponse, ConversationalQuestion, GenerateQuestionInput } from './types';
@@ -82,27 +94,13 @@ export async function startInterviewSession(
     if (options.encounterId) {
       const existing = await getActiveSessionForEncounter(options.encounterId);
       if (existing) {
-        const nextQ = existing.currentQuestionId
-          ? (await import('../questions')).getQuestionById(existing.currentQuestionId)
-          : selectNextQuestion(existing);
-
-        const localized = nextQ ? getLocalizedQuestionText(nextQ, existing.language) : undefined;
+        const conversationalQ = await safeGenerateQuestion(existing);
         return {
           success: true,
           data: {
             sessionId: existing.sessionId,
             status: existing.status,
-            currentQuestion: nextQ
-              ? {
-                  id: nextQ.id,
-                  intentId: `${nextQ.complaint}_${nextQ.category}_${nextQ.targetField}`,
-                  text: localized?.text || nextQ.id,
-                  generationMode: 'library_fallback',
-                  answerType: nextQ.answerType,
-                  choices: localized?.options,
-                  targetField: nextQ.targetField,
-                }
-              : undefined,
+            currentQuestion: conversationalQ,
             progress: existing.progress,
           },
         };
@@ -110,41 +108,13 @@ export async function startInterviewSession(
     }
 
     // 2. Initialize State
-    const sessionId = crypto.randomUUID();
+    const sessionId = options.sessionId || crypto.randomUUID();
     let state = createInitialInterviewState(sessionId, options);
 
-    // 3. Select First Adaptive Question Intent
-    const selectedIntent = selectNextQuestionIntent(state);
-    const firstQ = selectedIntent?.originalQuestion;
-    let conversationalQ: ConversationalQuestion | undefined;
-
-    if (firstQ && selectedIntent) {
-      state = updateStateAfterQuestionAsked(state, firstQ.id);
-
-      const provider = getClinicalInterviewQuestionProvider();
-      const genInput: GenerateQuestionInput = {
-        consultationMode: state.consultationMode,
-        language: state.language,
-        chiefComplaint: state.chiefComplaint,
-        collectedFacts: state.collectedFacts,
-        recentTurns: [],
-        intent: selectedIntent,
-        libraryFallbackQuestion: firstQ,
-      };
-
-      const genResult = await provider.generateQuestion(genInput);
-      const localized = getLocalizedQuestionText(firstQ, state.language);
-
-      conversationalQ = {
-        id: firstQ.id,
-        intentId: selectedIntent.intentId,
-        text: genResult.questionText,
-        generationMode: genResult.generationMode,
-        answerType: firstQ.answerType,
-        choices: localized.options,
-        targetField: firstQ.targetField,
-      };
-    }
+    // 3. Ask first question via LLM Engine
+    const conversationalQ = await safeGenerateQuestion(state);
+    
+    state = updateStateAfterQuestionAsked(state, conversationalQ);
 
     state.progress = calculateProgress(state);
 
@@ -178,6 +148,8 @@ export async function startInterviewSession(
   }
 }
 
+import { evaluateInterviewCompletion } from './interview-completion-evaluator';
+
 export async function submitInterviewAnswer(
   sessionId: string,
   input: AnswerInput
@@ -193,19 +165,37 @@ export async function submitInterviewAnswer(
 
   if (state.status === 'completed' || state.status === 'terminated_for_safety') {
     return {
-      success: false,
-      errorCode: 'SAFETY_TERMINATED',
-      error: `Interview is already ${state.status}`,
+      success: true,
+      data: {
+        success: true,
+        status: state.status,
+        factsExtractedCount: 0,
+        redFlagStatus: state.status === 'terminated_for_safety' ? 'urgent' : 'none',
+        progress: state.progress,
+        nextQuestion: undefined,
+        message: `Interview session is already ${state.status}`,
+      },
     };
   }
 
   // Anti-Repetition Check: Prevent submitting duplicate answer for already answered question
-  if (state.answeredQuestionIds.includes(input.questionId)) {
-    const currentQ = state.currentQuestionId
-      ? (await import('../questions')).getQuestionById(state.currentQuestionId)
-      : selectNextQuestion(state);
+  if (state.conversationTurns.some(t => t.role === 'patient' && t.questionId === input.questionId)) {
+    const completionEval = evaluateInterviewCompletion(state);
+    if (completionEval.complete) {
+      return {
+        success: true,
+        data: {
+          success: true,
+          status: 'completed',
+          factsExtractedCount: 0,
+          redFlagStatus: 'none',
+          progress: 100,
+          nextQuestion: undefined,
+        },
+      };
+    }
 
-    const localized = currentQ ? getLocalizedQuestionText(currentQ, state.language) : undefined;
+    const conversationalQuestion = await safeGenerateQuestion(state);
     return {
       success: true,
       data: {
@@ -214,17 +204,7 @@ export async function submitInterviewAnswer(
         factsExtractedCount: 0,
         redFlagStatus: 'none',
         progress: state.progress,
-        nextQuestion: currentQ
-          ? {
-              id: currentQ.id,
-              intentId: `${currentQ.complaint}_${currentQ.category}_${currentQ.targetField}`,
-              text: localized?.text || currentQ.id,
-              generationMode: 'library_fallback',
-              answerType: currentQ.answerType,
-              choices: localized?.options,
-              targetField: currentQ.targetField,
-            }
-          : undefined,
+        nextQuestion: conversationalQuestion,
       },
     };
   }
@@ -248,24 +228,44 @@ export async function submitInterviewAnswer(
       };
     }
 
-    // 2. Select Next Adaptive Question Intent
-    const selectedIntent = selectNextQuestionIntent(state);
-    const nextQ = selectedIntent?.originalQuestion;
-    const remainingCount = nextQ ? 1 : 0;
+    // 2. Evaluate Intelligent Completion (Phase 6 / Phase 7)
+    const completionEval = evaluateInterviewCompletion(state);
+    state.completionMetadata = completionEval;
 
-    // 3. Evaluate Stopping Rules
-    const stoppingEval = evaluateStoppingRules(state, remainingCount);
-    if (stoppingEval.shouldStop || !nextQ || !selectedIntent) {
+    if (completionEval.complete) {
+      if (completionEval.reason === 'URGENT_REVIEW' || state.status === 'terminated_for_safety' || state.status === 'urgent_review') {
+        state = setInterviewStatus(state, 'terminated_for_safety');
+        await saveInterviewSession(state);
+        await logInterviewAudit('interview_terminated_for_safety', state.patientId, {
+          sessionId,
+          reason: 'URGENT_REVIEW',
+        });
+
+        return {
+          success: true,
+          data: {
+            success: true,
+            status: 'terminated_for_safety',
+            factsExtractedCount: result.factsExtractedCount,
+            redFlagStatus: 'urgent',
+            attentionFlag: state.redFlags?.[0] as Record<string, unknown>,
+            progress: state.progress,
+            nextQuestion: undefined,
+            message: URGENT_SAFETY_MESSAGE,
+          },
+        };
+      }
+
       state = setInterviewStatus(state, 'completed');
-      state.currentQuestionId = undefined;
+      state.lastQuestion = null;
       state.progress = 100;
 
       await saveInterviewSession(state);
       await logInterviewAudit('interview_completed', state.patientId, {
         sessionId,
-        totalQuestionsAsked: state.askedQuestionIds.length,
-        totalAnswered: state.answeredQuestionIds.length,
-        reason: stoppingEval.reason || 'POOL_EXHAUSTED',
+        totalQuestionsAsked: state.askedQuestions.length,
+        totalAnswered: state.turnCount,
+        reason: completionEval.reason,
       });
 
       return {
@@ -276,38 +276,26 @@ export async function submitInterviewAnswer(
           factsExtractedCount: result.factsExtractedCount,
           redFlagStatus: result.redFlagStatus,
           progress: 100,
-          message: 'Interview session successfully completed',
+          nextQuestion: undefined,
+          message: `Interview session successfully completed: ${completionEval.explanation || completionEval.reason}`,
         },
       };
     }
 
-    // 4. Conversational Hybrid Question Generator
-    const provider = getClinicalInterviewQuestionProvider();
-    const genInput: GenerateQuestionInput = {
-      consultationMode: state.consultationMode,
-      language: state.language,
-      chiefComplaint: state.chiefComplaint,
-      collectedFacts: state.collectedFacts,
-      recentTurns: [],
-      intent: selectedIntent,
-      libraryFallbackQuestion: nextQ,
-    };
-
-    const genResult = await provider.generateQuestion(genInput);
-    const localized = getLocalizedQuestionText(nextQ, state.language);
-
-    const conversationalQuestion: ConversationalQuestion = {
-      id: nextQ.id,
-      intentId: selectedIntent.intentId,
-      text: genResult.questionText,
-      generationMode: genResult.generationMode,
-      answerType: nextQ.answerType,
-      choices: localized.options,
-      targetField: nextQ.targetField,
-    };
+    // 3. Generate next question if incomplete
+    let conversationalQuestion: ConversationalQuestion;
+    try {
+      conversationalQuestion = await generateDynamicNextQuestion(state);
+    } catch (qgenErr: any) {
+      // If LLM quota is exhausted or question generation fails, use state-derived fallback
+      // The answer was already saved — do NOT let question generation failure undo that.
+      console.warn('[Interview Service] generateDynamicNextQuestion failed, using built-in fallback:', qgenErr.message);
+      const { buildStateDerivedFallbackQuestion } = await import('./dynamic-question-engine');
+      conversationalQuestion = buildStateDerivedFallbackQuestion(state);
+    }
 
     // Update state with selected next question
-    state = updateStateAfterQuestionAsked(state, nextQ.id);
+    state = updateStateAfterQuestionAsked(state, conversationalQuestion);
     state.progress = calculateProgress(state);
 
     await saveInterviewSession(state);
@@ -315,8 +303,8 @@ export async function submitInterviewAnswer(
       sessionId,
       questionId: input.questionId,
       inputMethod: input.inputMethod,
-      nextQuestionId: nextQ.id,
-      generationMode: genResult.generationMode,
+      nextQuestionId: conversationalQuestion.id,
+      generationMode: conversationalQuestion.generationMode,
       progress: state.progress,
     });
 
@@ -360,40 +348,34 @@ export async function resumeInterviewSession(
   let state = await getInterviewSession(sessionId);
   if (!state) return { success: false, errorCode: 'NOT_FOUND', error: 'Session not found' };
 
+  if (state.status === 'completed' || state.status === 'terminated_for_safety') {
+    return {
+      success: true,
+      data: {
+        sessionId,
+        status: state.status,
+        currentQuestion: undefined,
+      },
+    };
+  }
+
   state = setInterviewStatus(state, 'active');
 
-  let currentQ = state.currentQuestionId
-    ? (await import('../questions')).getQuestionById(state.currentQuestionId)
-    : undefined;
-
-  if (!currentQ) {
-    currentQ = selectNextQuestion(state) || undefined;
-    if (currentQ) {
-      state = updateStateAfterQuestionAsked(state, currentQ.id);
-    }
+  const conversationalQuestion = await safeGenerateQuestion(state);
+  
+  if (!state.lastQuestion) {
+    state = updateStateAfterQuestionAsked(state, conversationalQuestion);
   }
 
   await saveInterviewSession(state);
   await logInterviewAudit('interview_resumed', state.patientId, { sessionId });
-
-  const localized = currentQ ? getLocalizedQuestionText(currentQ, state.language) : undefined;
 
   return {
     success: true,
     data: {
       sessionId,
       status: state.status,
-      currentQuestion: currentQ
-        ? {
-            id: currentQ.id,
-            intentId: `${currentQ.complaint}_${currentQ.category}_${currentQ.targetField}`,
-            text: localized?.text || currentQ.id,
-            generationMode: 'library_fallback',
-            answerType: currentQ.answerType,
-            choices: localized?.options,
-            targetField: currentQ.targetField,
-          }
-        : undefined,
+      currentQuestion: conversationalQuestion,
     },
   };
 }
@@ -406,7 +388,7 @@ export async function completeInterviewSession(
 
   state = setInterviewStatus(state, 'completed');
   state.progress = 100;
-  state.currentQuestionId = undefined;
+  state.lastQuestion = null;
 
   await saveInterviewSession(state);
   await logInterviewAudit('interview_completed', state.patientId, { sessionId, manual: true });
