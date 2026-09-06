@@ -40,7 +40,9 @@ export async function POST(request: Request) {
         authUserId = crypto.randomUUID();
       }
       
-      patient.id = authUserId; // Bind the physical patient ID to the auth session
+      // We DO NOT overwrite patient.id with authUserId! 
+      // The patient already has a stable UUID from the database.
+      // patient.id = authUserId; 
     }
 
     // Ensure patient.id is a valid UUID format
