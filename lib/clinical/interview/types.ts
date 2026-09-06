@@ -12,13 +12,61 @@ export type InterviewSessionStatus =
   | 'active'
   | 'paused'
   | 'completed'
-  | 'terminated_for_safety';
+  | 'terminated_for_safety'
+  | 'urgent_review';
 
 export type ConsultationMode = 'general_medicine' | 'ayush';
 
 export type AnswerStatus = 'answered' | 'unknown' | 'skipped';
 
 export type InputMethod = 'touch' | 'voice' | 'text';
+
+export type ClinicalFacts = Array<Record<string, unknown>>;
+export type RedFlagState = Record<string, unknown>;
+
+export type MissingInfoStatus = 'missing' | 'known' | 'not_applicable' | 'explicitly_negative';
+export interface MissingInformation {
+  topic: string;
+  status: MissingInfoStatus;
+}
+
+export type QuestionRejectionReason =
+  | 'DUPLICATE'
+  | 'SEMANTIC_DUPLICATE'
+  | 'ALREADY_ANSWERED'
+  | 'EXPLICIT_NEGATIVE'
+  | 'MULTIPLE_QUESTIONS'
+  | 'DIAGNOSTIC'
+  | 'TREATMENT_ADVICE'
+  | 'IRRELEVANT'
+  | 'PROMPT_INJECTION'
+  | 'MALFORMED'
+  | 'EMPTY';
+
+export interface DetailedQuestionValidationResult {
+  valid: boolean;
+  reason?: QuestionRejectionReason;
+  detail?: string;
+}
+
+export type CompletionReasonCode =
+  | 'INSUFFICIENT_HISTORY'
+  | 'CRITICAL_INFORMATION_MISSING'
+  | 'IMPORTANT_TOPIC_UNRESOLVED'
+  | 'CLARIFICATION_REQUIRED'
+  | 'CONTRADICTION_UNRESOLVED'
+  | 'URGENT_REVIEW'
+  | 'MAX_TURNS_REACHED'
+  | 'SUFFICIENT_HISTORY';
+
+export interface CompletionEvaluationResult {
+  complete: boolean;
+  reason: CompletionReasonCode;
+  explanation?: string;
+  missingCriticalInformation: string[];
+  unresolvedImportantTopics: string[];
+  confidence?: number;
+}
 
 export interface InterviewState {
   sessionId: string;
@@ -29,15 +77,33 @@ export interface InterviewState {
   language: LanguageCode;
   chiefComplaint?: string;
   normalizedComplaint?: ComplaintType;
-  currentQuestionId?: string;
-  askedQuestionIds: string[];
-  answeredQuestionIds: string[];
-  skippedQuestionIds: string[];
-  collectedFacts: Array<Record<string, unknown>>;
-  redFlags: Array<Record<string, unknown>>;
+  
+  conversationTurns: ConversationTurn[];
+  extractedFacts: ClinicalFacts;
+  coveredTopics: string[];
+  missingInformation: MissingInformation[];
+  redFlags: RedFlagState[];
+  askedQuestions: string[];
+  lastQuestion: string | null;
+  lastAnswer: string | null;
+  
   progress: number;
   status: InterviewSessionStatus;
-  startedAt: string;
+  turnCount: number;
+  
+  // Phase 4, Phase 5 & Phase 6 Enhancements
+  knownSymptoms?: string[];
+  newSymptoms?: string[];
+  explicitNegatives?: string[];
+  unresolvedTopics?: string[];
+  activeTopic?: string;
+  recentTopics?: string[];
+  clarificationsNeeded?: string[];
+  recentQuestionFingerprints?: string[];
+  isStalled?: boolean;
+  completionMetadata?: CompletionEvaluationResult;
+  
+  createdAt: string;
   completedAt?: string;
   updatedAt: string;
 }
@@ -49,6 +115,7 @@ export interface StartInterviewOptions {
   consultationMode?: ConsultationMode;
   language?: LanguageCode;
   chiefComplaint?: string;
+  sessionId?: string;
 }
 
 export interface AnswerInput {
@@ -88,6 +155,7 @@ export interface ConversationalQuestion {
 export interface ConversationTurn {
   role: 'assistant' | 'patient';
   text: string;
+  timestamp: string;
   questionId?: string;
   intentId?: string;
 }

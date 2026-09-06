@@ -87,12 +87,12 @@ export function selectNextQuestion(
   const normComplaint = normalizeChiefComplaint(state.chiefComplaint);
   const pool = getCandidateQuestionPool(state.consultationMode, normComplaint);
 
-  const askedSet = new Set(state.askedQuestionIds);
+  const askedSet = new Set(state.askedQuestions);
 
   // Filter un-asked questions whose dependencies are satisfied
   const availableCandidates = pool.filter((q) => {
     if (askedSet.has(q.id)) return false;
-    return isQuestionDependencySatisfied(q, state.answeredQuestionIds, state.skippedQuestionIds);
+    return isQuestionDependencySatisfied(q, [], []);
   });
 
   if (availableCandidates.length === 0) {

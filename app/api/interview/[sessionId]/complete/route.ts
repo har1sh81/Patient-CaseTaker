@@ -1,29 +1,31 @@
-/**
- * Task #9 — Interview Complete API Route
- * MediKiosk Clinical Architecture
- * 
- * POST /api/interview/[sessionId]/complete
- */
-
 import { NextResponse } from 'next/server';
-import { completeInterviewSession } from '@/lib/clinical/interview/interview-service';
+import { getInterviewSession, saveInterviewSession } from '@/lib/clinical/interview/interview-session';
 
 export async function POST(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ sessionId: string }> }
 ) {
   try {
     const { sessionId } = await params;
-    if (!sessionId) {
-      return NextResponse.json({ success: false, error: 'sessionId is required' }, { status: 400 });
+    const state = await getInterviewSession(sessionId);
+
+    if (!state) {
+      return NextResponse.json({ success: false, error: 'Session not found', errorCode: 'NOT_FOUND' }, { status: 404 });
     }
 
-    const result = await completeInterviewSession(sessionId);
+    if (state.status === 'completed' || state.status === 'terminated_for_safety') {
+      return NextResponse.json({ success: true, status: state.status });
+    }
+
+    state.status = 'completed';
+    state.progress = 100;
+    
+    const result = await saveInterviewSession(state);
     if (!result.success) {
-      return NextResponse.json({ success: false, error: result.error, errorCode: result.errorCode }, { status: 404 });
+      throw new Error(result.error);
     }
 
-    return NextResponse.json({ success: true, data: result.data });
+    return NextResponse.json({ success: true, status: 'completed' });
   } catch (err: any) {
     console.error('[API Interview Complete] Error:', err);
     return NextResponse.json({ success: false, error: err.message || 'Internal Server Error' }, { status: 500 });

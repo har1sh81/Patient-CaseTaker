@@ -1,5 +1,5 @@
 /**
- * Task #9 — Interview Get State API Route
+ * Task #9 & #10 — Interview Get State API Route
  * MediKiosk Clinical Architecture
  * 
  * GET /api/interview/[sessionId]
@@ -7,8 +7,7 @@
 
 import { NextResponse } from 'next/server';
 import { getInterviewSession } from '@/lib/clinical/interview/interview-session';
-import { selectNextQuestion, getLocalizedQuestionText } from '@/lib/clinical/interview/question-selector';
-import { getQuestionById } from '@/lib/clinical/questions';
+import { generateDynamicNextQuestion, buildStateDerivedFallbackQuestion } from '@/lib/clinical/interview/dynamic-question-engine';
 
 export async function GET(
   _request: Request,
@@ -25,24 +24,30 @@ export async function GET(
       return NextResponse.json({ success: false, error: 'Interview session not found' }, { status: 404 });
     }
 
-    let currentQ = state.currentQuestionId ? getQuestionById(state.currentQuestionId) : undefined;
-    if (!currentQ && state.status === 'active') {
-      currentQ = selectNextQuestion(state) || undefined;
+    let currentQuestion: { id: string; text: string } | undefined = undefined;
+    if (state.status !== 'completed' && state.status !== 'terminated_for_safety') {
+      if (state.lastQuestion) {
+        currentQuestion = {
+          id: `q_${state.conversationTurns.length || 1}`,
+          text: state.lastQuestion,
+        };
+      } else {
+        try {
+          const dynQ = await generateDynamicNextQuestion(state);
+          currentQuestion = { id: dynQ.id, text: dynQ.text };
+        } catch (qErr: any) {
+          console.warn('[API Interview GET] LLM fallback:', qErr.message);
+          const fallback = buildStateDerivedFallbackQuestion(state);
+          currentQuestion = { id: fallback.id, text: fallback.text };
+        }
+      }
     }
-
-    const localized = currentQ ? getLocalizedQuestionText(currentQ, state.language) : undefined;
 
     return NextResponse.json({
       success: true,
       data: {
         ...state,
-        currentQuestion: currentQ
-          ? {
-              ...currentQ,
-              localizedText: localized?.text,
-              localizedOptions: localized?.options,
-            }
-          : undefined,
+        currentQuestion,
       },
     });
   } catch (err: any) {
