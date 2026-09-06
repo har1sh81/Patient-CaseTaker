@@ -15,4 +15,5 @@ CREATE TABLE IF NOT EXISTS public.ocr_responses (
 ALTER TABLE public.ocr_responses ENABLE ROW LEVEL SECURITY;
 
 -- Allow all authenticated users to read and write (matching local dev / mock setup)
+DROP POLICY IF EXISTS "Allow public access for now" ON public.ocr_responses;
 CREATE POLICY "Allow public access for now" ON public.ocr_responses FOR ALL USING (true) WITH CHECK (true);
