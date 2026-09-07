@@ -17,14 +17,6 @@ export async function GET(request: Request) {
 
     }
 
-    if (isSupabaseConfigured() && process.env.NEXT_PUBLIC_MOCK_SERVICES_ENABLED !== 'true' && process.env.NODE_ENV !== 'development' && process.env.DEMO_ENVIRONMENT !== 'true') {
-      const supabase = await createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user || user.id !== session.patientId) {
-        return NextResponse.json({ error: 'Unauthorized access to session' }, { status: 403 });
-      }
-    }
-
 
     const patient = session.patientId ? await db.getPatient(session.patientId) : null;
     if (!patient) {

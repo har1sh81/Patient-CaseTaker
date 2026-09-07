@@ -29,14 +29,6 @@ export async function POST(request: Request) {
 
     }
 
-    if (isSupabaseConfigured() && process.env.NEXT_PUBLIC_MOCK_SERVICES_ENABLED !== 'true' && process.env.NODE_ENV !== 'development' && process.env.DEMO_ENVIRONMENT !== 'true') {
-      const supabase = await createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user || user.id !== session.patientId) {
-        return NextResponse.json({ error: 'Unauthorized access to session' }, { status: 403 });
-      }
-    }
-
 
     if (session.status === 'sent_to_doctor') {
       return NextResponse.json({ error: 'Session already sent to doctor, cannot be modified' }, { status: 400 });
