@@ -18,9 +18,7 @@ export async function createClient() {
   }
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
-  // Use service role key to bypass RLS policies if present and it is a valid JWT
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const supabaseKey = serviceKey || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-anon-key';
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-anon-key';
 
   return createServerClient(
     supabaseUrl,
@@ -48,19 +46,18 @@ export async function createClient() {
 }
 
 export async function createAdminClient() {
-  // Uses the service role key to bypass RLS for admin operations like Audit Logs.
+  // Uses the service role key to bypass RLS for admin/server operations.
+  // We import @supabase/supabase-js directly (not SSR) so we don't need
+  // cookie handling and the service_role JWT properly bypasses RLS.
+  const { createClient: createDirectClient } = await import('@supabase/supabase-js');
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const supabaseKey = serviceKey || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-anon-key';
 
-  return createServerClient(
-    supabaseUrl,
-    supabaseKey,
-    {
-      cookies: {
-        getAll() { return []; },
-        setAll() {},
-      },
-    }
-  );
+  return createDirectClient(supabaseUrl, supabaseKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  });
 }
