@@ -1,18 +1,5 @@
 import { NextResponse } from 'next/server';
 import { db } from '../../../../lib/supabase/db-service';
-import demoPatients from '../../../../data/demo-patients/patients.json';
-import type { Patient } from '../../../../types';
-
-const isDemoEnvironment = process.env.DEMO_ENVIRONMENT === 'true';
-
-function findDemoPatientByAbha(abhaReference: string): Patient | null {
-  if (!isDemoEnvironment) return null;
-
-  const normalizedAbha = abhaReference.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
-  return demoPatients.find((patient) =>
-    patient.identification.abhaReference.replace(/[^a-zA-Z0-9]/g, '').toLowerCase() === normalizedAbha
-  ) as Patient | undefined || null;
-}
 
 export async function GET(request: Request) {
   try {
@@ -39,7 +26,6 @@ export async function GET(request: Request) {
       } catch (e) {
         console.warn('[Lookup API] Error:', e);
       }
-      patient ||= findDemoPatientByAbha(abhaReference);
       if (!patient) {
         return NextResponse.json({ success: false, error: 'Patient record not found for this ABHA ID' }, { status: 404 });
       }
