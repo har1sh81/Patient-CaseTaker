@@ -3,7 +3,7 @@ import { db } from '../../../../lib/supabase/db-service';
 import { Consent, IntakeSession } from '../../../../types';
 import { createClient } from '../../../../lib/supabase/server';
 
-const isMockEnabled = process.env.NEXT_PUBLIC_MOCK_SERVICES_ENABLED !== 'false';
+const isMockEnabled = process.env.NEXT_PUBLIC_MOCK_SERVICES_ENABLED === 'true';
 
 export async function POST(request: Request) {
   try {

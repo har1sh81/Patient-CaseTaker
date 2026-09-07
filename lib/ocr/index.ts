@@ -9,7 +9,7 @@ export function getOCRProvider(): OCRProvider {
     return ocrProviderInstance;
   }
 
-  const isMockEnabled = process.env.NEXT_PUBLIC_MOCK_SERVICES_ENABLED !== 'false';
+  const isMockEnabled = process.env.NEXT_PUBLIC_MOCK_SERVICES_ENABLED === 'true';
   
   if (isMockEnabled) {
     console.log('[OCR] Initializing MockOCRProvider');

@@ -2,7 +2,7 @@ import { DatabaseService, SupabaseRepository } from './repository';
 import { mockDb } from './mock-db';
 import type { IntakeSession } from '../../types';
 
-const isMockEnabled = process.env.NEXT_PUBLIC_MOCK_SERVICES_ENABLED !== 'false';
+const isMockEnabled = process.env.NEXT_PUBLIC_MOCK_SERVICES_ENABLED === 'true';
 
 export const db: DatabaseService = isMockEnabled
   ? mockDb

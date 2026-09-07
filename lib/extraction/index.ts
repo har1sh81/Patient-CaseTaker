@@ -3,7 +3,7 @@ import { MockClinicalExtractionProvider } from './mock-provider';
 import { RealClinicalExtractionProvider } from './real-provider';
 
 // Configure based on environment variable
-const isMockEnabled = process.env.NEXT_PUBLIC_MOCK_SERVICES_ENABLED !== 'false';
+const isMockEnabled = process.env.NEXT_PUBLIC_MOCK_SERVICES_ENABLED === 'true';
 
 let providerInstance: ClinicalExtractionProvider | null = null;
 

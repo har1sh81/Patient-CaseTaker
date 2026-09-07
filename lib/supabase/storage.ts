@@ -176,7 +176,7 @@ export class MockStorage implements StorageService {
   }
 }
 
-const isMockEnabled = process.env.NEXT_PUBLIC_MOCK_SERVICES_ENABLED !== 'false';
+const isMockEnabled = process.env.NEXT_PUBLIC_MOCK_SERVICES_ENABLED === 'true';
 
 export const storage: StorageService = isMockEnabled
   ? new MockStorage()
