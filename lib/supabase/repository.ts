@@ -949,7 +949,8 @@ export class SupabaseRepository implements DatabaseService {
   async saveTimeline(timeline: MedicalTimeline): Promise<MedicalTimeline> {
     MedicalTimelineSchema.parse(timeline);
     try {
-      const dbPayload = keysToSnake(timeline);
+      const { currentComplaintContext, conflicts, ...dbTimeline } = timeline;
+      const dbPayload = keysToSnake(dbTimeline);
       const { data, error } = await (await createAdminClient())
         .from('medical_timelines')
         .upsert(dbPayload)
@@ -960,7 +961,11 @@ export class SupabaseRepository implements DatabaseService {
         console.warn('[saveTimeline] Error (non-fatal):', error.message);
         return timeline;
       }
-      return MedicalTimelineSchema.parse(keysToCamel(data));
+      const parsedData = MedicalTimelineSchema.parse(keysToCamel(data));
+      // Reattach the non-db fields for runtime return
+      parsedData.currentComplaintContext = currentComplaintContext;
+      parsedData.conflicts = conflicts;
+      return parsedData;
     } catch (e: any) {
       console.warn('[saveTimeline] Error (non-fatal):', e?.message);
       return timeline;
