@@ -42,8 +42,8 @@ async function runDocumentStorageTests() {
   const supabase = await createClient();
 
   // Test patients & encounters
-  const arumugamPatientId = 'a1111111-1111-4111-8111-000000000001';
-  const arumugamEncounterId = 'c1111111-1111-4111-8111-000000000001';
+  const rameshPatientId = 'a1111111-1111-4111-8111-000000000001';
+  const rameshEncounterId = 'c1111111-1111-4111-8111-000000000001';
   const meenaPatientId = 'a1111111-1111-4111-8111-000000000002';
   const meenaEncounterId = 'c1111111-1111-4111-8111-000000000002';
   const priyaPatientId = 'a1111111-1111-4111-8111-000000000004'; // Consent denied/rejected
@@ -56,13 +56,13 @@ async function runDocumentStorageTests() {
   // TEST 1: Valid PDF Upload
   const pdfBuffer = Buffer.from('%PDF-1.4 Fake Medical Report PDF Content for Task #16');
   const pdfRes = await uploadMedicalDocument({
-    patientId: arumugamPatientId,
-    encounterId: arumugamEncounterId,
+    patientId: rameshPatientId,
+    encounterId: rameshEncounterId,
     documentType: 'lab_report',
     fileName: 'test_blood_panel.pdf',
     fileBuffer: pdfBuffer,
     mimeType: 'application/pdf',
-    title: 'Arumugam Blood Panel Test',
+    title: 'Ramesh Blood Panel Test',
   });
   assert(
     pdfRes.success && pdfRes.document?.mime_type === 'application/pdf' && pdfRes.document?.upload_status === 'uploaded',
@@ -74,13 +74,13 @@ async function runDocumentStorageTests() {
   // TEST 2: Valid PNG Upload
   const pngBuffer = Buffer.from('\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR Fake PNG Image Content');
   const pngRes = await uploadMedicalDocument({
-    patientId: arumugamPatientId,
-    encounterId: arumugamEncounterId,
+    patientId: rameshPatientId,
+    encounterId: rameshEncounterId,
     documentType: 'imaging_report',
     fileName: 'test_xray_scan.png',
     fileBuffer: pngBuffer,
     mimeType: 'image/png',
-    title: 'Arumugam Chest X-Ray',
+    title: 'Ramesh Chest X-Ray',
   });
   assert(
     pngRes.success && pngRes.document?.mime_type === 'image/png' && pngRes.document?.upload_status === 'uploaded',
@@ -92,13 +92,13 @@ async function runDocumentStorageTests() {
   // TEST 3: Valid JPEG Upload
   const jpegBuffer = Buffer.from('\xFF\xD8\xFF\xE0\x00\x10JFIF Fake JPEG Content');
   const jpegRes = await uploadMedicalDocument({
-    patientId: arumugamPatientId,
-    encounterId: arumugamEncounterId,
+    patientId: rameshPatientId,
+    encounterId: rameshEncounterId,
     documentType: 'opd_prescription',
     fileName: 'test_opd_slip.jpg',
     fileBuffer: jpegBuffer,
     mimeType: 'image/jpeg',
-    title: 'Arumugam Prescription Photo',
+    title: 'Ramesh Prescription Photo',
   });
   assert(
     jpegRes.success && jpegRes.document?.mime_type === 'image/jpeg' && jpegRes.document?.upload_status === 'uploaded',
@@ -110,8 +110,8 @@ async function runDocumentStorageTests() {
   // TEST 4: Unsupported File Type Rejected
   const exeBuffer = Buffer.from('MZ Executable file');
   const exeRes = await uploadMedicalDocument({
-    patientId: arumugamPatientId,
-    encounterId: arumugamEncounterId,
+    patientId: rameshPatientId,
+    encounterId: rameshEncounterId,
     documentType: 'miscellaneous',
     fileName: 'malware.exe',
     fileBuffer: exeBuffer,
@@ -126,8 +126,8 @@ async function runDocumentStorageTests() {
   // TEST 5: Oversized File Rejected (> 10MB)
   const hugeBuffer = Buffer.alloc(11 * 1024 * 1024); // 11MB
   const hugeRes = await uploadMedicalDocument({
-    patientId: arumugamPatientId,
-    encounterId: arumugamEncounterId,
+    patientId: rameshPatientId,
+    encounterId: rameshEncounterId,
     documentType: 'imaging_report',
     fileName: 'huge_mri.pdf',
     fileBuffer: hugeBuffer,
@@ -155,7 +155,7 @@ async function runDocumentStorageTests() {
 
   // TEST 7: Unknown Encounter Rejected
   const unknownEncRes = await uploadMedicalDocument({
-    patientId: arumugamPatientId,
+    patientId: rameshPatientId,
     encounterId: 'c9999999-9999-4999-8999-000000000999',
     documentType: 'lab_report',
     fileName: 'sample.pdf',
@@ -170,8 +170,8 @@ async function runDocumentStorageTests() {
 
   // TEST 8: Patient / Encounter Mismatch Rejected
   const mismatchRes = await uploadMedicalDocument({
-    patientId: arumugamPatientId,
-    encounterId: meenaEncounterId, // Belongs to Meena, not Arumugam!
+    patientId: rameshPatientId,
+    encounterId: meenaEncounterId, // Belongs to Meena, not Ramesh!
     documentType: 'lab_report',
     fileName: 'sample.pdf',
     fileBuffer: pdfBuffer,
@@ -184,7 +184,7 @@ async function runDocumentStorageTests() {
   );
 
   // TEST 9: Consent Allowed
-  const consentAllowedRes = await hasValidConsent(arumugamPatientId, 'share_health_records');
+  const consentAllowedRes = await hasValidConsent(rameshPatientId, 'share_health_records');
   assert(
     consentAllowedRes === true,
     'Test #9: Consent allowed for active patient'
@@ -210,7 +210,7 @@ async function runDocumentStorageTests() {
     const relativePath = pdfRes.document.storage_path.replace('medical-documents/', '');
     const { data: storageList } = await supabase.storage
       .from('medical-documents')
-      .list(arumugamPatientId);
+      .list(rameshPatientId);
     storageObjExists = (storageList || []).some((item) => relativePath.endsWith(item.name));
   }
   assert(
@@ -236,7 +236,7 @@ async function runDocumentStorageTests() {
   // TEST 13: storage_path Correct Format
   assert(
     pdfRes.document?.storage_path.startsWith('medical-documents/') === true &&
-      pdfRes.document?.storage_path.includes(arumugamPatientId) === true,
+      pdfRes.document?.storage_path.includes(rameshPatientId) === true,
     'Test #13: storage_path format correct'
   );
 
@@ -255,8 +255,8 @@ async function runDocumentStorageTests() {
   // TEST 16: Document Date Preserved
   const customDate = '2025-03-15T00:00:00.000Z';
   const customDateRes = await uploadMedicalDocument({
-    patientId: arumugamPatientId,
-    encounterId: arumugamEncounterId,
+    patientId: rameshPatientId,
+    encounterId: rameshEncounterId,
     documentType: 'lab_report',
     fileName: 'dated_report.pdf',
     fileBuffer: pdfBuffer,
@@ -287,7 +287,7 @@ async function runDocumentStorageTests() {
   // TEST 19: Secure Signed URL Generation
   let signedUrlOk = false;
   if (uploadedPdfId) {
-    const getRes = await getMedicalDocumentById(uploadedPdfId, arumugamPatientId);
+    const getRes = await getMedicalDocumentById(uploadedPdfId, rameshPatientId);
     signedUrlOk = getRes.success && !!getRes.signedUrl && getRes.signedUrl.includes('token=');
   }
   assert(
@@ -307,18 +307,18 @@ async function runDocumentStorageTests() {
   );
 
   // TEST 21: Listing by Patient
-  const listPatientRes = await listPatientDocuments(arumugamPatientId);
+  const listPatientRes = await listPatientDocuments(rameshPatientId);
   assert(
     listPatientRes.success && Array.isArray(listPatientRes.documents) && listPatientRes.documents.length > 0,
     'Test #21: Listing documents by patient'
   );
 
   // TEST 22: Listing by Encounter
-  const listEncRes = await listPatientDocuments(arumugamPatientId, { encounterId: arumugamEncounterId });
+  const listEncRes = await listPatientDocuments(rameshPatientId, { encounterId: rameshEncounterId });
   assert(
     listEncRes.success &&
       Array.isArray(listEncRes.documents) &&
-      listEncRes.documents.every((d) => d.encounter_id === arumugamEncounterId),
+      listEncRes.documents.every((d) => d.encounter_id === rameshEncounterId),
     'Test #22: Listing documents by encounter'
   );
 
@@ -400,16 +400,16 @@ async function runDocumentStorageTests() {
 
   // REGRESSION TESTS (Tasks #5 - #15)
   // TEST 28: Task #5 Regression (Patient Identification)
-  const { data: pt } = await supabase.from('patients').select('id').eq('id', arumugamPatientId).single();
+  const { data: pt } = await supabase.from('patients').select('id').eq('id', rameshPatientId).single();
   assert(!!pt, 'Test #28: Task #5 Regression - Patient identification schema intact');
 
   // TEST 29: Task #6 Regression (Consent Data Model)
-  const consentEval = await evaluateConsent(arumugamPatientId, 'share_health_records');
+  const consentEval = await evaluateConsent(rameshPatientId, 'share_health_records');
   assert(consentEval.allowed === true, 'Test #29: Task #6 Regression - Consent service active');
 
   // TEST 30: Task #7 Regression (Clinical History Access)
-  const historyRes = await getPatientClinicalHistory(arumugamPatientId);
-  assert(historyRes !== null && historyRes.patient?.id === arumugamPatientId, 'Test #30: Task #7 Regression - Clinical history service functional');
+  const historyRes = await getPatientClinicalHistory(rameshPatientId);
+  assert(historyRes !== null && historyRes.patient?.id === rameshPatientId, 'Test #30: Task #7 Regression - Clinical history service functional');
 
   // TEST 31: Task #8 Regression (Clinical Fact Extraction)
   const extractedFacts = extractSymptomsFromAnswer('எனக்கு இரண்டு நாளாக நெஞ்சு வலி உள்ளது');

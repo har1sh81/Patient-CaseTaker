@@ -38,26 +38,26 @@ async function runVitalsTests() {
 
   const supabase = await createClient();
 
-  const arumugamPatientId = 'a1111111-1111-4111-8111-000000000001';
-  const arumugamEncounterId = 'c1111111-1111-4111-8111-000000000001';
+  const rameshPatientId = 'a1111111-1111-4111-8111-000000000001';
+  const rameshEncounterId = 'c1111111-1111-4111-8111-000000000001';
   const dummyEncounterId = 'c9999999-9999-4999-8999-000000000999';
 
   // Seed DB records for test execution
   await supabase.from('patients').upsert({
-    id: arumugamPatientId,
-    first_name: 'Arumugam',
-    last_name: 'Kandasamy',
-    full_name: 'Arumugam Kandasamy',
+    id: rameshPatientId,
+    first_name: 'Ramesh',
+    last_name: 'Kumar',
+    full_name: 'Ramesh Kumar',
     date_of_birth: '1972-04-14',
     gender: 'Male',
     phone_number: '+919840112345',
-    email: 'arumugam.k@demo-mail.in',
+    email: 'ramesh.k@demo-mail.in',
     preferred_language: 'ta',
   });
 
   await supabase.from('encounters').upsert({
-    id: arumugamEncounterId,
-    patient_id: arumugamPatientId,
+    id: rameshEncounterId,
+    patient_id: rameshPatientId,
     status: 'completed',
     intake_mode: 'kiosk_voice_touch',
     language_code: 'ta',
@@ -65,11 +65,11 @@ async function runVitalsTests() {
     current_step: 'summary',
   });
 
-  // Consent setup: Grant share_health_records for Arumugam
-  await supabase.from('patient_consents').delete().eq('patient_id', arumugamPatientId);
+  // Consent setup: Grant share_health_records for Ramesh
+  await supabase.from('patient_consents').delete().eq('patient_id', rameshPatientId);
   await supabase.from('patient_consents').insert({
-    patient_id: arumugamPatientId,
-    encounter_id: arumugamEncounterId,
+    patient_id: rameshPatientId,
+    encounter_id: rameshEncounterId,
     consent_version: 'v1.0',
     language_code: 'ta',
     permissions: { share_health_records: true, share_ayush_records: true },
@@ -79,7 +79,7 @@ async function runVitalsTests() {
     status: 'accepted',
   });
 
-  // 1. Valid complete vital set (Arumugam)
+  // 1. Valid complete vital set (Ramesh)
   const norm1 = normalizeAndValidateVitals({
     bloodPressureText: '158/96',
     heartRateBpm: 102,
@@ -147,7 +147,7 @@ async function runVitalsTests() {
   assert(!norm13.valid, '13. Systolic <= diastolic rejected');
 
   // 14. Abnormal-but-valid measurements accepted
-  const save14 = await saveVitalRecord(arumugamPatientId, arumugamEncounterId, {
+  const save14 = await saveVitalRecord(rameshPatientId, rameshEncounterId, {
     bloodPressureText: '158/96',
     heartRateBpm: 102,
     bodyTemperature: 36.8,
@@ -159,7 +159,7 @@ async function runVitalsTests() {
   assert(save14.success && save14.data?.systolicBp === 158, '14. Abnormal-but-valid measurements accepted');
 
   // 15. Patient/encounter mismatch rejected
-  const save15 = await saveVitalRecord('a9999999-9999-4999-8999-000000000999', arumugamEncounterId, { heartRateBpm: 80 });
+  const save15 = await saveVitalRecord('a9999999-9999-4999-8999-000000000999', rameshEncounterId, { heartRateBpm: 80 });
   assert(!save15.success && save15.statusCode === 400, '15. Patient/encounter mismatch rejected');
 
   // 16. Invalid patient rejected
@@ -167,11 +167,11 @@ async function runVitalsTests() {
   assert(!save16.success, '16. Invalid patient rejected');
 
   // 17. Invalid encounter rejected
-  const save17 = await saveVitalRecord(arumugamPatientId, dummyEncounterId, { heartRateBpm: 80 });
+  const save17 = await saveVitalRecord(rameshPatientId, dummyEncounterId, { heartRateBpm: 80 });
   assert(!save17.success, '17. Invalid encounter rejected');
 
   // 18. Provenance preserved
-  const save18 = await saveVitalRecord(arumugamPatientId, arumugamEncounterId, {
+  const save18 = await saveVitalRecord(rameshPatientId, rameshEncounterId, {
     heartRateBpm: 88,
     provenanceSource: 'clinician_measured',
     verificationStatus: 'doctor_verified',
@@ -183,32 +183,32 @@ async function runVitalsTests() {
 
   // 20. measured_at timestamp preserved
   const historicalTs = '2025-05-10T10:00:00.000Z';
-  const save20 = await saveVitalRecord(arumugamPatientId, arumugamEncounterId, {
+  const save20 = await saveVitalRecord(rameshPatientId, rameshEncounterId, {
     heartRateBpm: 75,
     measuredAt: historicalTs,
   });
   assert(save20.success && new Date(save20.data!.measuredAt).getTime() === new Date(historicalTs).getTime(), '20. measured_at timestamp preserved');
 
   // 21. Duplicate processing handled safely
-  const save21 = await saveVitalRecord(arumugamPatientId, arumugamEncounterId, {
+  const save21 = await saveVitalRecord(rameshPatientId, rameshEncounterId, {
     heartRateBpm: 75,
     measuredAt: historicalTs,
   });
   assert(save21.success && save21.data?.id === save20.data?.id, '21. Duplicate processing handled safely');
 
   // 22. Separate timestamps create separate records
-  const save22 = await saveVitalRecord(arumugamPatientId, arumugamEncounterId, {
+  const save22 = await saveVitalRecord(rameshPatientId, rameshEncounterId, {
     heartRateBpm: 75,
     measuredAt: '2026-01-01T12:00:00.000Z',
   });
   assert(save22.success && save22.data?.id !== save20.data?.id, '22. Separate timestamps create separate records');
 
   // 23. latest-vitals ordering uses measured_at
-  const latestRes = await getLatestVitalsForPatient(arumugamPatientId);
+  const latestRes = await getLatestVitalsForPatient(rameshPatientId);
   assert(latestRes.success && Boolean(latestRes.data), '23. latest-vitals ordering uses measured_at');
 
   // 24. Consent allowed
-  const encVitalsRes = await getEncounterVitals(arumugamEncounterId);
+  const encVitalsRes = await getEncounterVitals(rameshEncounterId);
   assert(encVitalsRes.success && (encVitalsRes.data || []).length > 0, '24. Consent allowed');
 
   // 25. Consent denied
@@ -232,20 +232,20 @@ async function runVitalsTests() {
   assert(!noConsentRes.success && noConsentRes.statusCode === 403, '25. Consent denied');
 
   // 26. No diagnosis creation
-  const { data: diagCheck } = await supabase.from('clinical_diagnoses').select('id').eq('encounter_id', arumugamEncounterId);
+  const { data: diagCheck } = await supabase.from('clinical_diagnoses').select('id').eq('encounter_id', rameshEncounterId);
   assert((diagCheck || []).length === 0 || (diagCheck || []).length >= 0, '26. No diagnosis creation');
 
   // 27. Task #5 regression (Patient ID resolution)
   const { data: matchedId } = await supabase.from('patient_external_identifiers').select('patient_id').eq('identifier_type', 'abha_number').eq('identifier_value', 'ABHA-001').single();
-  assert(matchedId?.patient_id === arumugamPatientId, '27. Task #5 regression');
+  assert(matchedId?.patient_id === rameshPatientId, '27. Task #5 regression');
 
   // 28. Task #6 regression (Consent data model)
-  const consentValid = await hasValidConsent(arumugamPatientId, 'share_health_records');
+  const consentValid = await hasValidConsent(rameshPatientId, 'share_health_records');
   assert(consentValid, '28. Task #6 regression');
 
   // 29. Task #7 regression (Clinical history data model)
-  const historyRes = await getPatientClinicalHistory(arumugamPatientId);
-  assert(historyRes !== null && historyRes.patient.id === arumugamPatientId, '29. Task #7 regression');
+  const historyRes = await getPatientClinicalHistory(rameshPatientId);
+  assert(historyRes !== null && historyRes.patient.id === rameshPatientId, '29. Task #7 regression');
 
   // 30. Task #8 regression (Clinical fact extraction)
   const extractedSyms = extractSymptomsFromAnswer('எனக்கு இரண்டு நாளாக நெஞ்சு வலி இருக்கிறது.', null, 'cardiology', 'Q-CHEST-01', 'ta');
@@ -265,7 +265,7 @@ async function runVitalsTests() {
   assert(ayushValidation.valid && ayushQuestions.length > 0, '33. Task #12 regression');
 
   // 34. Task #13 regression (Dashavidha assessment layer)
-  const dashRes = await getDashavidhaAssessment(arumugamEncounterId);
+  const dashRes = await getDashavidhaAssessment(rameshEncounterId);
   assert(dashRes !== undefined, '34. Task #13 regression');
 
   // 35. Task #14 regression (Red-flag engine)

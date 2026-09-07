@@ -18,7 +18,7 @@ async function runVoicePipelineTests() {
   console.log('=== STARTING TASK #10 VOICE → TEXT → FACTS PIPELINE VERIFICATION ===\n');
 
   // Fetch test encounters directly from DB
-  const testEncounterId = 'c1111111-1111-4111-8111-000000000001'; // Arumugam Kandasamy (Tamil)
+  const testEncounterId = 'c1111111-1111-4111-8111-000000000001'; // Ramesh Kumar (Tamil)
   const { data: encData } = await supabase
     .from('encounters')
     .select('id, patient_id')

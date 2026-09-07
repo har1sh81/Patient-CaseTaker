@@ -42,18 +42,18 @@ async function runMedicationExtractionTests() {
   const supabase = await createClient();
 
   // Test Patients & Documents
-  const arumugamId = 'a1111111-1111-4111-8111-000000000001';
+  const rameshId = 'a1111111-1111-4111-8111-000000000001';
   const meenaId = 'a1111111-1111-4111-8111-000000000002';
   const rajeshId = 'a1111111-1111-4111-8111-000000000003';
   const priyaId = 'a1111111-1111-4111-8111-000000000004';
   const sureshId = 'a1111111-1111-4111-8111-000000000006';
 
-  const docId1 = 'd1111111-1111-4111-8111-000000000001'; // Arumugam OPD Rx
+  const docId1 = 'd1111111-1111-4111-8111-000000000001'; // Ramesh OPD Rx
 
   // 1. Medication Name Extraction
   const ex1 = await defaultMedicationExtractor.extract({
     documentId: docId1,
-    patientId: arumugamId,
+    patientId: rameshId,
     encounterId: 'c1111111-1111-4111-8111-000000000001',
     rawOcrText: 'Rx:\nTab Metformin SR 1000 mg BD orally',
   });
@@ -81,7 +81,7 @@ async function runMedicationExtractionTests() {
   // 8. Status Extraction (active vs discontinued vs historical)
   const statusRes = await defaultMedicationExtractor.extract({
     documentId: docId1,
-    patientId: arumugamId,
+    patientId: rameshId,
     encounterId: 'c1111111-1111-4111-8111-000000000001',
     rawOcrText: 'DISCONTINUED Amlodipine 5 mg OD\nContinue Metformin SR 1000 mg BD',
   });
@@ -95,7 +95,7 @@ async function runMedicationExtractionTests() {
   // 9. Duration / Temporal Information
   const durRes = await defaultMedicationExtractor.extract({
     documentId: docId1,
-    patientId: arumugamId,
+    patientId: rameshId,
     encounterId: 'c1111111-1111-4111-8111-000000000001',
     rawOcrText: 'Paracetamol 650 mg SOS for 5 days',
   });
@@ -120,7 +120,7 @@ async function runMedicationExtractionTests() {
   // 15. Uncertain Medication Remains Uncertain
   const truncRes = await defaultMedicationExtractor.extract({
     documentId: docId1,
-    patientId: arumugamId,
+    patientId: rameshId,
     encounterId: 'c1111111-1111-4111-8111-000000000001',
     rawOcrText: 'Tab. Metf... 500mg BD',
   });
@@ -175,7 +175,7 @@ async function runMedicationExtractionTests() {
   // 20. Combination Medication Behavior
   const comboRes = await defaultMedicationExtractor.extract({
     documentId: docId1,
-    patientId: arumugamId,
+    patientId: rameshId,
     encounterId: 'c1111111-1111-4111-8111-000000000001',
     rawOcrText: 'Tab Telmisartan 40 mg + Amlodipine 5 mg OD',
   });
@@ -187,7 +187,7 @@ async function runMedicationExtractionTests() {
   // 21. Repeated Same-Source Medication Deduplication
   const dupRes = await defaultMedicationExtractor.extract({
     documentId: docId1,
-    patientId: arumugamId,
+    patientId: rameshId,
     encounterId: 'c1111111-1111-4111-8111-000000000001',
     rawOcrText: 'Tab Metformin 500mg BD\nTab Metformin 500mg BD',
   });
@@ -200,15 +200,15 @@ async function runMedicationExtractionTests() {
   assert(true, 'Test #22: Separate-date medication records preserved across distinct encounters');
 
   // 23. Task #21 Candidate Integration
-  const ext21Res = await extractMedicalInformation(docId1, arumugamId);
+  const ext21Res = await extractMedicalInformation(docId1, rameshId);
   assert(ext21Res.success, 'Test #23: Task #21 medical information candidate integration functional');
 
   // 24. Task #20 Classification Integration
-  const class20Res = await classifyMedicalDocument(docId1, arumugamId);
+  const class20Res = await classifyMedicalDocument(docId1, rameshId);
   assert(class20Res.success, 'Test #24: Task #20 document classification integration functional');
 
   // 25. Patient / Encounter Validation
-  const serviceRes = await extractDocumentMedications(docId1, arumugamId);
+  const serviceRes = await extractDocumentMedications(docId1, rameshId);
   assert(serviceRes.success && !!serviceRes.data, 'Test #25: Patient and encounter validation successful');
 
   // 26. Consent Allowed
@@ -224,7 +224,7 @@ async function runMedicationExtractionTests() {
   assert(!crossRes.success && crossRes.errorCode === 'UNAUTHORIZED', 'Test #28: Cross-patient access blocked with UNAUTHORIZED');
 
   // 29. Invalid Document Rejected
-  const invalidRes2 = await extractDocumentMedications('00000000-0000-0000-0000-000000000000', arumugamId);
+  const invalidRes2 = await extractDocumentMedications('00000000-0000-0000-0000-000000000000', rameshId);
   assert(!invalidRes2.success && invalidRes2.errorCode === 'NOT_FOUND', 'Test #29: Invalid document ID rejected with NOT_FOUND');
 
   // 30. API Response Format
@@ -246,7 +246,7 @@ async function runMedicationExtractionTests() {
   const { data: dbMeds } = await supabase
     .from('clinical_medications')
     .select('*')
-    .eq('patient_id', arumugamId);
+    .eq('patient_id', rameshId);
   assert(dbMeds && dbMeds.length > 0, 'Test #32: Medications persisted into public.clinical_medications table');
 
   // 33. NO Diagnoses Created
@@ -260,7 +260,7 @@ async function runMedicationExtractionTests() {
   assert(true, 'Test #35: Safety verified - NO medication invention from incomplete text');
 
   // 36–51. Regressions across prior tasks
-  const ocr17Res = await ocrDocument(docId1, arumugamId);
+  const ocr17Res = await ocrDocument(docId1, rameshId);
   assert(ocr17Res.success && !!ocr17Res.rawText, 'Test #36: Task #17 Regression - Standard OCR service functional');
 
   const sureshDocId = 'd1111111-1111-4111-8111-000000000018';
@@ -271,10 +271,10 @@ async function runMedicationExtractionTests() {
   const ocr19Res = await ocrDocument(meenaDocId, meenaId, { mode: 'multilingual', language: 'ta' });
   assert(ocr19Res.success, 'Test #38: Task #19 Regression - Multilingual OCR service functional');
 
-  const class20Res2 = await classifyMedicalDocument(docId1, arumugamId);
+  const class20Res2 = await classifyMedicalDocument(docId1, rameshId);
   assert(class20Res2.success, 'Test #39: Task #20 Regression - Document classification service functional');
 
-  const ext21Res2 = await extractMedicalInformation(docId1, arumugamId);
+  const ext21Res2 = await extractMedicalInformation(docId1, rameshId);
   assert(ext21Res2.success, 'Test #40: Task #21 Regression - Medical information extraction service functional');
 
   const { data: storageDoc } = await supabase.from('medical_documents').select('*').eq('id', docId1).single();
@@ -305,14 +305,14 @@ async function runMedicationExtractionTests() {
   const extractSymptomRes = extractSymptomsFromAnswer('chest pain for 2 days');
   assert(extractSymptomRes.length > 0, 'Test #48: Task #8 Regression - Symptom extractor functional');
 
-  const histRes = await getPatientClinicalHistory(arumugamId);
-  assert(histRes?.patient.id === arumugamId, 'Test #49: Task #7 Regression - Clinical history service functional');
+  const histRes = await getPatientClinicalHistory(rameshId);
+  assert(histRes?.patient.id === rameshId, 'Test #49: Task #7 Regression - Clinical history service functional');
 
-  const consentRes = await hasValidConsent(arumugamId, 'share_health_records');
+  const consentRes = await hasValidConsent(rameshId, 'share_health_records');
   assert(consentRes, 'Test #50: Task #6 Regression - Consent service active');
 
-  const { data: patient5 } = await supabase.from('patients').select('*').eq('id', arumugamId).single();
-  assert(patient5?.first_name === 'Arumugam', 'Test #51: Task #5 Regression - Patient identification intact');
+  const { data: patient5 } = await supabase.from('patients').select('*').eq('id', rameshId).single();
+  assert(patient5?.first_name === 'Ramesh', 'Test #51: Task #5 Regression - Patient identification intact');
 
   // 52. Task #4 Document Corpus Integrity & Boundary Verification
   console.log('\n--------------------------------------------------');

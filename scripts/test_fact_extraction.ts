@@ -19,7 +19,7 @@ async function runFactExtractionTests() {
 
   // Fetch test encounters directly from DB to get their actual patient_ids
   const encounterIds = [
-    { name: 'Arumugam Kandasamy (Tamil Chest Pain)', encounterId: 'c1111111-1111-4111-8111-000000000001' },
+    { name: 'Ramesh Kumar (Tamil Chest Pain)', encounterId: 'c1111111-1111-4111-8111-000000000001' },
     { name: 'Meena Sundaram (Tamil AYUSH)', encounterId: 'c1111111-1111-4111-8111-000000000002' },
     { name: 'Rajesh Kumar Sharma (Hindi Diabetes)', encounterId: 'c1111111-1111-4111-8111-000000000003' },
     { name: 'Suresh Velu (Tamil Headache/Neck)', encounterId: 'c1111111-1111-4111-8111-000000000006' },

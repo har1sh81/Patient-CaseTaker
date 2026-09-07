@@ -274,9 +274,9 @@ async function main() {
 
   // 1. ARUMUGAM KANDASAMY (4 Documents)
   await generatePdf({
-    fileName: 'arumugam_opd_prescription_2022.pdf',
-    patientName: 'Arumugam Kandasamy (62M)',
-    patientAbha: 'arumugam.k@abdm',
+    fileName: 'ramesh_opd_prescription_2022.pdf',
+    patientName: 'Ramesh Kumar (62M)',
+    patientAbha: 'ramesh.k@abdm',
     hospitalName: 'Apollo Hospitals Chennai - Cardiology OPD',
     docTitle: 'Outpatient Prescription & Historical Clinical Summary',
     date: '2022-11-14',
@@ -289,9 +289,9 @@ async function main() {
   });
 
   await generatePdf({
-    fileName: 'arumugam_lab_report_2023.pdf',
-    patientName: 'Arumugam Kandasamy (62M)',
-    patientAbha: 'arumugam.k@abdm',
+    fileName: 'ramesh_lab_report_2023.pdf',
+    patientName: 'Ramesh Kumar (62M)',
+    patientAbha: 'ramesh.k@abdm',
     hospitalName: 'Metropolis Diagnostic Center Chennai',
     docTitle: 'Comprehensive Glycemic & Lipid Profile Lab Report',
     date: '2023-05-20',
@@ -303,9 +303,9 @@ async function main() {
   });
 
   await generatePdf({
-    fileName: 'arumugam_ecg_cardiac_report_2024.pdf',
-    patientName: 'Arumugam Kandasamy (63M)',
-    patientAbha: 'arumugam.k@abdm',
+    fileName: 'ramesh_ecg_cardiac_report_2024.pdf',
+    patientName: 'Ramesh Kumar (63M)',
+    patientAbha: 'ramesh.k@abdm',
     hospitalName: 'Sri Ramachandra Cardiac Sciences',
     docTitle: '12-Lead Electrocardiogram (ECG) Diagnostic Brief',
     date: '2024-01-10',
@@ -317,9 +317,9 @@ async function main() {
   });
 
   await generatePdf({
-    fileName: 'arumugam_discharge_summary_2018.pdf',
-    patientName: 'Arumugam Kandasamy (58M)',
-    patientAbha: 'arumugam.k@abdm',
+    fileName: 'ramesh_discharge_summary_2018.pdf',
+    patientName: 'Ramesh Kumar (58M)',
+    patientAbha: 'ramesh.k@abdm',
     hospitalName: 'Government General Hospital Chennai',
     docTitle: 'Inpatient Discharge Summary - Medical Ward',
     date: '2018-08-10',
@@ -331,9 +331,9 @@ async function main() {
   });
 
   await generatePdf({
-    fileName: 'arumugam_current_opd_note_2026.pdf',
-    patientName: 'Arumugam Kandasamy (65M)',
-    patientAbha: 'arumugam.k@abdm',
+    fileName: 'ramesh_current_opd_note_2026.pdf',
+    patientName: 'Ramesh Kumar (65M)',
+    patientAbha: 'ramesh.k@abdm',
     hospitalName: 'Government General Hospital Chennai - Kiosk OPD Intake',
     docTitle: 'Clinical Consultation Intake Note',
     date: '2026-09-01',

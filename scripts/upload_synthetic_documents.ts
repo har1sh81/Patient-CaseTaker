@@ -25,12 +25,12 @@ interface DocUploadMapping {
 }
 
 const MAPPINGS: DocUploadMapping[] = [
-  // Arumugam Kandasamy (a1111111-1111-4111-8111-000000000001)
-  { fileName: 'arumugam_opd_prescription_2022.pdf', patientId: 'a1111111-1111-4111-8111-000000000001', mimeType: 'application/pdf' },
-  { fileName: 'arumugam_lab_report_2023.pdf', patientId: 'a1111111-1111-4111-8111-000000000001', mimeType: 'application/pdf' },
-  { fileName: 'arumugam_ecg_cardiac_report_2024.pdf', patientId: 'a1111111-1111-4111-8111-000000000001', mimeType: 'application/pdf' },
-  { fileName: 'arumugam_discharge_summary_2018.pdf', patientId: 'a1111111-1111-4111-8111-000000000001', mimeType: 'application/pdf' },
-  { fileName: 'arumugam_current_opd_note_2026.pdf', patientId: 'a1111111-1111-4111-8111-000000000001', mimeType: 'application/pdf' },
+  // Ramesh Kumar (a1111111-1111-4111-8111-000000000001)
+  { fileName: 'ramesh_opd_prescription_2022.pdf', patientId: 'a1111111-1111-4111-8111-000000000001', mimeType: 'application/pdf' },
+  { fileName: 'ramesh_lab_report_2023.pdf', patientId: 'a1111111-1111-4111-8111-000000000001', mimeType: 'application/pdf' },
+  { fileName: 'ramesh_ecg_cardiac_report_2024.pdf', patientId: 'a1111111-1111-4111-8111-000000000001', mimeType: 'application/pdf' },
+  { fileName: 'ramesh_discharge_summary_2018.pdf', patientId: 'a1111111-1111-4111-8111-000000000001', mimeType: 'application/pdf' },
+  { fileName: 'ramesh_current_opd_note_2026.pdf', patientId: 'a1111111-1111-4111-8111-000000000001', mimeType: 'application/pdf' },
 
   // Rajesh Kumar Sharma (a1111111-1111-4111-8111-000000000003)
   { fileName: 'rajesh_lab_hba1c_2025_09.pdf', patientId: 'a1111111-1111-4111-8111-000000000003', mimeType: 'application/pdf' },

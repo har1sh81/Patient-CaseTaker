@@ -46,7 +46,7 @@ async function runMinimalSanityChecks() {
   const noConsentPatient = 'a1111111-1111-4111-8111-000000000004';
 
   // Seed baseline patient rows
-  await adminSupabase.from('patients').upsert({ id: patientA, first_name: 'Arumugam', last_name: 'Kandasamy', full_name: 'Arumugam Kandasamy', gender: 'Male', date_of_birth: '1980-01-01' });
+  await adminSupabase.from('patients').upsert({ id: patientA, first_name: 'Ramesh', last_name: 'Kumar', full_name: 'Ramesh Kumar', gender: 'Male', date_of_birth: '1980-01-01' });
   await adminSupabase.from('patients').upsert({ id: patientB, first_name: 'Rajesh', last_name: 'Sharma', full_name: 'Rajesh Kumar Sharma', gender: 'Male', date_of_birth: '1958-11-05' });
 
   // Grant consent for patientA

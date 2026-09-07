@@ -61,7 +61,7 @@ async function runSanityChecks() {
   const procId = 'f1111111-1111-4111-8111-000000000501';
 
   // Seed baseline patient rows & consent
-  await adminSupabase.from('patients').upsert({ id: patientId, first_name: 'Arumugam', last_name: 'Kandasamy', full_name: 'Arumugam Kandasamy', gender: 'Male', date_of_birth: '1980-01-01' });
+  await adminSupabase.from('patients').upsert({ id: patientId, first_name: 'Ramesh', last_name: 'Kumar', full_name: 'Ramesh Kumar', gender: 'Male', date_of_birth: '1980-01-01' });
   await adminSupabase.from('encounters').upsert({ id: encounterId, patient_id: patientId, status: 'completed', intake_mode: 'kiosk_voice_touch', language_code: 'ta', department_mode: 'standard', current_step: 'summary' });
   await adminSupabase.from('patient_consents').upsert({
     id: 'd1111111-1111-4111-8111-000000000001',

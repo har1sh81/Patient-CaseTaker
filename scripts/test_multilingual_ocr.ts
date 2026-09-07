@@ -42,8 +42,8 @@ async function runMultilingualOcrTests() {
 
   const supabase = await createClient();
 
-  const arumugamPatientId = 'a1111111-1111-4111-8111-000000000001';
-  const arumugamDocId = 'd1111111-1111-4111-8111-000000000001'; // Arumugam OPD prescription PDF
+  const rameshPatientId = 'a1111111-1111-4111-8111-000000000001';
+  const rameshDocId = 'd1111111-1111-4111-8111-000000000001'; // Ramesh OPD prescription PDF
 
   const meenaPatientId = 'a1111111-1111-4111-8111-000000000002';
   const meenaDocId = 'd1111111-1111-4111-8111-000000000011'; // Meena AYUSH PDF
@@ -64,7 +64,7 @@ async function runMultilingualOcrTests() {
   const { count: initialDiagnosisCount } = await supabase.from('clinical_diagnoses').select('*', { count: 'exact', head: true });
 
   // TEST 1: English OCR
-  const engRes = await ocrDocument(arumugamDocId, arumugamPatientId, { forceRetry: true, language: 'en' });
+  const engRes = await ocrDocument(rameshDocId, rameshPatientId, { forceRetry: true, language: 'en' });
   assert(
     engRes.success && engRes.ocrStatus === 'completed' && !!engRes.rawText,
     'Test #1: English OCR executed',
@@ -102,7 +102,7 @@ async function runMultilingualOcrTests() {
   );
 
   // TEST 6: Actual English Persistence
-  const { data: dbEngExt } = await supabase.from('document_extractions').select('*').eq('document_id', arumugamDocId).single();
+  const { data: dbEngExt } = await supabase.from('document_extractions').select('*').eq('document_id', rameshDocId).single();
   assert(
     dbEngExt !== null && !!dbEngExt.raw_ocr_text,
     'Test #6: Actual English OCR persisted in public.document_extractions'
@@ -118,7 +118,7 @@ async function runMultilingualOcrTests() {
   );
 
   // TEST 8: Unsupported Language Rejection
-  const invalidLangRes = await ocrDocument(arumugamDocId, arumugamPatientId, { language: 'fr' });
+  const invalidLangRes = await ocrDocument(rameshDocId, rameshPatientId, { language: 'fr' });
   assert(
     !invalidLangRes.success && invalidLangRes.errorCode === 'OCR_FAILED' && invalidLangRes.error?.includes('Unsupported OCR language'),
     'Test #8: Unsupported language hint rejected with UNSUPPORTED_OCR_LANGUAGE error',
@@ -212,7 +212,7 @@ async function runMultilingualOcrTests() {
   );
 
   // TEST 22: Cross-Patient Access Blocked
-  const crossRes = await ocrDocument(meenaDocId, arumugamPatientId);
+  const crossRes = await ocrDocument(meenaDocId, rameshPatientId);
   assert(
     !crossRes.success && crossRes.errorCode === 'UNAUTHORIZED',
     'Test #22: Cross-patient document OCR access blocked (HTTP 403)'
@@ -236,7 +236,7 @@ async function runMultilingualOcrTests() {
 
   // REGRESSIONS (Tasks #4 - #18)
   // TEST 25: Task #17 Regression (Baseline Document OCR Service)
-  const baseOcr = await getDocumentOcr(arumugamDocId, arumugamPatientId);
+  const baseOcr = await getDocumentOcr(rameshDocId, rameshPatientId);
   assert(baseOcr.success === true, 'Test #25: Task #17 Regression - Baseline OCR service intact');
 
   // TEST 26: Task #18 Regression (Handwritten OCR Service)
@@ -244,7 +244,7 @@ async function runMultilingualOcrTests() {
   assert(hwOcr.success === true && hwOcr.provider === 'handwritten_ocr_provider', 'Test #26: Task #18 Regression - Handwritten OCR service intact');
 
   // TEST 27: Task #16 Regression (Document Storage Service)
-  const getDocRes = await supabase.from('medical_documents').select('id').eq('id', arumugamDocId).single();
+  const getDocRes = await supabase.from('medical_documents').select('id').eq('id', rameshDocId).single();
   assert(!!getDocRes.data, 'Test #27: Task #16 Regression - Document storage service intact');
 
   // TEST 28: Task #15 Regression (Vitals Processing Service)
@@ -276,15 +276,15 @@ async function runMultilingualOcrTests() {
   assert(extractedFacts.length > 0, 'Test #34: Task #8 Regression - Fact extraction logic functional');
 
   // TEST 35: Task #7 Regression (Clinical History Access)
-  const historyRes = await getPatientClinicalHistory(arumugamPatientId);
-  assert(historyRes !== null && historyRes.patient?.id === arumugamPatientId, 'Test #35: Task #7 Regression - Clinical history service functional');
+  const historyRes = await getPatientClinicalHistory(rameshPatientId);
+  assert(historyRes !== null && historyRes.patient?.id === rameshPatientId, 'Test #35: Task #7 Regression - Clinical history service functional');
 
   // TEST 36: Task #6 Regression (Consent Data Model)
-  const consentEval = await evaluateConsent(arumugamPatientId, 'share_health_records');
+  const consentEval = await evaluateConsent(rameshPatientId, 'share_health_records');
   assert(consentEval.allowed === true, 'Test #36: Task #6 Regression - Consent service active');
 
   // TEST 37: Task #5 Regression (Patient Identification)
-  const { data: pt } = await supabase.from('patients').select('id').eq('id', arumugamPatientId).single();
+  const { data: pt } = await supabase.from('patients').select('id').eq('id', rameshPatientId).single();
   assert(!!pt, 'Test #37: Task #5 Regression - Patient identification schema intact');
 
   // TEST 38: Task #4 Corpus Integrity

@@ -44,8 +44,8 @@ async function runDashavidhaTests() {
   // Ensure patient, encounter, and consent exist in DB for test runner
   const supabase = await createClient();
 
-  const arumugamPatientId = 'a1111111-1111-4111-8111-000000000001';
-  const arumugamEncounterId = 'c1111111-1111-4111-8111-000000000001';
+  const rameshPatientId = 'a1111111-1111-4111-8111-000000000001';
+  const rameshEncounterId = 'c1111111-1111-4111-8111-000000000001';
 
   await supabase.from('patients').upsert({
     id: meenaPatientId,
@@ -60,14 +60,14 @@ async function runDashavidhaTests() {
   });
 
   await supabase.from('patients').upsert({
-    id: arumugamPatientId,
-    first_name: 'Arumugam',
-    last_name: 'Kandasamy',
-    full_name: 'Arumugam Kandasamy',
+    id: rameshPatientId,
+    first_name: 'Ramesh',
+    last_name: 'Kumar',
+    full_name: 'Ramesh Kumar',
     date_of_birth: '1972-04-14',
     gender: 'Male',
     phone_number: '+919840112345',
-    email: 'arumugam.k@demo-mail.in',
+    email: 'ramesh.k@demo-mail.in',
     preferred_language: 'ta',
   });
 
@@ -82,8 +82,8 @@ async function runDashavidhaTests() {
   });
 
   await supabase.from('encounters').upsert({
-    id: arumugamEncounterId,
-    patient_id: arumugamPatientId,
+    id: rameshEncounterId,
+    patient_id: rameshPatientId,
     status: 'completed',
     intake_mode: 'kiosk_voice_touch',
     language_code: 'ta',
@@ -93,7 +93,7 @@ async function runDashavidhaTests() {
 
   // Reset consents & AYUSH records for test isolation
   await supabase.from('patient_consents').delete().eq('patient_id', meenaPatientId);
-  await supabase.from('patient_consents').delete().eq('patient_id', arumugamPatientId);
+  await supabase.from('patient_consents').delete().eq('patient_id', rameshPatientId);
   await supabase.from('clinical_ayush_assessments').delete().eq('encounter_id', meenaEncounterId);
 
   await supabase.from('patient_consents').insert({
@@ -109,8 +109,8 @@ async function runDashavidhaTests() {
   });
 
   await supabase.from('patient_consents').insert({
-    patient_id: arumugamPatientId,
-    encounter_id: arumugamEncounterId,
+    patient_id: rameshPatientId,
+    encounter_id: rameshEncounterId,
     consent_version: 'v1.0',
     language_code: 'ta',
     permissions: { share_health_records: true, share_ayush_records: false },
@@ -203,7 +203,7 @@ async function runDashavidhaTests() {
 
   // 8. Patient/encounter mismatch rejected
   const mismatchRes = await saveDashavidhaAssessment({
-    patientId: arumugamPatientId,
+    patientId: rameshPatientId,
     encounterId: meenaEncounterId,
     domains: {},
   });
@@ -254,7 +254,7 @@ async function runDashavidhaTests() {
   assert(autoDiagCount === 0 || autoDiagCount >= 0, '19. No diagnosis inserted');
 
   // 20. Consent enforced
-  const noConsentRes = await getDashavidhaAssessment(arumugamEncounterId);
+  const noConsentRes = await getDashavidhaAssessment(rameshEncounterId);
   assert(!noConsentRes.success && noConsentRes.statusCode === 403, '20. Consent enforced', `Status: ${noConsentRes.statusCode}, Error: ${noConsentRes.error}`);
 
   // 21. Task #5 regression (Patient ID resolution)

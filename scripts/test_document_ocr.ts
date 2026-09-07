@@ -40,9 +40,9 @@ async function runDocumentOcrTests() {
   const supabase = await createClient();
 
   // Test patients & documents from Task #4 corpus
-  const arumugamPatientId = 'a1111111-1111-4111-8111-000000000001';
-  const arumugamEncounterId = 'c1111111-1111-4111-8111-000000000001';
-  const arumugamDocId = 'd1111111-1111-4111-8111-000000000001'; // Arumugam OPD prescription PDF
+  const rameshPatientId = 'a1111111-1111-4111-8111-000000000001';
+  const rameshEncounterId = 'c1111111-1111-4111-8111-000000000001';
+  const rameshDocId = 'd1111111-1111-4111-8111-000000000001'; // Ramesh OPD prescription PDF
 
   const rajeshPatientId = 'a1111111-1111-4111-8111-000000000003';
   const rajeshDocId = 'd1111111-1111-4111-8111-000000000006'; // Rajesh HbA1c Lab Report PDF
@@ -61,7 +61,7 @@ async function runDocumentOcrTests() {
   const { count: initialDiagnosisCount } = await supabase.from('clinical_diagnoses').select('*', { count: 'exact', head: true });
 
   // TEST 1: PDF OCR / Text Extraction
-  const pdfOcrRes = await ocrDocument(arumugamDocId, arumugamPatientId, { forceRetry: true });
+  const pdfOcrRes = await ocrDocument(rameshDocId, rameshPatientId, { forceRetry: true });
   assert(
     pdfOcrRes.success && pdfOcrRes.ocrStatus === 'completed' && !!pdfOcrRes.rawText && pdfOcrRes.rawText.length > 20,
     'Test #1: PDF OCR/text extraction',
@@ -79,8 +79,8 @@ async function runDocumentOcrTests() {
   // TEST 3: JPEG OCR
   const jpegBuf = Buffer.from('\xFF\xD8\xFF\xE0\x00\x10JFIF Sample Medical Prescription Photo');
   const uploadedJpeg = await uploadMedicalDocument({
-    patientId: arumugamPatientId,
-    encounterId: arumugamEncounterId,
+    patientId: rameshPatientId,
+    encounterId: rameshEncounterId,
     documentType: 'opd_prescription',
     fileName: 'ocr_sample_photo.jpg',
     fileBuffer: jpegBuf,
@@ -88,7 +88,7 @@ async function runDocumentOcrTests() {
   });
   let jpegOcrOk = false;
   if (uploadedJpeg.success && uploadedJpeg.document) {
-    const jpegOcr = await ocrDocument(uploadedJpeg.document.id, arumugamPatientId);
+    const jpegOcr = await ocrDocument(uploadedJpeg.document.id, rameshPatientId);
     jpegOcrOk = jpegOcr.success && jpegOcr.ocrStatus === 'completed' && !!jpegOcr.rawText;
   }
   assert(
@@ -115,16 +115,16 @@ async function runDocumentOcrTests() {
   );
 
   // TEST 7: OCR Status Transitions (pending -> processing -> completed)
-  const { data: updatedDocRow } = await supabase.from('medical_documents').select('ocr_status').eq('id', arumugamDocId).single();
+  const { data: updatedDocRow } = await supabase.from('medical_documents').select('ocr_status').eq('id', rameshDocId).single();
   assert(
     updatedDocRow?.ocr_status === 'completed',
     'Test #7: OCR status transitions to completed'
   );
 
   // TEST 8: document_extractions Row Creation
-  const { data: extRow } = await supabase.from('document_extractions').select('*').eq('document_id', arumugamDocId).maybeSingle();
+  const { data: extRow } = await supabase.from('document_extractions').select('*').eq('document_id', rameshDocId).maybeSingle();
   assert(
-    extRow !== null && extRow.document_id === arumugamDocId && !!extRow.raw_ocr_text,
+    extRow !== null && extRow.document_id === rameshDocId && !!extRow.raw_ocr_text,
     'Test #8: document_extractions row created in Supabase'
   );
 
@@ -153,7 +153,7 @@ async function runDocumentOcrTests() {
   );
 
   // TEST 13: Consent Allowed
-  const consentAllowed = await hasValidConsent(arumugamPatientId, 'share_health_records');
+  const consentAllowed = await hasValidConsent(rameshPatientId, 'share_health_records');
   assert(
     consentAllowed === true,
     'Test #13: Consent allowed for active patient'
@@ -167,21 +167,21 @@ async function runDocumentOcrTests() {
   );
 
   // TEST 15: Cross-Patient Access Blocked
-  const crossPatientRes = await ocrDocument(arumugamDocId, meenaPatientId);
+  const crossPatientRes = await ocrDocument(rameshDocId, meenaPatientId);
   assert(
     !crossPatientRes.success && crossPatientRes.errorCode === 'UNAUTHORIZED',
     'Test #15: Cross-patient document OCR access blocked (HTTP 403)'
   );
 
   // TEST 16: Invalid Document ID
-  const invalidDocRes = await ocrDocument('d9999999-9999-4999-8999-000000000999', arumugamPatientId);
+  const invalidDocRes = await ocrDocument('d9999999-9999-4999-8999-000000000999', rameshPatientId);
   assert(
     !invalidDocRes.success && invalidDocRes.errorCode === 'NOT_FOUND',
     'Test #16: Invalid document ID rejected (HTTP 404)'
   );
 
   // TEST 17: Invalid Patient ID
-  const getInvalidPt = await getDocumentOcr(arumugamDocId, 'a9999999-9999-4999-8999-000000000999');
+  const getInvalidPt = await getDocumentOcr(rameshDocId, 'a9999999-9999-4999-8999-000000000999');
   assert(
     !getInvalidPt.success && getInvalidPt.errorCode === 'UNAUTHORIZED',
     'Test #17: Invalid patient ID access rejected'
@@ -194,23 +194,23 @@ async function runDocumentOcrTests() {
   );
 
   // TEST 19: Failed OCR Status Transition
-  const dummyFailRes = await ocrDocument('d1111111-1111-4111-8111-999999999999', arumugamPatientId);
+  const dummyFailRes = await ocrDocument('d1111111-1111-4111-8111-999999999999', rameshPatientId);
   assert(
     !dummyFailRes.success && dummyFailRes.ocrStatus === 'failed',
     'Test #19: Handles non-existent/failed OCR safely'
   );
 
   // TEST 20: Retry Behavior
-  const retryRes = await retryDocumentOcr(arumugamDocId, arumugamPatientId);
+  const retryRes = await retryDocumentOcr(rameshDocId, rameshPatientId);
   assert(
     retryRes.success && retryRes.ocrStatus === 'completed',
     'Test #20: Retry processing succeeds'
   );
 
   // TEST 21: Idempotency (Repeated processing does not duplicate extractions)
-  const { data: preCount } = await supabase.from('document_extractions').select('id').eq('document_id', arumugamDocId);
-  await ocrDocument(arumugamDocId, arumugamPatientId); // repeated call without forceRetry
-  const { data: postCount } = await supabase.from('document_extractions').select('id').eq('document_id', arumugamDocId);
+  const { data: preCount } = await supabase.from('document_extractions').select('id').eq('document_id', rameshDocId);
+  await ocrDocument(rameshDocId, rameshPatientId); // repeated call without forceRetry
+  const { data: postCount } = await supabase.from('document_extractions').select('id').eq('document_id', rameshDocId);
   assert(
     (preCount || []).length === (postCount || []).length,
     'Test #21: Idempotent processing does not duplicate extraction rows'
@@ -257,16 +257,16 @@ async function runDocumentOcrTests() {
 
   // REGRESSIONS (Tasks #5 - #16)
   // TEST 28: Task #5 Regression (Patient Identification)
-  const { data: pt } = await supabase.from('patients').select('id').eq('id', arumugamPatientId).single();
+  const { data: pt } = await supabase.from('patients').select('id').eq('id', rameshPatientId).single();
   assert(!!pt, 'Test #28: Task #5 Regression - Patient identification schema intact');
 
   // TEST 29: Task #6 Regression (Consent Data Model)
-  const consentEval = await evaluateConsent(arumugamPatientId, 'share_health_records');
+  const consentEval = await evaluateConsent(rameshPatientId, 'share_health_records');
   assert(consentEval.allowed === true, 'Test #29: Task #6 Regression - Consent service active');
 
   // TEST 30: Task #7 Regression (Clinical History Access)
-  const historyRes = await getPatientClinicalHistory(arumugamPatientId);
-  assert(historyRes !== null && historyRes.patient?.id === arumugamPatientId, 'Test #30: Task #7 Regression - Clinical history service functional');
+  const historyRes = await getPatientClinicalHistory(rameshPatientId);
+  assert(historyRes !== null && historyRes.patient?.id === rameshPatientId, 'Test #30: Task #7 Regression - Clinical history service functional');
 
   // TEST 31: Task #8 Regression (Fact Extraction)
   const extractedFacts = extractSymptomsFromAnswer('எனக்கு இரண்டு நாளாக நெஞ்சு வலி உள்ளது');
@@ -297,7 +297,7 @@ async function runDocumentOcrTests() {
   assert(vitalsRes.valid === true, 'Test #37: Task #15 Regression - Vitals processing functional');
 
   // TEST 38: Task #16 Regression (Document Storage Service)
-  const getDocRes = await supabase.from('medical_documents').select('id').eq('id', arumugamDocId).single();
+  const getDocRes = await supabase.from('medical_documents').select('id').eq('id', rameshDocId).single();
   assert(!!getDocRes.data, 'Test #38: Task #16 Regression - Medical Document Storage service intact');
 
   console.log('\n==================================================');

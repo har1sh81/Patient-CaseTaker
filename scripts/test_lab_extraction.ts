@@ -131,7 +131,7 @@ async function runTestSuite() {
   );
 
   // Synthetic patient & document IDs from database seed
-  const arumugamId = 'a1111111-1111-4111-8111-000000000001';
+  const rameshId = 'a1111111-1111-4111-8111-000000000001';
   const meenaId = 'a1111111-1111-4111-8111-000000000002';
   const rajeshId = 'a1111111-1111-4111-8111-000000000003';
   const priyaId = 'a1111111-1111-4111-8111-000000000004';
@@ -140,7 +140,7 @@ async function runTestSuite() {
   const priyaDocId = 'd1111111-1111-4111-8111-000000000019';
 
   // Test 11: Patient/encounter validation
-  const serviceRes11 = await extractDocumentLabs(validDocId, arumugamId);
+  const serviceRes11 = await extractDocumentLabs(validDocId, rameshId);
   assert(serviceRes11.success === true, 'Test #11: Patient and encounter validation successful');
 
   // Test 12: Document ownership
@@ -166,7 +166,7 @@ async function runTestSuite() {
   // Test 16: Multilingual English
   const resEng = await extractor.extract({
     documentId: 'doc_eng',
-    patientId: arumugamId,
+    patientId: rameshId,
     encounterId: 'c1111111-1111-4111-8111-000000000001',
     rawOcrText: 'Hemoglobin: 13.5 g/dL',
   });
@@ -175,7 +175,7 @@ async function runTestSuite() {
   // Test 17: Multilingual Tamil
   const resTam = await extractor.extract({
     documentId: 'doc_tam',
-    patientId: arumugamId,
+    patientId: rameshId,
     encounterId: 'c1111111-1111-4111-8111-000000000001',
     rawOcrText: 'ஹூமோகுளோபின்: 12.8 g/dL',
   });
@@ -187,7 +187,7 @@ async function runTestSuite() {
   // Test 18: Multilingual Hindi
   const resHin = await extractor.extract({
     documentId: 'doc_hin',
-    patientId: arumugamId,
+    patientId: rameshId,
     encounterId: 'c1111111-1111-4111-8111-000000000001',
     rawOcrText: 'हीमोग्लोबिन: 14.1 g/dL',
   });
@@ -199,7 +199,7 @@ async function runTestSuite() {
   // Test 19: Mixed-language lab extraction
   const resMixed = await extractor.extract({
     documentId: 'doc_mixed',
-    patientId: arumugamId,
+    patientId: rameshId,
     encounterId: 'c1111111-1111-4111-8111-000000000001',
     rawOcrText: 'Fasting Glucose (இரத்த சர்க்கரை): 110 mg/dL',
   });
@@ -208,7 +208,7 @@ async function runTestSuite() {
   // Test 20: Multi-test panel extraction
   const resPanel = await extractor.extract({
     documentId: 'doc_panel',
-    patientId: arumugamId,
+    patientId: rameshId,
     encounterId: 'c1111111-1111-4111-8111-000000000001',
     rawOcrText: 'DIABETIC PANEL\nHbA1c: 8.9 %\nFasting Glucose: 168 mg/dL\nTotal Cholesterol: 212 mg/dL\nTriglycerides: 245 mg/dL',
   });
@@ -220,7 +220,7 @@ async function runTestSuite() {
   // Test 21: Handwritten ambiguous result handling
   const resHandwritten = await extractor.extract({
     documentId: 'doc_hw',
-    patientId: arumugamId,
+    patientId: rameshId,
     encounterId: 'c1111111-1111-4111-8111-000000000001',
     rawOcrText: 'Serum Creatinine: 1.2?',
   });
@@ -232,7 +232,7 @@ async function runTestSuite() {
   // Test 22: OCR-error uncertainty handling
   const resOcrErr = await extractor.extract({
     documentId: 'doc_ocr_err',
-    patientId: arumugamId,
+    patientId: rameshId,
     encounterId: 'c1111111-1111-4111-8111-000000000001',
     rawOcrText: 'HbA1c: 89 %',
   });
@@ -242,8 +242,8 @@ async function runTestSuite() {
   );
 
   // Test 23: Repeated extraction idempotency
-  const resIdem1 = await extractDocumentLabs(validDocId, arumugamId, { forceReextract: true });
-  const resIdem2 = await extractDocumentLabs(validDocId, arumugamId, { forceReextract: true });
+  const resIdem1 = await extractDocumentLabs(validDocId, rameshId, { forceReextract: true });
+  const resIdem2 = await extractDocumentLabs(validDocId, rameshId, { forceReextract: true });
   assert(
     resIdem1.success && resIdem2.success && resIdem2.data?.labsCreated === 0,
     'Test #23: Repeated extraction idempotency prevents duplicate relational rows'
@@ -278,14 +278,14 @@ async function runTestSuite() {
     'Test #25: Rajesh HbA1c longitudinal records (7.2%, 8.4%, 8.9%) remain separate observations'
   );
 
-  // Test 26: Arumugam labs
-  const arumugamRes = await extractor.extract({
-    documentId: 'arumugam_lab_doc',
-    patientId: arumugamId,
+  // Test 26: Ramesh labs
+  const rameshRes = await extractor.extract({
+    documentId: 'ramesh_lab_doc',
+    patientId: rameshId,
     encounterId: 'c1111111-1111-4111-8111-000000000001',
     rawOcrText: 'ARUMUGAM CLINICAL LAB REPORT\nHbA1c: 8.9 %\nFasting Glucose: 168 mg/dL\nTotal Cholesterol: 212 mg/dL',
   });
-  assert(arumugamRes.labsDetected === 3, 'Test #26: Arumugam laboratory report extracted 3 lab observations');
+  assert(rameshRes.labsDetected === 3, 'Test #26: Ramesh laboratory report extracted 3 lab observations');
 
   // Test 27: Vikramaditya labs
   const vikramRes = await extractor.extract({
@@ -308,7 +308,7 @@ async function runTestSuite() {
   // Test 29: Task #21 lab_candidate integration
   const candidateRes = await extractor.extract({
     documentId: 'doc_cand',
-    patientId: arumugamId,
+    patientId: rameshId,
     encounterId: 'c1111111-1111-4111-8111-000000000001',
     rawOcrText: 'Random lab text notes',
     candidates: [{ concept: 'laboratory', sourceText: 'HbA1c: 8.9 %', pageNumber: 2 }],
@@ -325,7 +325,7 @@ async function runTestSuite() {
   const { data: labRows } = await supabase
     .from('clinical_lab_results')
     .select('*')
-    .eq('patient_id', arumugamId);
+    .eq('patient_id', rameshId);
   assert(
     Array.isArray(labRows) && labRows.length >= 1,
     'Test #31: Verified lab observations persisted into public.clinical_lab_results table'
@@ -350,7 +350,7 @@ async function runTestSuite() {
   const { data: diagRows } = await supabase
     .from('clinical_diagnoses')
     .select('*')
-    .eq('patient_id', arumugamId)
+    .eq('patient_id', rameshId)
     .eq('source_id', validDocId);
   assert(
     !diagRows || diagRows.length === 0,

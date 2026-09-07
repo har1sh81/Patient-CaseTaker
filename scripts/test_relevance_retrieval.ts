@@ -42,17 +42,17 @@ async function runTestSuite() {
 
   const supabase = await createClient();
 
-  const arumugamId = 'a1111111-1111-4111-8111-000000000001';
+  const rameshId = 'a1111111-1111-4111-8111-000000000001';
   const meenaId = 'a1111111-1111-4111-8111-000000000002';
   const rajeshId = 'a1111111-1111-4111-8111-000000000003';
   const priyaId = 'a1111111-1111-4111-8111-000000000004';
   const validDocId = 'd1111111-1111-4111-8111-000000000001';
   const seedEncounterId = 'c1111111-1111-4111-8111-000000000001';
 
-  // Seed sample clinical records for Arumugam if not present
+  // Seed sample clinical records for Ramesh if not present
   await supabase.from('encounters').upsert({
     id: seedEncounterId,
-    patient_id: arumugamId,
+    patient_id: rameshId,
     department_mode: 'standard',
     status: 'active',
     started_at: '2026-08-20T10:00:00Z',
@@ -60,7 +60,7 @@ async function runTestSuite() {
 
   await supabase.from('clinical_symptoms').upsert({
     id: 's1111111-1111-4111-8111-000000000001',
-    patient_id: arumugamId,
+    patient_id: rameshId,
     encounter_id: seedEncounterId,
     symptom_name: 'Chest Pain',
     severity: 'moderate',
@@ -70,7 +70,7 @@ async function runTestSuite() {
 
   await supabase.from('clinical_symptoms').upsert({
     id: 's1111111-1111-4111-8111-000000000002',
-    patient_id: arumugamId,
+    patient_id: rameshId,
     encounter_id: seedEncounterId,
     symptom_name: 'Shortness of breath',
     severity: 'mild',
@@ -80,7 +80,7 @@ async function runTestSuite() {
 
   await supabase.from('clinical_vitals').upsert({
     id: 'v1111111-1111-4111-8111-000000000001',
-    patient_id: arumugamId,
+    patient_id: rameshId,
     encounter_id: seedEncounterId,
     vital_name: 'Blood Pressure',
     vital_value: '158/96',
@@ -90,7 +90,7 @@ async function runTestSuite() {
 
   await supabase.from('clinical_medications').upsert({
     id: 'm1111111-1111-4111-8111-000000000001',
-    patient_id: arumugamId,
+    patient_id: rameshId,
     encounter_id: seedEncounterId,
     medication_name: 'Amlodipine',
     dose: '5 mg',
@@ -101,7 +101,7 @@ async function runTestSuite() {
 
   await supabase.from('clinical_medications').upsert({
     id: 'm1111111-1111-4111-8111-000000000002',
-    patient_id: arumugamId,
+    patient_id: rameshId,
     encounter_id: seedEncounterId,
     medication_name: 'Amlodipine',
     dose: '10 mg',
@@ -112,7 +112,7 @@ async function runTestSuite() {
 
   await supabase.from('clinical_lab_results').upsert({
     id: 'l1111111-1111-4111-8111-000000000001',
-    patient_id: arumugamId,
+    patient_id: rameshId,
     encounter_id: seedEncounterId,
     test_name: 'HbA1c',
     result_value: '8.9',
@@ -123,7 +123,7 @@ async function runTestSuite() {
 
   await supabase.from('clinical_diagnoses').upsert({
     id: 'd1111111-1111-4111-8111-000000000099',
-    patient_id: arumugamId,
+    patient_id: rameshId,
     encounter_id: seedEncounterId,
     diagnosis_name: 'Type 2 Diabetes Mellitus',
     verification_status: 'verified',
@@ -132,7 +132,7 @@ async function runTestSuite() {
 
   await supabase.from('clinical_procedures').upsert({
     id: 'p1111111-1111-4111-8111-000000000001',
-    patient_id: arumugamId,
+    patient_id: rameshId,
     encounter_id: seedEncounterId,
     procedure_name: 'Appendectomy',
     raw_procedure_name: 'Appendectomy',
@@ -190,12 +190,12 @@ async function runTestSuite() {
 
   // Ensure active consents for test patients
   await supabase.from('patient_consents').upsert({
-    patient_id: arumugamId,
+    patient_id: rameshId,
     permission: 'share_health_records',
     status: 'granted',
   });
   await supabase.from('patient_consents').upsert({
-    patient_id: arumugamId,
+    patient_id: rameshId,
     permission: 'share_ayush_records',
     status: 'granted',
   });
@@ -211,14 +211,14 @@ async function runTestSuite() {
 
   // Test 1: Basic relevance retrieval
   const res1 = await getRelevantClinicalEvidence({
-    patientId: arumugamId,
+    patientId: rameshId,
     chiefComplaint: 'chest pain',
     symptoms: ['shortness of breath'],
   });
   assert(res1.success === true && (res1.data?.candidates.length ?? 0) > 0, 'Test #1: Basic relevance retrieval');
 
   // Test 2: Empty context
-  const res2 = await getRelevantClinicalEvidence({ patientId: arumugamId });
+  const res2 = await getRelevantClinicalEvidence({ patientId: rameshId });
   assert(res2.success === true, 'Test #2: Empty context handled gracefully');
 
   // Test 3: Empty patient history
@@ -249,7 +249,7 @@ async function runTestSuite() {
 
   // Test 8: Department match
   const resDept = await getRelevantClinicalEvidence({
-    patientId: arumugamId,
+    patientId: rameshId,
     department: 'General Medicine',
     chiefComplaint: 'chest pain',
   });
@@ -257,7 +257,7 @@ async function runTestSuite() {
 
   // Test 9: Encounter linkage
   const resEnc = await getRelevantClinicalEvidence({
-    patientId: arumugamId,
+    patientId: rameshId,
     encounterId: seedEncounterId,
     chiefComplaint: 'chest pain',
   });
@@ -269,7 +269,7 @@ async function runTestSuite() {
   // Test 10: Recency bonus
   const sampleEvent: TimelineEvent = {
     id: 'e1',
-    patientId: arumugamId,
+    patientId: rameshId,
     eventType: 'symptom',
     title: 'Chest Pain',
     summary: 'Chest pain reported',
@@ -280,7 +280,7 @@ async function runTestSuite() {
     eventDatePrecision: 'day',
   };
   const scoredHigh = scoreRelevanceCandidate(sampleEvent, {
-    patientId: arumugamId,
+    patientId: rameshId,
     chiefComplaint: 'chest pain',
     symptoms: ['chest pain'],
     currentDate: '2026-08-25',
@@ -295,7 +295,7 @@ async function runTestSuite() {
 
   // Test 12: Deterministic score calculation
   const scoredHigh2 = scoreRelevanceCandidate(sampleEvent, {
-    patientId: arumugamId,
+    patientId: rameshId,
     chiefComplaint: 'chest pain',
     symptoms: ['chest pain'],
     currentDate: '2026-08-25',
@@ -308,7 +308,7 @@ async function runTestSuite() {
   // Test 14: Relevant tier (50-79)
   const eventRel: TimelineEvent = {
     id: 'e2',
-    patientId: arumugamId,
+    patientId: rameshId,
     eventType: 'medication',
     title: 'Amlodipine',
     summary: '5 mg once daily for Blood Pressure',
@@ -316,13 +316,13 @@ async function runTestSuite() {
     sourceId: 'm1',
     verificationStatus: 'unverified',
   };
-  const scoredRel = scoreRelevanceCandidate(eventRel, { patientId: arumugamId, chiefComplaint: 'hypertension' });
+  const scoredRel = scoreRelevanceCandidate(eventRel, { patientId: rameshId, chiefComplaint: 'hypertension' });
   assert(scoredRel?.rankingTier === 'relevant' || scoredRel?.rankingTier === 'highly_relevant', 'Test #14: Relevant tier assigned');
 
   // Test 15: Possibly relevant tier (25-49)
   const eventPoss: TimelineEvent = {
     id: 'e3',
-    patientId: arumugamId,
+    patientId: rameshId,
     eventType: 'lab',
     title: 'Serum Creatinine',
     summary: '1.25 mg/dL',
@@ -330,13 +330,13 @@ async function runTestSuite() {
     sourceId: 'l1',
     verificationStatus: 'unverified',
   };
-  const scoredPoss = scoreRelevanceCandidate(eventPoss, { patientId: arumugamId, questionContext: 'kidney' });
+  const scoredPoss = scoreRelevanceCandidate(eventPoss, { patientId: rameshId, questionContext: 'kidney' });
   assert(scoredPoss?.rankingTier === 'possibly_relevant', 'Test #15: Possibly relevant tier assigned');
 
   // Test 16: Below-threshold filtering (< 25 dropped)
   const eventLow: TimelineEvent = {
     id: 'e4',
-    patientId: arumugamId,
+    patientId: rameshId,
     eventType: 'procedure',
     title: 'Appendectomy',
     summary: 'Historical appendectomy',
@@ -344,7 +344,7 @@ async function runTestSuite() {
     sourceId: 'p1',
     verificationStatus: 'unverified',
   };
-  const scoredLow = scoreRelevanceCandidate(eventLow, { patientId: arumugamId, chiefComplaint: 'chest pain' });
+  const scoredLow = scoreRelevanceCandidate(eventLow, { patientId: rameshId, chiefComplaint: 'chest pain' });
   assert(scoredLow === null, 'Test #16: Below-threshold candidate (< 25) excluded cleanly');
 
   // Test 17: Relevance reasons exposed
@@ -362,7 +362,7 @@ async function runTestSuite() {
 
   // Test 21: Physician-verified diagnosis retrieval
   const resDiag = await getRelevantClinicalEvidence({
-    patientId: arumugamId,
+    patientId: rameshId,
     chiefComplaint: 'diabetes',
   });
   const diagCand = resDiag.data?.candidates.find((c) => c.sourceType === 'diagnosis');
@@ -370,7 +370,7 @@ async function runTestSuite() {
 
   // Test 22: Medication retrieval
   const resMed = await getRelevantClinicalEvidence({
-    patientId: arumugamId,
+    patientId: rameshId,
     chiefComplaint: 'hypertension',
     requestedEventTypes: ['medication'],
   });
@@ -383,7 +383,7 @@ async function runTestSuite() {
 
   // Test 24: Procedure retrieval
   const resProc = await getRelevantClinicalEvidence({
-    patientId: arumugamId,
+    patientId: rameshId,
     chiefComplaint: 'appendectomy',
   });
   const procCand = resProc.data?.candidates.find((c) => c.sourceType === 'procedure');
@@ -391,7 +391,7 @@ async function runTestSuite() {
 
   // Test 25: Document retrieval
   const resDoc = await getRelevantClinicalEvidence({
-    patientId: arumugamId,
+    patientId: rameshId,
     chiefComplaint: 'chest pain',
     requestedEventTypes: ['document'],
   });
@@ -400,14 +400,14 @@ async function runTestSuite() {
   // Test 26: AYUSH retrieval
   await supabase.from('clinical_ayush_assessments').upsert({
     id: 'a1111111-1111-4111-8111-000000000099',
-    patient_id: arumugamId,
+    patient_id: rameshId,
     encounter_id: seedEncounterId,
     assessment_type: 'Dashavidha Pariksha',
     prakriti: 'Vata-Pitta',
     assessment_date: '2026-08-20',
   });
   const resAyush = await getRelevantClinicalEvidence({
-    patientId: arumugamId,
+    patientId: rameshId,
     department: 'AYUSH',
     chiefComplaint: 'Prakriti assessment',
     requestedEventTypes: ['ayush_assessment'],
@@ -416,7 +416,7 @@ async function runTestSuite() {
 
   // Test 27: Attention flag retrieval
   const resFlag = await getRelevantClinicalEvidence({
-    patientId: arumugamId,
+    patientId: rameshId,
     chiefComplaint: 'hypertension',
     requestedEventTypes: ['attention_flag'],
   });
@@ -425,14 +425,14 @@ async function runTestSuite() {
 
   // Test 28: Conversation retrieval
   const resConv = await getRelevantClinicalEvidence({
-    patientId: arumugamId,
+    patientId: rameshId,
     chiefComplaint: 'chest pain',
     requestedEventTypes: ['conversation'],
   });
   assert(resConv.success === true, 'Test #28: Conversation retrieval functional');
 
   // Test 29: Timeline event reuse
-  const timelineData = await getPatientTimeline({ patientId: arumugamId });
+  const timelineData = await getPatientTimeline({ patientId: rameshId });
   assert(timelineData.success === true && (timelineData.data?.events.length ?? 0) > 0, 'Test #29: Timeline event retrieval reuse intact');
 
   // Test 30: Rajesh HbA1c 7.2 retrieval
@@ -466,9 +466,9 @@ async function runTestSuite() {
   assert(true, 'Test #36: Safety verified - NO conflict resolution during relevance retrieval');
 
   // Test 37: Safety - No diagnosis creation
-  const diagCountBefore = (await supabase.from('clinical_diagnoses').select('id').eq('patient_id', arumugamId)).data?.length || 0;
-  await getRelevantClinicalEvidence({ patientId: arumugamId, chiefComplaint: 'chest pain' });
-  const diagCountAfter = (await supabase.from('clinical_diagnoses').select('id').eq('patient_id', arumugamId)).data?.length || 0;
+  const diagCountBefore = (await supabase.from('clinical_diagnoses').select('id').eq('patient_id', rameshId)).data?.length || 0;
+  await getRelevantClinicalEvidence({ patientId: rameshId, chiefComplaint: 'chest pain' });
+  const diagCountAfter = (await supabase.from('clinical_diagnoses').select('id').eq('patient_id', rameshId)).data?.length || 0;
   assert(diagCountBefore === diagCountAfter, 'Test #37: Safety verified - NO diagnosis creation');
 
   // Test 38: Safety - No treatment generation
@@ -528,30 +528,30 @@ async function runTestSuite() {
   assert(!resMissing.success && resMissing.errorCode === 'NOT_FOUND', 'Test #50: Missing patient returns 404 NOT_FOUND');
 
   // Test 51: Invalid limit handled cleanly
-  const resInvalidLimit = await getRelevantClinicalEvidence({ patientId: arumugamId, limit: -5 });
+  const resInvalidLimit = await getRelevantClinicalEvidence({ patientId: rameshId, limit: -5 });
   assert(resInvalidLimit.success === true, 'Test #51: Invalid limit handled cleanly');
 
   // Test 52: Maximum limit capped at 50
-  const resMaxLimit = await getRelevantClinicalEvidence({ patientId: arumugamId, limit: 100 });
+  const resMaxLimit = await getRelevantClinicalEvidence({ patientId: rameshId, limit: 100 });
   assert(resMaxLimit.success === true && (resMaxLimit.data?.candidates.length ?? 0) <= 50, 'Test #52: Maximum limit capped at 50');
 
   // Test 53: Invalid event type error validation
   const resInvalidType = await getRelevantClinicalEvidence({
-    patientId: arumugamId,
+    patientId: rameshId,
     requestedEventTypes: ['invalid_type' as any],
   });
   assert(resInvalidType.success === true || resInvalidType.errorCode === 'INVALID_INPUT', 'Test #53: Invalid event type query validated');
 
   // Test 54: Department filter
-  const resDeptFilt = await getRelevantClinicalEvidence({ patientId: arumugamId, department: 'General Medicine' });
+  const resDeptFilt = await getRelevantClinicalEvidence({ patientId: rameshId, department: 'General Medicine' });
   assert(resDeptFilt.success === true, 'Test #54: Department filter functional');
 
   // Test 55: Encounter filter
-  const resEncFilt = await getRelevantClinicalEvidence({ patientId: arumugamId, encounterId: seedEncounterId });
+  const resEncFilt = await getRelevantClinicalEvidence({ patientId: rameshId, encounterId: seedEncounterId });
   assert(resEncFilt.success === true, 'Test #55: Encounter filter functional');
 
   // Test 56: Date filter
-  const resDateFilt = await getRelevantClinicalEvidence({ patientId: arumugamId, fromDate: '2026-01-01', toDate: '2026-12-31' });
+  const resDateFilt = await getRelevantClinicalEvidence({ patientId: rameshId, fromDate: '2026-01-01', toDate: '2026-12-31' });
   assert(resDateFilt.success === true, 'Test #56: Date filter functional');
 
   // Test 57: Audit log entry for relevance_retrieval_started
@@ -559,7 +559,7 @@ async function runTestSuite() {
     .from('audit_logs')
     .select('*')
     .eq('action', 'relevance_retrieval_started')
-    .eq('actor_id', arumugamId);
+    .eq('actor_id', rameshId);
   assert(!!auditStart && auditStart.length > 0, 'Test #57: Audit log entry created for relevance_retrieval_started');
 
   // Test 58: Audit log entry for relevance_retrieval_completed
@@ -567,7 +567,7 @@ async function runTestSuite() {
     .from('audit_logs')
     .select('*')
     .eq('action', 'relevance_retrieval_completed')
-    .eq('actor_id', arumugamId);
+    .eq('actor_id', rameshId);
   assert(!!auditComp && auditComp.length > 0, 'Test #58: Audit log entry created for relevance_retrieval_completed');
 
   // Test 59: Audit log entry for relevance_retrieval_failed
@@ -582,8 +582,8 @@ async function runTestSuite() {
   assert(true, 'Test #60: Read-only behavior verified - NO database table mutations');
 
   // Test 61: Query repeat deterministic output
-  const resRep1 = await getRelevantClinicalEvidence({ patientId: arumugamId, chiefComplaint: 'chest pain' });
-  const resRep2 = await getRelevantClinicalEvidence({ patientId: arumugamId, chiefComplaint: 'chest pain' });
+  const resRep1 = await getRelevantClinicalEvidence({ patientId: rameshId, chiefComplaint: 'chest pain' });
+  const resRep2 = await getRelevantClinicalEvidence({ patientId: rameshId, chiefComplaint: 'chest pain' });
   const ids1 = resRep1.data?.candidates.map((c) => c.id).join(',');
   const ids2 = resRep2.data?.candidates.map((c) => c.id).join(',');
   assert(ids1 === ids2, 'Test #61: Query repeat deterministic output produced');
@@ -623,23 +623,23 @@ async function runTestSuite() {
   assert(resDoc.success === true, 'Test #71: Document relevance query completed');
 
   // Test 72: Task #26 regression (Timeline generation)
-  const timelineReg = await getPatientTimeline({ patientId: arumugamId });
+  const timelineReg = await getPatientTimeline({ patientId: rameshId });
   assert(timelineReg.success === true, 'Test #72: Task #26 timeline generation regression passed');
 
   // Test 73: Task #25 regression (Procedure extraction)
-  const procReg = await extractDocumentProcedures(validDocId, arumugamId);
+  const procReg = await extractDocumentProcedures(validDocId, rameshId);
   assert(procReg.success === true, 'Test #73: Task #25 procedure extraction regression passed');
 
   // Test 74: Task #24 regression (Lab interpretation)
-  const labInterpReg = await interpretDocumentLabs(validDocId, arumugamId);
+  const labInterpReg = await interpretDocumentLabs(validDocId, rameshId);
   assert(labInterpReg.success === true, 'Test #74: Task #24 lab interpretation regression passed');
 
   // Test 75: Task #23 regression (Lab extraction)
-  const labExtReg = await extractDocumentLabs(validDocId, arumugamId);
+  const labExtReg = await extractDocumentLabs(validDocId, rameshId);
   assert(labExtReg.success === true, 'Test #75: Task #23 lab extraction regression passed');
 
   // Test 76: Task #7 history access regression
-  const { data: patientHistory } = await supabase.from('encounters').select('*').eq('patient_id', arumugamId);
+  const { data: patientHistory } = await supabase.from('encounters').select('*').eq('patient_id', rameshId);
   assert(Array.isArray(patientHistory) && patientHistory.length > 0, 'Test #76: Task #7 history access regression passed');
 
   // Test 77: Tasks #5–24 regression

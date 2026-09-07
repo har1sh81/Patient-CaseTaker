@@ -60,6 +60,7 @@ export default function KioskPage() {
   const [hspRef, setHspRef] = React.useState('');
   const [patientId, setPatientId] = React.useState<string | null>(null);
   const [isCorrectingDetails, setIsCorrectingDetails] = React.useState(false);
+  const [detailsConfirmed, setDetailsConfirmed] = React.useState(false);
 
   // ABDM states
   const [abdmTxnId, setAbdmTxnId] = React.useState('');
@@ -470,7 +471,7 @@ export default function KioskPage() {
         isSearching ||
         isAbdmLoading ||
         (step === 'IDENTIFY_FORM' && !idValue) ||
-        (step === 'REGISTRATION' && !firstName) ||
+        (step === 'REGISTRATION' && (!firstName || (method !== 'new' && !detailsConfirmed))) ||
         (step === 'CONSENT' && !consentAgree) ||
         (step === 'ABDM_CONSENT' && !otp)
       }
@@ -858,6 +859,21 @@ export default function KioskPage() {
                 />
               </div>
             </div>
+
+            {/* Confirmation Checkbox for Existing Records */}
+            {method !== 'new' && (
+              <div className="flex items-start gap-3 pt-4 border-t border-border-light mt-4">
+                <Checkbox
+                  id="confirmIdentity"
+                  checked={detailsConfirmed}
+                  onChange={(e) => setDetailsConfirmed(e.target.checked)}
+                  className="mt-1"
+                />
+                <label htmlFor="confirmIdentity" className="text-sm font-semibold text-text-main cursor-pointer leading-tight">
+                  I confirm that I am {firstName} {lastName} and these details are accurate.
+                </label>
+              </div>
+            )}
           </Card>
         </div>
       )}

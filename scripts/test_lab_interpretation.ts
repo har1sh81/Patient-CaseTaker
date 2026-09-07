@@ -135,13 +135,13 @@ async function runTestSuite() {
   assert(res17.classification === 'critical', 'Test #17: Explicit Critical flag without reference range -> classification: critical');
 
   // 18. No diagnosis creation
-  const arumugamId = 'a1111111-1111-4111-8111-000000000001';
+  const rameshId = 'a1111111-1111-4111-8111-000000000001';
   const validDocId = 'd1111111-1111-4111-8111-000000000001';
-  const { data: initialDiags } = await supabase.from('clinical_diagnoses').select('id').eq('patient_id', arumugamId);
+  const { data: initialDiags } = await supabase.from('clinical_diagnoses').select('id').eq('patient_id', rameshId);
   const initialCount = initialDiags?.length || 0;
 
-  const serviceRes18 = await interpretDocumentLabs(validDocId, arumugamId, { forceReinterpret: true });
-  const { data: afterDiags } = await supabase.from('clinical_diagnoses').select('id').eq('patient_id', arumugamId);
+  const serviceRes18 = await interpretDocumentLabs(validDocId, rameshId, { forceReinterpret: true });
+  const { data: afterDiags } = await supabase.from('clinical_diagnoses').select('id').eq('patient_id', rameshId);
   const afterCount = afterDiags?.length || 0;
 
   assert(
@@ -170,7 +170,7 @@ async function runTestSuite() {
   // 25. Tamil document range parsing
   const tamLabs = await labExtractor.extract({
     documentId: 'doc_tam_interp',
-    patientId: arumugamId,
+    patientId: rameshId,
     encounterId: 'c1111111-1111-4111-8111-000000000001',
     rawOcrText: 'ஹூமோகுளோபின்: 12.8 g/dL (12.0 - 15.0 g/dL)',
   });
@@ -180,7 +180,7 @@ async function runTestSuite() {
   // 26. Hindi document range parsing
   const hinLabs = await labExtractor.extract({
     documentId: 'doc_hin_interp',
-    patientId: arumugamId,
+    patientId: rameshId,
     encounterId: 'c1111111-1111-4111-8111-000000000001',
     rawOcrText: 'हीमोग्लोबिन: 14.1 g/dL (12.0 - 16.0 g/dL)',
   });
@@ -190,7 +190,7 @@ async function runTestSuite() {
   // 27. Mixed-language document range parsing
   const mixLabs = await labExtractor.extract({
     documentId: 'doc_mix_interp',
-    patientId: arumugamId,
+    patientId: rameshId,
     encounterId: 'c1111111-1111-4111-8111-000000000001',
     rawOcrText: 'Fasting Glucose (இரத்த சர்க்கரை): 168 mg/dL (70 - 110 mg/dL)',
   });
@@ -222,7 +222,7 @@ async function runTestSuite() {
   assert(!crossRes.success && crossRes.errorCode === 'UNAUTHORIZED', 'Test #32: Patient ownership mismatch returns 403 UNAUTHORIZED');
 
   // 33. Wrong encounter/document linkage
-  const invRes = await interpretDocumentLabs('00000000-0000-0000-0000-000000000000', arumugamId);
+  const invRes = await interpretDocumentLabs('00000000-0000-0000-0000-000000000000', rameshId);
   assert(!invRes.success && invRes.errorCode === 'NOT_FOUND', 'Test #33: Invalid document ID rejected with NOT_FOUND');
 
   // 34. Audit start
@@ -230,7 +230,7 @@ async function runTestSuite() {
     .from('audit_logs')
     .select('*')
     .eq('action', 'lab_interpretation_started')
-    .eq('actor_id', arumugamId);
+    .eq('actor_id', rameshId);
   assert(!!auditStart && auditStart.length > 0, 'Test #34: Audit log entry created for lab_interpretation_started');
 
   // 35. Audit completion
@@ -238,7 +238,7 @@ async function runTestSuite() {
     .from('audit_logs')
     .select('*')
     .eq('action', 'lab_interpretation_completed')
-    .eq('actor_id', arumugamId);
+    .eq('actor_id', rameshId);
   assert(!!auditComplete && auditComplete.length > 0, 'Test #35: Audit log entry created for lab_interpretation_completed');
 
   // 36. Audit failure
@@ -250,11 +250,11 @@ async function runTestSuite() {
   assert(!!auditFailed && auditFailed.length > 0, 'Test #36: Audit log entry created for lab_interpretation_failed');
 
   // 37. Idempotent interpretation
-  const idemRes1 = await interpretDocumentLabs(validDocId, arumugamId, { forceReinterpret: false });
+  const idemRes1 = await interpretDocumentLabs(validDocId, rameshId, { forceReinterpret: false });
   assert(idemRes1.success, 'Test #37: Idempotent interpretation succeeds without duplicating Task #23 lab rows');
 
   // 38. Force reinterpretation
-  const idemRes2 = await interpretDocumentLabs(validDocId, arumugamId, { forceReinterpret: true });
+  const idemRes2 = await interpretDocumentLabs(validDocId, rameshId, { forceReinterpret: true });
   assert(idemRes2.success && idemRes2.data?.labsInterpreted === idemRes1.data?.labsInterpreted, 'Test #38: Force reinterpretation updates metadata cleanly');
 
   // 39. Longitudinal HbA1c 7.2 (2025)
@@ -314,7 +314,7 @@ async function runTestSuite() {
   assert(res1.referenceRangeRaw === '4.0 - 5.6 %', 'Test #52: Reference-range raw text preserved ("4.0 - 5.6 %")');
 
   // 53. Task #23 Regression
-  const labExtRes = await extractDocumentLabs(validDocId, arumugamId);
+  const labExtRes = await extractDocumentLabs(validDocId, rameshId);
   assert(labExtRes.success === true, 'Test #53: Task #23 laboratory extraction regression test passed');
 
   // Regression Suite: Tasks #5-23

@@ -290,7 +290,7 @@ async function runTestSuite() {
   assert(resHw.needsReviewCount >= 1, 'Test #35: needsReviewCount aggregated correctly');
 
   // Database integration setup
-  const arumugamId = 'a1111111-1111-4111-8111-000000000001';
+  const rameshId = 'a1111111-1111-4111-8111-000000000001';
   const meenaId = 'a1111111-1111-4111-8111-000000000002';
   const priyaId = 'a1111111-1111-4111-8111-000000000004';
   const validDocId = 'd1111111-1111-4111-8111-000000000001';
@@ -299,7 +299,7 @@ async function runTestSuite() {
   // Test 36: Task #21 candidate integration
   const resCand = await extractor.extract({
     documentId: 'doc_cand_p',
-    patientId: arumugamId,
+    patientId: rameshId,
     encounterId: 'c1111111-1111-4111-8111-000000000001',
     rawOcrText: 'Random notes',
     candidates: [{ concept: 'procedure', sourceText: 'Underwent cataract surgery on 2025-04-12', pageNumber: 1 }],
@@ -310,9 +310,9 @@ async function runTestSuite() {
   );
 
   // Test 37: Safety - No diagnosis generation
-  const { data: diagBefore } = await supabase.from('clinical_diagnoses').select('id').eq('patient_id', arumugamId).eq('source_id', validDocId);
-  const serviceRes37 = await extractDocumentProcedures(validDocId, arumugamId, { forceReextract: true });
-  const { data: diagAfter } = await supabase.from('clinical_diagnoses').select('id').eq('patient_id', arumugamId).eq('source_id', validDocId);
+  const { data: diagBefore } = await supabase.from('clinical_diagnoses').select('id').eq('patient_id', rameshId).eq('source_id', validDocId);
+  const serviceRes37 = await extractDocumentProcedures(validDocId, rameshId, { forceReextract: true });
+  const { data: diagAfter } = await supabase.from('clinical_diagnoses').select('id').eq('patient_id', rameshId).eq('source_id', validDocId);
   assert(
     serviceRes37.success && (!diagAfter || diagAfter.length === 0),
     'Test #37: Safety verified - NO diagnosis rows created during procedure extraction'
@@ -348,7 +348,7 @@ async function runTestSuite() {
   assert(!serviceRes46.success && serviceRes46.errorCode === 'UNAUTHORIZED', 'Test #46: Patient ownership mismatch returns 403 UNAUTHORIZED');
 
   // Test 47: Wrong encounter/document linkage
-  const serviceRes47 = await extractDocumentProcedures('00000000-0000-0000-0000-000000000000', arumugamId);
+  const serviceRes47 = await extractDocumentProcedures('00000000-0000-0000-0000-000000000000', rameshId);
   assert(!serviceRes47.success && serviceRes47.errorCode === 'NOT_FOUND', 'Test #47: Invalid document ID returns 404 NOT_FOUND');
 
   // Test 48: Audit started
@@ -356,7 +356,7 @@ async function runTestSuite() {
     .from('audit_logs')
     .select('*')
     .eq('action', 'procedure_extraction_started')
-    .eq('actor_id', arumugamId);
+    .eq('actor_id', rameshId);
   assert(!!auditStart && auditStart.length > 0, 'Test #48: Audit log entry created for procedure_extraction_started');
 
   // Test 49: Audit completed
@@ -364,7 +364,7 @@ async function runTestSuite() {
     .from('audit_logs')
     .select('*')
     .eq('action', 'procedure_extraction_completed')
-    .eq('actor_id', arumugamId);
+    .eq('actor_id', rameshId);
   assert(!!auditComplete && auditComplete.length > 0, 'Test #49: Audit log entry created for procedure_extraction_completed');
 
   // Test 50: Audit failed
@@ -376,17 +376,17 @@ async function runTestSuite() {
   assert(!!auditFailed && auditFailed.length > 0, 'Test #50: Audit log entry created for procedure_extraction_failed');
 
   // Test 51: Idempotent rerun
-  const idemRes1 = await extractDocumentProcedures(validDocId, arumugamId, { forceReextract: false });
+  const idemRes1 = await extractDocumentProcedures(validDocId, rameshId, { forceReextract: false });
   assert(idemRes1.success, 'Test #51: Idempotent rerun succeeds without duplicate database inserts');
 
   // Test 52: Force reextract
-  const idemRes2 = await extractDocumentProcedures(validDocId, arumugamId, { forceReextract: true });
+  const idemRes2 = await extractDocumentProcedures(validDocId, rameshId, { forceReextract: true });
   assert(idemRes2.success && idemRes2.data?.proceduresCreated === 0, 'Test #52: Force reextract executes cleanly with 0 duplicate rows inserted');
 
   // Test 53: Bilateral/separate procedures
   const resBilateral = await extractor.extract({
     documentId: 'doc_bilat',
-    patientId: arumugamId,
+    patientId: rameshId,
     encounterId: 'enc_1',
     rawOcrText: 'Underwent left eye cataract surgery\nUnderwent right eye cataract surgery',
   });
@@ -471,7 +471,7 @@ async function runTestSuite() {
     },
   };
 
-  const procRes59 = await extractDocumentProcedures(validDocId, arumugamId, {
+  const procRes59 = await extractDocumentProcedures(validDocId, rameshId, {
     forceReextract: true,
     customExtractor: customExt,
   });
@@ -482,7 +482,7 @@ async function runTestSuite() {
   );
 
   // Test 60: Task #24 regression
-  const labInterpRes = await interpretDocumentLabs(validDocId, arumugamId);
+  const labInterpRes = await interpretDocumentLabs(validDocId, rameshId);
   assert(labInterpRes.success === true, 'Test #60: Task #24 reference range interpretation regression test passed');
 
   console.log('\n--------------------------------------------------');

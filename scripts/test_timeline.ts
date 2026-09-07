@@ -50,7 +50,7 @@ async function runTestSuite() {
 
   const supabase = await createClient();
 
-  const arumugamId = 'a1111111-1111-4111-8111-000000000001';
+  const rameshId = 'a1111111-1111-4111-8111-000000000001';
   const meenaId = 'a1111111-1111-4111-8111-000000000002';
   const rajeshId = 'a1111111-1111-4111-8111-000000000003';
   const priyaId = 'a1111111-1111-4111-8111-000000000004';
@@ -60,7 +60,7 @@ async function runTestSuite() {
   const seedEncounterId = 'c1111111-1111-4111-8111-000000000001';
   await supabase.from('encounters').upsert({
     id: seedEncounterId,
-    patient_id: arumugamId,
+    patient_id: rameshId,
     department_mode: 'standard',
     status: 'active',
     started_at: '2026-08-20T10:00:00Z',
@@ -68,7 +68,7 @@ async function runTestSuite() {
 
   await supabase.from('clinical_symptoms').upsert({
     id: 's1111111-1111-4111-8111-000000000001',
-    patient_id: arumugamId,
+    patient_id: rameshId,
     encounter_id: seedEncounterId,
     symptom_name: 'Increased Thirst',
     severity: 'moderate',
@@ -78,7 +78,7 @@ async function runTestSuite() {
 
   await supabase.from('clinical_vitals').upsert({
     id: 'v1111111-1111-4111-8111-000000000001',
-    patient_id: arumugamId,
+    patient_id: rameshId,
     encounter_id: seedEncounterId,
     vital_name: 'Blood Pressure',
     vital_value: '158/96',
@@ -88,7 +88,7 @@ async function runTestSuite() {
 
   await supabase.from('clinical_medications').upsert({
     id: 'm1111111-1111-4111-8111-000000000001',
-    patient_id: arumugamId,
+    patient_id: rameshId,
     encounter_id: seedEncounterId,
     medication_name: 'Metformin',
     dose: '1000 mg',
@@ -99,7 +99,7 @@ async function runTestSuite() {
 
   await supabase.from('clinical_lab_results').upsert({
     id: 'l1111111-1111-4111-8111-000000000001',
-    patient_id: arumugamId,
+    patient_id: rameshId,
     encounter_id: seedEncounterId,
     test_name: 'HbA1c',
     result_value: '8.9',
@@ -110,7 +110,7 @@ async function runTestSuite() {
 
   await supabase.from('clinical_diagnoses').upsert({
     id: 'd1111111-1111-4111-8111-000000000099',
-    patient_id: arumugamId,
+    patient_id: rameshId,
     encounter_id: seedEncounterId,
     diagnosis_name: 'Type 2 Diabetes Mellitus',
     verification_status: 'verified',
@@ -119,7 +119,7 @@ async function runTestSuite() {
 
   await supabase.from('clinical_procedures').upsert({
     id: 'p1111111-1111-4111-8111-000000000001',
-    patient_id: arumugamId,
+    patient_id: rameshId,
     encounter_id: seedEncounterId,
     procedure_name: 'Appendectomy',
     raw_procedure_name: 'Appendectomy',
@@ -205,15 +205,15 @@ async function runTestSuite() {
     specimen_date: '2026-08-20',
   });
 
-  const { data: testProcs, error: testProcErr } = await supabase.from('clinical_procedures').select('*').eq('patient_id', arumugamId);
+  const { data: testProcs, error: testProcErr } = await supabase.from('clinical_procedures').select('*').eq('patient_id', rameshId);
   console.log('[DEBUG test_timeline] testProcs:', JSON.stringify(testProcs), 'testProcErr:', testProcErr);
 
   // Test 1: Basic timeline generation
-  const timeline1 = await getPatientTimeline({ patientId: arumugamId });
+  const timeline1 = await getPatientTimeline({ patientId: rameshId });
   assert(timeline1.success && (timeline1.data?.total ?? 0) >= 5, 'Test #1: Basic timeline generation');
 
   // Test 2: Empty patient timeline (Future date range filter returns 0 events)
-  const timeline2 = await getPatientTimeline({ patientId: arumugamId, fromDate: '2099-01-01', toDate: '2099-12-31' });
+  const timeline2 = await getPatientTimeline({ patientId: rameshId, fromDate: '2099-01-01', toDate: '2099-12-31' });
   assert(timeline2.success && timeline2.data?.total === 0, 'Test #2: Empty patient timeline returns 0 events');
 
   // Test 3: Encounter events
@@ -251,13 +251,13 @@ async function runTestSuite() {
   // Test 11: AYUSH events
   await supabase.from('clinical_ayush_assessments').upsert({
     id: 'a1111111-1111-4111-8111-000000000099',
-    patient_id: arumugamId,
+    patient_id: rameshId,
     encounter_id: seedEncounterId,
     assessment_type: 'Dashavidha Pariksha',
     prakriti: 'Vata-Pitta',
     assessment_date: '2026-08-20',
   });
-  const timelineAyush = await getPatientTimeline({ patientId: arumugamId, eventTypes: ['ayush_assessment'] });
+  const timelineAyush = await getPatientTimeline({ patientId: rameshId, eventTypes: ['ayush_assessment'] });
   assert(timelineAyush.success && timelineAyush.data?.events.some((e) => e.eventType === 'ayush_assessment') === true, 'Test #11: AYUSH events included when authorized');
 
   // Test 12: Attention flag events
@@ -295,7 +295,7 @@ async function runTestSuite() {
   // Test 20: No upload-date masquerading
   const docEv = buildDocumentEvent({
     id: 'doc_mask_1',
-    patient_id: arumugamId,
+    patient_id: rameshId,
     created_at: '2026-09-01T00:00:00Z',
     file_name: 'consultation.pdf',
     document_type: 'consultation_note',
@@ -303,7 +303,7 @@ async function runTestSuite() {
   assert(docEv.eventDatePrecision === 'day' || docEv.eventDateSource === 'explicit_date', 'Test #20: Document upload date stored with technical fallback source');
 
   // Test 21: Date ascending
-  const timelineAsc = await getPatientTimeline({ patientId: arumugamId, descending: false });
+  const timelineAsc = await getPatientTimeline({ patientId: rameshId, descending: false });
   assert(
     timelineAsc.success &&
       (timelineAsc.data?.datedEvents[0]?.eventDate ?? '') <=
@@ -312,7 +312,7 @@ async function runTestSuite() {
   );
 
   // Test 22: Date descending
-  const timelineDesc = await getPatientTimeline({ patientId: arumugamId, descending: true });
+  const timelineDesc = await getPatientTimeline({ patientId: rameshId, descending: true });
   assert(
     timelineDesc.success &&
       (timelineDesc.data?.datedEvents[0]?.eventDate ?? '') >=
@@ -406,9 +406,9 @@ async function runTestSuite() {
   assert(diagVer.verificationStatus === 'verified', 'Test #44: Verification status preserved without downgrading');
 
   // Test 45: Safety - No diagnosis generation
-  const diagCountBefore = (await supabase.from('clinical_diagnoses').select('id').eq('patient_id', arumugamId)).data?.length || 0;
-  await getPatientTimeline({ patientId: arumugamId });
-  const diagCountAfter = (await supabase.from('clinical_diagnoses').select('id').eq('patient_id', arumugamId)).data?.length || 0;
+  const diagCountBefore = (await supabase.from('clinical_diagnoses').select('id').eq('patient_id', rameshId)).data?.length || 0;
+  await getPatientTimeline({ patientId: rameshId });
+  const diagCountAfter = (await supabase.from('clinical_diagnoses').select('id').eq('patient_id', rameshId)).data?.length || 0;
   assert(diagCountBefore === diagCountAfter, 'Test #45: Safety verified - NO diagnosis generation during timeline construction');
 
   // Test 46: Safety - No treatment generation
@@ -447,27 +447,27 @@ async function runTestSuite() {
   assert(!timelineCross.success && timelineCross.errorCode === 'NOT_FOUND', 'Test #54: Cross-patient protection prevents unauthorized access');
 
   // Test 55: Department filter
-  const timelineDept = await getPatientTimeline({ patientId: arumugamId, department: 'General Medicine' });
+  const timelineDept = await getPatientTimeline({ patientId: rameshId, department: 'General Medicine' });
   assert(timelineDept.success === true, 'Test #55: Department filter functional');
 
   // Test 56: Encounter filter
-  const timelineEncFilter = await getPatientTimeline({ patientId: arumugamId, encounterId: seedEncounterId });
+  const timelineEncFilter = await getPatientTimeline({ patientId: rameshId, encounterId: seedEncounterId });
   assert(timelineEncFilter.success && timelineEncFilter.data?.events.every((e) => e.encounterId === seedEncounterId || !e.encounterId) === true, 'Test #56: Encounter filter functional');
 
   // Test 57: Date range filter
-  const timelineDateRange = await getPatientTimeline({ patientId: arumugamId, fromDate: '2026-01-01', toDate: '2026-12-31' });
+  const timelineDateRange = await getPatientTimeline({ patientId: rameshId, fromDate: '2026-01-01', toDate: '2026-12-31' });
   assert(timelineDateRange.success === true, 'Test #57: Date range filter functional');
 
   // Test 58: Event type filter
-  const timelineTypes = await getPatientTimeline({ patientId: arumugamId, eventTypes: ['lab', 'procedure'] });
+  const timelineTypes = await getPatientTimeline({ patientId: rameshId, eventTypes: ['lab', 'procedure'] });
   assert(timelineTypes.success && timelineTypes.data?.events.every((e) => e.eventType === 'lab' || e.eventType === 'procedure') === true, 'Test #58: Event type filter functional');
 
   // Test 59: Invalid event type
-  const timelineInvalidType = await getPatientTimeline({ patientId: arumugamId, eventTypes: ['invalid_type' as any] });
+  const timelineInvalidType = await getPatientTimeline({ patientId: rameshId, eventTypes: ['invalid_type' as any] });
   assert(!timelineInvalidType.success && timelineInvalidType.errorCode === 'INVALID_INPUT', 'Test #59: Invalid event type rejected with HTTP 400');
 
   // Test 60: Invalid date filter
-  const timelineInvalidDate = await getPatientTimeline({ patientId: arumugamId, fromDate: 'invalid-date-format' });
+  const timelineInvalidDate = await getPatientTimeline({ patientId: rameshId, fromDate: 'invalid-date-format' });
   assert(timelineInvalidDate.success === true, 'Test #60: Invalid date filter handled gracefully');
 
   // Test 61: Missing patient
@@ -479,12 +479,12 @@ async function runTestSuite() {
     .from('audit_logs')
     .select('*')
     .eq('action', 'timeline_generation_started')
-    .eq('actor_id', arumugamId);
+    .eq('actor_id', rameshId);
   assert(!!auditStart && auditStart.length > 0, 'Test #62: Audit log entry created for timeline_generation_started');
 
   // Test 63: Deterministic ordering
-  const timelineOrder1 = await getPatientTimeline({ patientId: arumugamId });
-  const timelineOrder2 = await getPatientTimeline({ patientId: arumugamId });
+  const timelineOrder1 = await getPatientTimeline({ patientId: rameshId });
+  const timelineOrder2 = await getPatientTimeline({ patientId: rameshId });
   const ids1 = timelineOrder1.data?.events.map((e) => e.id).join(',');
   const ids2 = timelineOrder2.data?.events.map((e) => e.id).join(',');
   assert(ids1 === ids2, 'Test #63: Deterministic ordering produced across multiple queries');
@@ -494,19 +494,19 @@ async function runTestSuite() {
   assert(Array.isArray(partition.datedEvents) && Array.isArray(partition.undatedEvents), 'Test #64: Unknown-date events partitioned cleanly');
 
   // Test 65: Task #25 regression (Procedure extraction)
-  const procExtRes = await extractDocumentProcedures(validDocId, arumugamId);
+  const procExtRes = await extractDocumentProcedures(validDocId, rameshId);
   assert(procExtRes.success === true, 'Test #65: Task #25 procedure extraction regression passed');
 
   // Test 66: Task #24 regression (Lab interpretation)
-  const labInterpRes = await interpretDocumentLabs(validDocId, arumugamId);
+  const labInterpRes = await interpretDocumentLabs(validDocId, rameshId);
   assert(labInterpRes.success === true, 'Test #66: Task #24 lab interpretation regression passed');
 
   // Test 67: Task #23 regression (Lab extraction)
-  const labExtRes = await extractDocumentLabs(validDocId, arumugamId);
+  const labExtRes = await extractDocumentLabs(validDocId, rameshId);
   assert(labExtRes.success === true, 'Test #67: Task #23 lab extraction regression passed');
 
   // Test 68: Task #7 history access regression
-  const { data: patientHistory } = await supabase.from('encounters').select('*').eq('patient_id', arumugamId);
+  const { data: patientHistory } = await supabase.from('encounters').select('*').eq('patient_id', rameshId);
   assert(Array.isArray(patientHistory) && patientHistory.length > 0, 'Test #68: Task #7 history access regression passed');
 
   // Test 69: Tasks #5–24 regression

@@ -41,17 +41,17 @@ async function runMedicalExtractionTests() {
   const supabase = await createClient();
 
   // Test Patients & Documents
-  const arumugamId = 'a1111111-1111-4111-8111-000000000001';
+  const rameshId = 'a1111111-1111-4111-8111-000000000001';
   const meenaId = 'a1111111-1111-4111-8111-000000000002';
   const rajeshId = 'a1111111-1111-4111-8111-000000000003';
   const priyaId = 'a1111111-1111-4111-8111-000000000004';
   const sureshId = 'a1111111-1111-4111-8111-000000000006';
 
-  const docId1 = 'd1111111-1111-4111-8111-000000000001'; // Arumugam OPD Rx
+  const docId1 = 'd1111111-1111-4111-8111-000000000001'; // Ramesh OPD Rx
   const meenaDocId = 'd1111111-1111-4111-8111-000000000011'; // Meena AYUSH record
 
   // 1. Document Validation
-  const invalidRes = await extractMedicalInformation('00000000-0000-0000-0000-000000000000', arumugamId);
+  const invalidRes = await extractMedicalInformation('00000000-0000-0000-0000-000000000000', rameshId);
   assert(!invalidRes.success && invalidRes.errorCode === 'NOT_FOUND', 'Test #1: Document validation returns NOT_FOUND for invalid ID');
 
   // 2. Patient Ownership
@@ -59,7 +59,7 @@ async function runMedicalExtractionTests() {
   assert(!crossRes.success && crossRes.errorCode === 'UNAUTHORIZED', 'Test #2: Patient ownership enforced (cross-patient access blocked)');
 
   // 3. Consent Allowed
-  const consentAllowedRes = await extractMedicalInformation(docId1, arumugamId);
+  const consentAllowedRes = await extractMedicalInformation(docId1, rameshId);
   assert(consentAllowedRes.success && !!consentAllowedRes.data, 'Test #3: Consent allowed permits medical extraction');
 
   // 4. Consent Denied
@@ -68,17 +68,17 @@ async function runMedicalExtractionTests() {
   assert(!deniedRes.success && deniedRes.errorCode === 'CONSENT_DENIED', 'Test #4: Consent denied blocks extraction with CONSENT_DENIED error');
 
   // 5. OCR Retrieval Integration
-  const ocrRes = await ocrDocument(docId1, arumugamId);
+  const ocrRes = await ocrDocument(docId1, rameshId);
   assert(ocrRes.success && !!ocrRes.rawText, 'Test #5: OCR retrieval integration successful');
 
   // 6. Document Classification Integration
-  const classRes = await classifyMedicalDocument(docId1, arumugamId);
+  const classRes = await classifyMedicalDocument(docId1, rameshId);
   assert(classRes.success && !!classRes.result?.predictedDocumentType, 'Test #6: Task #20 Document classification integration successful');
 
   // 7. Symptom Extraction
   const sympRes = await defaultMedicalExtractor.extract({
     documentId: docId1,
-    patientId: arumugamId,
+    patientId: rameshId,
     encounterId: 'c1111111-1111-4111-8111-000000000001',
     rawOcrText: 'Chief Complaint: Patient reports severe chest pain and breathlessness for 2 days.',
   });
@@ -90,7 +90,7 @@ async function runMedicalExtractionTests() {
   // 8. Diagnosis / History Distinction
   const diagRes = await defaultMedicalExtractor.extract({
     documentId: docId1,
-    patientId: arumugamId,
+    patientId: rameshId,
     encounterId: 'c1111111-1111-4111-8111-000000000001',
     rawOcrText: 'Past History: Known case of Diabetes Mellitus for 10 years.\nAssessment: Essential Hypertension',
   });
@@ -104,7 +104,7 @@ async function runMedicalExtractionTests() {
   // 9. Allergy Extraction
   const allergyRes = await defaultMedicalExtractor.extract({
     documentId: docId1,
-    patientId: arumugamId,
+    patientId: rameshId,
     encounterId: 'c1111111-1111-4111-8111-000000000001',
     rawOcrText: 'Allergies: Drug Allergy to Penicillin.',
   });
@@ -116,7 +116,7 @@ async function runMedicalExtractionTests() {
   // 10. Family History Extraction
   const famRes = await defaultMedicalExtractor.extract({
     documentId: docId1,
-    patientId: arumugamId,
+    patientId: rameshId,
     encounterId: 'c1111111-1111-4111-8111-000000000001',
     rawOcrText: 'Family History: Father has diabetes and heart disease.',
   });
@@ -128,7 +128,7 @@ async function runMedicalExtractionTests() {
   // 11. Social / Lifestyle Extraction
   const socialRes = await defaultMedicalExtractor.extract({
     documentId: docId1,
-    patientId: arumugamId,
+    patientId: rameshId,
     encounterId: 'c1111111-1111-4111-8111-000000000001',
     rawOcrText: 'Social History: Tobacco / Smoking: Non-smoker. Diet: Vegetarian.',
   });
@@ -152,7 +152,7 @@ async function runMedicalExtractionTests() {
   // 13. Vital Recognition
   const vitalRes = await defaultMedicalExtractor.extract({
     documentId: docId1,
-    patientId: arumugamId,
+    patientId: rameshId,
     encounterId: 'c1111111-1111-4111-8111-000000000001',
     rawOcrText: 'O/E: BP: 150/90 mmHg, Pulse: 84 bpm.',
   });
@@ -164,7 +164,7 @@ async function runMedicalExtractionTests() {
   // 14. Provenance Preservation
   const sampleFact = sympRes.facts[0];
   assert(
-    sampleFact.documentId === docId1 && sampleFact.patientId === arumugamId && sampleFact.provenanceSource === 'ocr_extraction',
+    sampleFact.documentId === docId1 && sampleFact.patientId === rameshId && sampleFact.provenanceSource === 'ocr_extraction',
     'Test #14: Provenance metadata (documentId, patientId, provenanceSource) preserved'
   );
 
@@ -177,7 +177,7 @@ async function runMedicalExtractionTests() {
   // 16. Page Provenance
   const pageRes = await defaultMedicalExtractor.extract({
     documentId: docId1,
-    patientId: arumugamId,
+    patientId: rameshId,
     encounterId: 'c1111111-1111-4111-8111-000000000001',
     rawOcrText: '--- Page 1 ---\nSymptoms: Headache\n--- Page 2 ---\nDiagnosis: Essential Hypertension',
   });
@@ -220,7 +220,7 @@ async function runMedicalExtractionTests() {
   // 20. Medication Candidate Detection (Task #22 Boundary)
   const medCandRes = await defaultMedicalExtractor.extract({
     documentId: docId1,
-    patientId: arumugamId,
+    patientId: rameshId,
     encounterId: 'c1111111-1111-4111-8111-000000000001',
     rawOcrText: 'Rx:\n1. Tab Metformin 500mg BD after food\n2. Tab Telmisartan 40mg OD',
   });
@@ -244,7 +244,7 @@ async function runMedicalExtractionTests() {
   // 22. Procedure Candidate Detection (Task #25 Boundary)
   const procCandRes = await defaultMedicalExtractor.extract({
     documentId: docId1,
-    patientId: arumugamId,
+    patientId: rameshId,
     encounterId: 'c1111111-1111-4111-8111-000000000001',
     rawOcrText: 'Past Surgical History: Appendectomy in 2018. CABG in 2021.',
   });
@@ -256,7 +256,7 @@ async function runMedicalExtractionTests() {
   // 23. Clinical Safety: NO Diagnosis Inference from Symptoms Alone
   const safeRes = await defaultMedicalExtractor.extract({
     documentId: docId1,
-    patientId: arumugamId,
+    patientId: rameshId,
     encounterId: 'c1111111-1111-4111-8111-000000000001',
     rawOcrText: 'Symptoms: chest pain, sweating, shortness of breath for 1 hour.',
   });
@@ -275,7 +275,7 @@ async function runMedicalExtractionTests() {
   // 25. Hallucinated Facts Prevention
   const blankRes = await defaultMedicalExtractor.extract({
     documentId: docId1,
-    patientId: arumugamId,
+    patientId: rameshId,
     encounterId: 'c1111111-1111-4111-8111-000000000001',
     rawOcrText: 'Patient attended routine wellness visit. No complaints.',
   });
@@ -285,8 +285,8 @@ async function runMedicalExtractionTests() {
   );
 
   // 26. Idempotent Execution
-  const serviceRes1 = await extractMedicalInformation(docId1, arumugamId);
-  const serviceRes2 = await extractMedicalInformation(docId1, arumugamId);
+  const serviceRes1 = await extractMedicalInformation(docId1, rameshId);
+  const serviceRes2 = await extractMedicalInformation(docId1, rameshId);
   assert(
     serviceRes1.success && serviceRes2.success,
     'Test #26: Repeated medical extraction execution is idempotent'
@@ -306,7 +306,7 @@ async function runMedicalExtractionTests() {
 
   // 28. No Cross-Patient Leakage
   assert(
-    clinExt.facts.every((f: any) => f.patientId === arumugamId),
+    clinExt.facts.every((f: any) => f.patientId === rameshId),
     'Test #28: All persisted facts belong strictly to requesting patient'
   );
 
@@ -317,7 +317,7 @@ async function runMedicalExtractionTests() {
   );
 
   // 30–44. Regressions across prior tasks
-  const ocr17Res = await ocrDocument(docId1, arumugamId);
+  const ocr17Res = await ocrDocument(docId1, rameshId);
   assert(ocr17Res.success && !!ocr17Res.rawText, 'Test #30: Task #17 Regression - Standard OCR service functional');
 
   const sureshDocId = 'd1111111-1111-4111-8111-000000000018';
@@ -327,7 +327,7 @@ async function runMedicalExtractionTests() {
   const ocr19Res = await ocrDocument(meenaDocId, meenaId, { mode: 'multilingual', language: 'ta' });
   assert(ocr19Res.success, 'Test #32: Task #19 Regression - Multilingual OCR service functional');
 
-  const class20Res = await classifyMedicalDocument(docId1, arumugamId);
+  const class20Res = await classifyMedicalDocument(docId1, rameshId);
   assert(class20Res.success && !!class20Res.result, 'Test #33: Task #20 Regression - Document classification service functional');
 
   const { data: storageDoc } = await supabase.from('medical_documents').select('*').eq('id', docId1).single();
@@ -358,14 +358,14 @@ async function runMedicalExtractionTests() {
   const extractSymptomRes = extractSymptomsFromAnswer('chest pain for 2 days');
   assert(extractSymptomRes.length > 0, 'Test #41: Task #8 Regression - Symptom extractor functional');
 
-  const histRes = await getPatientClinicalHistory(arumugamId);
-  assert(histRes?.patient.id === arumugamId, 'Test #42: Task #7 Regression - Clinical history service functional');
+  const histRes = await getPatientClinicalHistory(rameshId);
+  assert(histRes?.patient.id === rameshId, 'Test #42: Task #7 Regression - Clinical history service functional');
 
-  const consentRes = await hasValidConsent(arumugamId, 'share_health_records');
+  const consentRes = await hasValidConsent(rameshId, 'share_health_records');
   assert(consentRes, 'Test #43: Task #6 Regression - Consent service active');
 
-  const { data: patient5 } = await supabase.from('patients').select('*').eq('id', arumugamId).single();
-  assert(patient5?.first_name === 'Arumugam', 'Test #44: Task #5 Regression - Patient identification intact');
+  const { data: patient5 } = await supabase.from('patients').select('*').eq('id', rameshId).single();
+  assert(patient5?.first_name === 'Ramesh', 'Test #44: Task #5 Regression - Patient identification intact');
 
   // 45. Boundary Assertions & Task #4 Corpus Evaluation
   console.log('\n--------------------------------------------------');

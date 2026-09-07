@@ -15,36 +15,36 @@ interface TestCase {
 
 const TEST_CASES: TestCase[] = [
   {
-    name: '1. Valid ABHA Number (Arumugam Kandasamy)',
+    name: '1. Valid ABHA Number (Ramesh Kumar)',
     body: {
       identifierType: 'abha_number',
       identifierValue: 'ABHA-001',
     },
     expectedStatus: 200,
     expectedPatientId: 'a1111111-1111-4111-8111-000000000001',
-    expectedPatientName: 'Arumugam Kandasamy',
+    expectedPatientName: 'Ramesh Kumar',
     expectedVerified: true,
   },
   {
-    name: '2. Valid ABHA Address (Arumugam Kandasamy)',
+    name: '2. Valid ABHA Address (Ramesh Kumar)',
     body: {
       identifierType: 'abha_address',
-      identifierValue: 'arumugam.k@abdm.demo',
+      identifierValue: 'ramesh.k@abdm.demo',
     },
     expectedStatus: 200,
     expectedPatientId: 'a1111111-1111-4111-8111-000000000001',
-    expectedPatientName: 'Arumugam Kandasamy',
+    expectedPatientName: 'Ramesh Kumar',
     expectedVerified: true,
   },
   {
-    name: '3. Valid Hospital Number (Arumugam Kandasamy)',
+    name: '3. Valid Hospital Number (Ramesh Kumar)',
     body: {
       identifierType: 'hospital_number',
       identifierValue: 'HOSP-OPD-2026-0101',
     },
     expectedStatus: 200,
     expectedPatientId: 'a1111111-1111-4111-8111-000000000001',
-    expectedPatientName: 'Arumugam Kandasamy',
+    expectedPatientName: 'Ramesh Kumar',
     expectedVerified: true,
   },
   {

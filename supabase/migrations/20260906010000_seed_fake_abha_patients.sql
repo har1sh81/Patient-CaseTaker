@@ -7,7 +7,7 @@
 INSERT INTO public.patients (
   id, first_name, last_name, full_name, date_of_birth, gender, phone_number, email, preferred_language
 ) VALUES
-  ('a1111111-1111-4111-8111-000000000001', 'Arumugam', 'Kandasamy', 'Arumugam Kandasamy', '1972-04-14', 'Male', '+919840112345', 'arumugam.k@demo-mail.in', 'ta'),
+  ('a1111111-1111-4111-8111-000000000001', 'Ramesh', 'Kumar', 'Ramesh Kumar', '1972-04-14', 'Male', '+919840112345', 'ramesh.k@demo-mail.in', 'ta'),
   ('a1111111-1111-4111-8111-000000000002', 'Meena', 'Sundaram', 'Meena Sundaram', '1996-08-22', 'Female', '+919840223456', 'meena.s@demo-mail.in', 'ta'),
   ('a1111111-1111-4111-8111-000000000003', 'Rajesh', 'Sharma', 'Rajesh Kumar Sharma', '1958-11-05', 'Male', '+919810334567', 'rajesh.sharma@demo-mail.in', 'hi'),
   ('a1111111-1111-4111-8111-000000000004', 'Priya', 'Ramanathan', 'Priya Ramanathan', '2015-03-10', 'Female', '+919840445678', 'guardian.ramanathan@demo-mail.in', 'ta'),
@@ -37,7 +37,7 @@ INSERT INTO public.patient_external_identifiers (
 ) VALUES
   -- Patient 1: ABHA Number + ABHA Address + Hospital Number (Verified)
   ('b1111111-1111-4111-8111-000000000101', 'a1111111-1111-4111-8111-000000000001', 'abha_number', 'ABHA-001', 'NDHM_ABDM_DEMO', 'verified', '{"auth_methods": ["OTP", "DEMOGRAPHIC"]}'::jsonb),
-  ('b1111111-1111-4111-8111-000000000102', 'a1111111-1111-4111-8111-000000000001', 'abha_address', 'arumugam.k@abdm.demo', 'NDHM_ABDM_DEMO', 'verified', '{"primary": true}'::jsonb),
+  ('b1111111-1111-4111-8111-000000000102', 'a1111111-1111-4111-8111-000000000001', 'abha_address', 'ramesh.k@abdm.demo', 'NDHM_ABDM_DEMO', 'verified', '{"primary": true}'::jsonb),
   ('b1111111-1111-4111-8111-000000000103', 'a1111111-1111-4111-8111-000000000001', 'hospital_number', 'HOSP-OPD-2026-0101', 'GH_CHENNAI_OPD', 'verified', '{"unit": "General Medicine"}'::jsonb),
 
   -- Patient 2: ABHA Number + ABHA Address (AYUSH Patient)

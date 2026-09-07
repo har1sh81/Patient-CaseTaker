@@ -45,14 +45,14 @@ async function runTests() {
     return { res, body };
   }
 
-  // 1. Arumugam History Retrieval (Cardiac Presentation)
+  // 1. Ramesh History Retrieval (Cardiac Presentation)
   const t1 = await callHistoryApi(ARUMUGAM_ID);
-  const arumugamSymptoms = t1.body.data?.encounters?.flatMap((e: any) => e.symptoms) || [];
-  const arumugamChestPain = arumugamSymptoms.find((s: any) => s.symptomName.toLowerCase().includes('chest pain'));
+  const rameshSymptoms = t1.body.data?.encounters?.flatMap((e: any) => e.symptoms) || [];
+  const rameshChestPain = rameshSymptoms.find((s: any) => s.symptomName.toLowerCase().includes('chest pain'));
   assertTest(
-    t1.res.status === 200 && t1.body.success && !!arumugamChestPain,
-    '1. Arumugam Clinical History Retrieval (Chest pain symptom present)',
-    `HTTP ${t1.res.status}, Patient: ${t1.body.data?.patient?.fullName}, Total Symptoms: ${arumugamSymptoms.length}`
+    t1.res.status === 200 && t1.body.success && !!rameshChestPain,
+    '1. Ramesh Clinical History Retrieval (Chest pain symptom present)',
+    `HTTP ${t1.res.status}, Patient: ${t1.body.data?.patient?.fullName}, Total Symptoms: ${rameshSymptoms.length}`
   );
 
   // 2. Rajesh Longitudinal History Retrieval (HbA1c Progression: 7.2% -> 8.4% -> 8.9%)
@@ -120,7 +120,7 @@ async function runTests() {
     `HTTP ${t7.res.status}, Code: ${t7.body.error?.code}`
   );
 
-  // 8. Consent Allowed Access (Arumugam - share_health_records)
+  // 8. Consent Allowed Access (Ramesh - share_health_records)
   assertTest(
     t1.res.status === 200 && t1.body.success,
     '8. Consent Allowed Access (Authorized patient returns HTTP 200)',
@@ -136,16 +136,16 @@ async function runTests() {
   );
 
   // 10. Patient / Encounter Mismatch Detection (No cross-patient contamination)
-  const arumugamEncounterPatientIds = t1.body.data?.encounters?.map((e: any) => e.patientId) || [];
-  const allMatchArumugam = arumugamEncounterPatientIds.every((pid: string) => pid === ARUMUGAM_ID);
+  const rameshEncounterPatientIds = t1.body.data?.encounters?.map((e: any) => e.patientId) || [];
+  const allMatchRamesh = rameshEncounterPatientIds.every((pid: string) => pid === ARUMUGAM_ID);
   assertTest(
-    allMatchArumugam && arumugamEncounterPatientIds.length > 0,
+    allMatchRamesh && rameshEncounterPatientIds.length > 0,
     '10. Patient/Encounter Mismatch Isolation (Zero cross-patient leakage)',
-    `All Encounter Patient IDs Match ${ARUMUGAM_ID}: ${allMatchArumugam}`
+    `All Encounter Patient IDs Match ${ARUMUGAM_ID}: ${allMatchRamesh}`
   );
 
   // 11. Provenance Preservation Check
-  const symptomWithSource = arumugamSymptoms.find((s: any) => s.sourceId);
+  const symptomWithSource = rameshSymptoms.find((s: any) => s.sourceId);
   assertTest(
     !!symptomWithSource && symptomWithSource.provenanceSource === 'patient_reported' && !!symptomWithSource.sourceId,
     '11. Provenance Preservation (sourceId and provenanceSource retained)',
@@ -153,11 +153,11 @@ async function runTests() {
   );
 
   // 12. Verification Status Preservation Check
-  const arumugamVerificationStatus = arumugamSymptoms[0]?.verificationStatus;
+  const rameshVerificationStatus = rameshSymptoms[0]?.verificationStatus;
   assertTest(
-    arumugamVerificationStatus === 'unverified',
+    rameshVerificationStatus === 'unverified',
     '12. Verification Status Preservation (Patient-reported symptom remains unverified)',
-    `VerificationStatus: ${arumugamVerificationStatus}`
+    `VerificationStatus: ${rameshVerificationStatus}`
   );
 
   // 13. Chronological Ordering Check

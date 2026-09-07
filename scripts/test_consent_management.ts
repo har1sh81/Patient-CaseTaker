@@ -32,7 +32,7 @@ async function runTests() {
     console.log('----------------------------------------------------');
   }
 
-  // 1. Valid Accepted Consent Check (Arumugam - share_health_records)
+  // 1. Valid Accepted Consent Check (Ramesh - share_health_records)
   const req1 = new Request('http://localhost:3000/api/patients/consent/check', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -42,7 +42,7 @@ async function runTests() {
   const body1 = await res1.json();
   assertTest(
     res1.status === 200 && body1.allowed === true,
-    '1. Valid Accepted Consent Check (Arumugam - share_health_records)',
+    '1. Valid Accepted Consent Check (Ramesh - share_health_records)',
     `HTTP ${res1.status}, Allowed: ${body1.allowed}`
   );
 
@@ -60,7 +60,7 @@ async function runTests() {
     `HTTP ${res2.status}, Allowed: ${body2.allowed}`
   );
 
-  // 3. Accepted Consent without requested permission (Arumugam - share_ayush_records is false in seed)
+  // 3. Accepted Consent without requested permission (Ramesh - share_ayush_records is false in seed)
   const req3 = new Request('http://localhost:3000/api/patients/consent/check', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -70,7 +70,7 @@ async function runTests() {
   const body3 = await res3.json();
   assertTest(
     res3.status === 200 && body3.allowed === false,
-    '3. Accepted Consent without requested permission (Arumugam - share_ayush_records)',
+    '3. Accepted Consent without requested permission (Ramesh - share_ayush_records)',
     `HTTP ${res3.status}, Allowed: ${body3.allowed}`
   );
 
@@ -100,7 +100,7 @@ async function runTests() {
     `HTTP ${res4.status}, Consent ID: ${createdConsentId}`
   );
 
-  // 5. Verify newly granted permission works (Arumugam - share_ayush_records now allowed = true)
+  // 5. Verify newly granted permission works (Ramesh - share_ayush_records now allowed = true)
   const req5 = new Request('http://localhost:3000/api/patients/consent/check', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

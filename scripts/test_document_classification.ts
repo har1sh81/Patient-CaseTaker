@@ -51,7 +51,7 @@ async function runDocumentClassificationTests() {
   const { count: initAyushCount } = await supabase.from('clinical_ayush_assessments').select('*', { count: 'exact', head: true });
 
   // Test Patients
-  const arumugamId = 'a1111111-1111-4111-8111-000000000001';
+  const rameshId = 'a1111111-1111-4111-8111-000000000001';
   const meenaId = 'a1111111-1111-4111-8111-000000000002';
   const priyaId = 'a1111111-1111-4111-8111-000000000004';
   const sureshId = 'a1111111-1111-4111-8111-000000000006';
@@ -242,8 +242,8 @@ async function runDocumentClassificationTests() {
   );
 
   // 20. Manual / Trusted document_type Not Overwritten in DB
-  const docId1 = 'd1111111-1111-4111-8111-000000000001'; // Arumugam OPD Prescription
-  const classifyServiceRes = await classifyMedicalDocument(docId1, arumugamId);
+  const docId1 = 'd1111111-1111-4111-8111-000000000001'; // Ramesh OPD Prescription
+  const classifyServiceRes = await classifyMedicalDocument(docId1, rameshId);
   const { data: dbDoc } = await supabase
     .from('medical_documents')
     .select('document_type')
@@ -269,8 +269,8 @@ async function runDocumentClassificationTests() {
   );
 
   // 22. Consent Allowed
-  const arumugamDoc2 = 'd1111111-1111-4111-8111-000000000002';
-  const consentAllowedRes = await classifyMedicalDocument(arumugamDoc2, arumugamId);
+  const rameshDoc2 = 'd1111111-1111-4111-8111-000000000002';
+  const consentAllowedRes = await classifyMedicalDocument(rameshDoc2, rameshId);
   assert(
     consentAllowedRes.success && consentAllowedRes.result?.predictedDocumentType === 'laboratory_report',
     'Test #22: Consent allowed permits document classification'
@@ -285,14 +285,14 @@ async function runDocumentClassificationTests() {
   );
 
   // 24. Cross-Patient Access Blocked
-  const crossRes = await classifyMedicalDocument(docId1, meenaId); // Arumugam doc requested by Meena
+  const crossRes = await classifyMedicalDocument(docId1, meenaId); // Ramesh doc requested by Meena
   assert(
     !crossRes.success && crossRes.errorCode === 'UNAUTHORIZED',
     'Test #24: Cross-patient document classification access blocked with UNAUTHORIZED error'
   );
 
   // 25. Invalid Document Handling
-  const invalidRes = await classifyMedicalDocument('00000000-0000-0000-0000-000000000000', arumugamId);
+  const invalidRes = await classifyMedicalDocument('00000000-0000-0000-0000-000000000000', rameshId);
   assert(
     !invalidRes.success && invalidRes.errorCode === 'NOT_FOUND',
     'Test #25: Invalid document ID returns NOT_FOUND error'
@@ -316,7 +316,7 @@ async function runDocumentClassificationTests() {
 
   // 31–44. Regressions across prior tasks
   // Task #17 Regression: Standard OCR
-  const ocr17Res = await ocrDocument(docId1, arumugamId);
+  const ocr17Res = await ocrDocument(docId1, rameshId);
   assert(ocr17Res.success && !!ocr17Res.rawText, 'Test #31: Task #17 Regression - Standard OCR service functional');
 
   // Task #18 Regression: Handwritten OCR
@@ -366,16 +366,16 @@ async function runDocumentClassificationTests() {
   assert(sympRes.length > 0, 'Test #41: Task #8 Regression - Symptom extractor functional');
 
   // Task #7 Regression: Clinical history service
-  const histRes = await getPatientClinicalHistory(arumugamId);
-  assert(histRes?.patient.id === arumugamId, 'Test #42: Task #7 Regression - Clinical history service functional');
+  const histRes = await getPatientClinicalHistory(rameshId);
+  assert(histRes?.patient.id === rameshId, 'Test #42: Task #7 Regression - Clinical history service functional');
 
   // Task #6 Regression: Consent service
-  const consentRes = await hasValidConsent(arumugamId, 'share_health_records');
+  const consentRes = await hasValidConsent(rameshId, 'share_health_records');
   assert(consentRes, 'Test #43: Task #6 Regression - Consent service active');
 
   // Task #5 Regression: Patient lookup
-  const { data: patient5 } = await supabase.from('patients').select('*').eq('id', arumugamId).single();
-  assert(patient5?.first_name === 'Arumugam', 'Test #44: Task #5 Regression - Patient identification intact');
+  const { data: patient5 } = await supabase.from('patients').select('*').eq('id', rameshId).single();
+  assert(patient5?.first_name === 'Ramesh', 'Test #44: Task #5 Regression - Patient identification intact');
 
   // 45. Task #4 Synthetic Corpus Integrity & Classification Accuracy Evaluation over 25 synthetic documents
   console.log('\n--------------------------------------------------');

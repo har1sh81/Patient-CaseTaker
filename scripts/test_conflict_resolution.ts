@@ -44,7 +44,7 @@ async function runTestSuite() {
   const supabase = await createClient();
   const adminSupabase = await createAdminClient();
 
-  const arumugamId = 'a1111111-1111-4111-8111-000000000001';
+  const rameshId = 'a1111111-1111-4111-8111-000000000001';
   const meenaId = 'a1111111-1111-4111-8111-000000000002';
   const rajeshId = 'a1111111-1111-4111-8111-000000000003';
   const priyaId = 'a1111111-1111-4111-8111-000000000004';
@@ -53,7 +53,7 @@ async function runTestSuite() {
   // Seed sample patient consents
   await supabase.from('patient_consents').upsert({
     id: 'con11111-1111-4111-8111-000000000001',
-    patient_id: arumugamId,
+    patient_id: rameshId,
     permission_key: 'share_health_records',
     is_granted: true,
     created_at: new Date().toISOString(),
@@ -75,11 +75,11 @@ async function runTestSuite() {
     created_at: new Date().toISOString(),
   });
 
-  // Seed test records for Arumugam for conflict resolution testing
+  // Seed test records for Ramesh for conflict resolution testing
   await supabase.from('clinical_medications').upsert([
     {
       id: 'm1111111-1111-4111-8111-000000000001',
-      patient_id: arumugamId,
+      patient_id: rameshId,
       medication_name: 'Amlodipine 5 mg',
       dosage: '5 mg',
       status: 'active',
@@ -88,7 +88,7 @@ async function runTestSuite() {
     },
     {
       id: 'm1111111-1111-4111-8111-000000000002',
-      patient_id: arumugamId,
+      patient_id: rameshId,
       medication_name: 'Amlodipine 5 mg',
       dosage: '5 mg',
       status: 'discontinued',
@@ -97,7 +97,7 @@ async function runTestSuite() {
     },
     {
       id: 'm1111111-1111-4111-8111-000000000003',
-      patient_id: arumugamId,
+      patient_id: rameshId,
       medication_name: 'Metformin 500 mg',
       dosage: '500 mg',
       status: 'active',
@@ -106,7 +106,7 @@ async function runTestSuite() {
     },
     {
       id: 'm1111111-1111-4111-8111-000000000004',
-      patient_id: arumugamId,
+      patient_id: rameshId,
       medication_name: 'Metformin 1000 mg',
       dosage: '1000 mg',
       status: 'active',
@@ -118,7 +118,7 @@ async function runTestSuite() {
   await supabase.from('clinical_lab_results').upsert([
     {
       id: 'l1111111-1111-4111-8111-000000000001',
-      patient_id: arumugamId,
+      patient_id: rameshId,
       test_name: 'HbA1c',
       result_value: '8.9',
       unit: '%',
@@ -127,7 +127,7 @@ async function runTestSuite() {
     },
     {
       id: 'l1111111-1111-4111-8111-000000000002',
-      patient_id: arumugamId,
+      patient_id: rameshId,
       test_name: 'HbA1c',
       result_value: '7.9',
       unit: '%',
@@ -136,7 +136,7 @@ async function runTestSuite() {
     },
     {
       id: 'l1111111-1111-4111-8111-000000000003',
-      patient_id: arumugamId,
+      patient_id: rameshId,
       test_name: 'Serum Glucose',
       result_value: '168',
       unit: 'mg/dL',
@@ -145,7 +145,7 @@ async function runTestSuite() {
     },
     {
       id: 'l1111111-1111-4111-8111-000000000004',
-      patient_id: arumugamId,
+      patient_id: rameshId,
       test_name: 'Serum Glucose',
       result_value: '9.3',
       unit: 'mmol/L',
@@ -157,7 +157,7 @@ async function runTestSuite() {
   await supabase.from('clinical_procedures').upsert([
     {
       id: 'p1111111-1111-4111-8111-000000000001',
-      patient_id: arumugamId,
+      patient_id: rameshId,
       procedure_name: 'Colonoscopy',
       status: 'planned',
       performed_at: '2026-09-01',
@@ -165,7 +165,7 @@ async function runTestSuite() {
     },
     {
       id: 'p1111111-1111-4111-8111-000000000002',
-      patient_id: arumugamId,
+      patient_id: rameshId,
       procedure_name: 'Colonoscopy',
       status: 'completed',
       performed_at: '2026-09-10',
@@ -199,7 +199,7 @@ async function runTestSuite() {
     provenance: {},
   };
   const classTemporal = classifyCandidateGroup('lab:hba1c', [candTemporal1, candTemporal2]);
-  const resTemporal = resolveCandidateGroup(arumugamId, 'lab:hba1c', [candTemporal1, candTemporal2], classTemporal);
+  const resTemporal = resolveCandidateGroup(rameshId, 'lab:hba1c', [candTemporal1, candTemporal2], classTemporal);
   assert(classTemporal.conflictType === 'temporal_difference', 'Test 3: Different lab dates classified as temporal_difference');
   assert(resTemporal.resolutionStatus === 'resolved_as_non_conflict', 'Test 4: Temporal difference resolved_as_non_conflict');
   assert(resTemporal.requiresClinicianReview === false, 'Test 5: Temporal difference requiresClinicianReview is false');
@@ -224,7 +224,7 @@ async function runTestSuite() {
     provenance: {},
   };
   const classMedProg = classifyCandidateGroup('med:amlodipine', [candMedStatus1, candMedStatus2]);
-  const resMedProg = resolveCandidateGroup(arumugamId, 'med:amlodipine', [candMedStatus1, candMedStatus2], classMedProg);
+  const resMedProg = resolveCandidateGroup(rameshId, 'med:amlodipine', [candMedStatus1, candMedStatus2], classMedProg);
   assert(resMedProg.resolutionStatus === 'resolved_by_temporal_order', 'Test 6: Medication status progression resolved_by_temporal_order');
 
   const candMedSameDate1: ConflictCandidate = {
@@ -246,7 +246,7 @@ async function runTestSuite() {
     provenance: {},
   };
   const classMedSame = classifyCandidateGroup('med:amlodipine', [candMedSameDate1, candMedSameDate2]);
-  const resMedSame = resolveCandidateGroup(arumugamId, 'med:amlodipine', [candMedSameDate1, candMedSameDate2], classMedSame);
+  const resMedSame = resolveCandidateGroup(rameshId, 'med:amlodipine', [candMedSameDate1, candMedSameDate2], classMedSame);
   assert(resMedSame.resolutionStatus === 'unresolved', 'Test 7: Same-date medication status conflict is unresolved');
   assert(resMedSame.requiresClinicianReview === true, 'Test 8: Same-date medication status conflict requires clinician review');
 
@@ -270,7 +270,7 @@ async function runTestSuite() {
     provenance: {},
   };
   const classDose = classifyCandidateGroup('med:metformin', [candDose1, candDose2]);
-  const resDose = resolveCandidateGroup(arumugamId, 'med:metformin', [candDose1, candDose2], classDose);
+  const resDose = resolveCandidateGroup(rameshId, 'med:metformin', [candDose1, candDose2], classDose);
   assert(classDose.conflictType === 'medication_dose_conflict', 'Test 9: Same-date different dose classified as medication_dose_conflict');
   assert(resDose.resolutionStatus === 'unresolved', 'Test 10: Same-date dose conflict is unresolved');
 
@@ -294,7 +294,7 @@ async function runTestSuite() {
     provenance: {},
   };
   const classLabVal = classifyCandidateGroup('lab:hba1c', [candLabVal1, candLabVal2]);
-  const resLabVal = resolveCandidateGroup(arumugamId, 'lab:hba1c', [candLabVal1, candLabVal2], classLabVal);
+  const resLabVal = resolveCandidateGroup(rameshId, 'lab:hba1c', [candLabVal1, candLabVal2], classLabVal);
   assert(classLabVal.conflictType === 'lab_value_conflict', 'Test 11: Same-date different lab value classified as lab_value_conflict');
   assert(resLabVal.resolutionStatus === 'unresolved', 'Test 12: Same-date lab value conflict is unresolved');
   assert(resLabVal.preferredCandidate === null, 'Test 13: Preferred candidate is null for unresolved lab value conflict');
@@ -319,7 +319,7 @@ async function runTestSuite() {
     provenance: {},
   };
   const classUnit = classifyCandidateGroup('lab:glucose', [candUnit1, candUnit2]);
-  const resUnit = resolveCandidateGroup(arumugamId, 'lab:glucose', [candUnit1, candUnit2], classUnit);
+  const resUnit = resolveCandidateGroup(rameshId, 'lab:glucose', [candUnit1, candUnit2], classUnit);
   assert(classUnit.conflictType === 'lab_unit_conflict', 'Test 14: Incompatible lab units classified as lab_unit_conflict');
   assert(resUnit.resolutionStatus === 'unresolved', 'Test 15: Lab unit conflict is unresolved');
 
@@ -343,7 +343,7 @@ async function runTestSuite() {
     provenance: { referenceRange: '4.0–6.0 %' },
   };
   const classRef = classifyCandidateGroup('lab:hba1c', [candRef1, candRef2]);
-  const resRef = resolveCandidateGroup(arumugamId, 'lab:hba1c', [candRef1, candRef2], classRef);
+  const resRef = resolveCandidateGroup(rameshId, 'lab:hba1c', [candRef1, candRef2], classRef);
   assert(classRef.conflictType === 'source_document_conflict', 'Test 16: Differing reference ranges classified as source_document_conflict');
   assert(resRef.requiresClinicianReview === true, 'Test 17: Reference range conflict requires clinician review');
 
@@ -367,7 +367,7 @@ async function runTestSuite() {
     provenance: {},
   };
   const classProc = classifyCandidateGroup('proc:colonoscopy', [candProc1, candProc2]);
-  const resProc = resolveCandidateGroup(arumugamId, 'proc:colonoscopy', [candProc1, candProc2], classProc);
+  const resProc = resolveCandidateGroup(rameshId, 'proc:colonoscopy', [candProc1, candProc2], classProc);
   assert(resProc.resolutionStatus === 'resolved_by_temporal_order', 'Test 18: Procedure planned -> completed resolved by temporal order');
 
   const candProcCancel1: ConflictCandidate = {
@@ -389,7 +389,7 @@ async function runTestSuite() {
     provenance: {},
   };
   const classProcCancel = classifyCandidateGroup('proc:colonoscopy', [candProcCancel1, candProcCancel2]);
-  const resProcCancel = resolveCandidateGroup(arumugamId, 'proc:colonoscopy', [candProcCancel1, candProcCancel2], classProcCancel);
+  const resProcCancel = resolveCandidateGroup(rameshId, 'proc:colonoscopy', [candProcCancel1, candProcCancel2], classProcCancel);
   assert(resProcCancel.resolutionStatus === 'unresolved', 'Test 19: Same-date completed vs cancelled procedure is unresolved');
   assert(resProcCancel.requiresClinicianReview === true, 'Test 20: Same-date completed vs cancelled procedure requires clinician review');
 
@@ -405,7 +405,7 @@ async function runTestSuite() {
     provenance: {},
   };
   const classUncertain = classifyCandidateGroup('lab:creatinine', [candUncertain]);
-  const resUncertain = resolveCandidateGroup(arumugamId, 'lab:creatinine', [candUncertain], classUncertain);
+  const resUncertain = resolveCandidateGroup(rameshId, 'lab:creatinine', [candUncertain], classUncertain);
   assert(classUncertain.conflictType === 'extraction_uncertainty', 'Test 21: Needs review candidate classified as extraction_uncertainty');
   assert(resUncertain.resolutionStatus === 'needs_clinician_review', 'Test 22: OCR uncertainty returns needs_clinician_review');
 
@@ -431,7 +431,7 @@ async function runTestSuite() {
     provenance: {},
   };
   const classDup = classifyCandidateGroup('lab:hba1c', [candDup1, candDup2]);
-  const resDup = resolveCandidateGroup(arumugamId, 'lab:hba1c', [candDup1, candDup2], classDup);
+  const resDup = resolveCandidateGroup(rameshId, 'lab:hba1c', [candDup1, candDup2], classDup);
   assert(classDup.conflictType === 'duplicate_or_near_duplicate', 'Test 23: Identical candidates classified as duplicate_or_near_duplicate');
   assert(resDup.resolutionStatus === 'resolved_as_non_conflict', 'Test 24: Duplicate observation resolved_as_non_conflict');
 
@@ -455,7 +455,7 @@ async function runTestSuite() {
     provenance: {},
   };
   const classVer = classifyCandidateGroup('lab:hba1c', [candVer1, candVer2]);
-  const resVer = resolveCandidateGroup(arumugamId, 'lab:hba1c', [candVer1, candVer2], classVer);
+  const resVer = resolveCandidateGroup(rameshId, 'lab:hba1c', [candVer1, candVer2], classVer);
   assert(resVer.resolutionStatus === 'resolved_by_source_verification', 'Test 25: Verified vs unverified same value resolved_by_source_verification');
   assert(resVer.preferredCandidate?.sourceId === 'v1', 'Test 26: Preferred candidate set to verified source when identical value');
 
@@ -464,10 +464,10 @@ async function runTestSuite() {
 
   // --- SERVICE LEVEL TESTS ---
 
-  // 28. Service execution for Arumugam with valid consent
-  const serviceRes = await analyzePatientConflicts({ patientId: arumugamId });
-  assert(serviceRes.success === true, 'Test 28: analyzePatientConflicts succeeds for Arumugam');
-  assert(Boolean(serviceRes.data && serviceRes.data.conflicts.length >= 1), 'Test 29: Conflicts identified for Arumugam');
+  // 28. Service execution for Ramesh with valid consent
+  const serviceRes = await analyzePatientConflicts({ patientId: rameshId });
+  assert(serviceRes.success === true, 'Test 28: analyzePatientConflicts succeeds for Ramesh');
+  assert(Boolean(serviceRes.data && serviceRes.data.conflicts.length >= 1), 'Test 29: Conflicts identified for Ramesh');
 
   // 30. Check summary structure
   assert(serviceRes.data?.summary.total !== undefined, 'Test 30: Summary includes total count');
@@ -486,13 +486,13 @@ async function runTestSuite() {
   assert(missingPatientRes.errorCode === 'NOT_FOUND', 'Test 37: Missing patient returns NOT_FOUND error code');
 
   // 38. GET conflicts endpoint test via service
-  const getConflictsRes = await getPatientConflicts({ patientId: arumugamId });
-  assert(getConflictsRes.success === true, 'Test 38: getPatientConflicts succeeds for Arumugam');
+  const getConflictsRes = await getPatientConflicts({ patientId: rameshId });
+  assert(getConflictsRes.success === true, 'Test 38: getPatientConflicts succeeds for Ramesh');
   assert(Array.isArray(getConflictsRes.data?.conflicts), 'Test 39: getPatientConflicts returns conflicts array');
 
   // 40. Idempotency test (repeat run does not duplicate conflicts)
-  const repeatRun1 = await analyzePatientConflicts({ patientId: arumugamId });
-  const repeatRun2 = await analyzePatientConflicts({ patientId: arumugamId });
+  const repeatRun1 = await analyzePatientConflicts({ patientId: rameshId });
+  const repeatRun2 = await analyzePatientConflicts({ patientId: rameshId });
   assert(Boolean(repeatRun1.data && repeatRun2.data && repeatRun1.data.conflicts.length === repeatRun2.data.conflicts.length), 'Test 40: Repeated conflict analysis is idempotent');
 
   // 41. Audit log check
@@ -501,28 +501,28 @@ async function runTestSuite() {
   assert(Boolean(audits && audits.some((a: any) => a.action === 'conflict_resolution_completed')), 'Test 42: conflict_resolution_completed audit log present');
 
   // 43. Filtering by includeResolved = false
-  const getUnresolvedOnly = await getPatientConflicts({ patientId: arumugamId, includeResolved: false });
+  const getUnresolvedOnly = await getPatientConflicts({ patientId: rameshId, includeResolved: false });
   assert(getUnresolvedOnly.success === true, 'Test 43: Query with includeResolved = false succeeds');
   assert(Boolean(getUnresolvedOnly.data && getUnresolvedOnly.data.conflicts.every((c) => c.resolutionStatus === 'unresolved' || c.requiresClinicianReview)), 'Test 44: includeResolved = false returns only unresolved or review-required conflicts');
 
   // 45. Limit validation
-  const limitRes = await getPatientConflicts({ patientId: arumugamId, limit: 2 });
+  const limitRes = await getPatientConflicts({ patientId: rameshId, limit: 2 });
   assert(Boolean(limitRes.data && limitRes.data.conflicts.length <= 2), 'Test 45: Limit constraint respected');
 
   // --- REGRESSION TESTS ---
 
   // 46. Task #27 Relevance Retrieval Regression
-  const relRes = await getRelevantClinicalEvidence({ patientId: arumugamId, chiefComplaint: 'Chest pain' });
+  const relRes = await getRelevantClinicalEvidence({ patientId: rameshId, chiefComplaint: 'Chest pain' });
   assert(relRes.success === true, 'Test 46: Task #27 Relevance retrieval regression passed');
 
   // 47. Task #26 Timeline Regression
-  const timelineRes = await getPatientTimeline({ patientId: arumugamId });
+  const timelineRes = await getPatientTimeline({ patientId: rameshId });
   assert(timelineRes.success === true, 'Test 47: Task #26 Timeline generation regression passed');
 
   // 48. Task #25 Procedure Extraction Regression
   const procExt = await defaultProcedureExtractor.extract({
     documentId: 'd1111111-1111-4111-8111-000000000001',
-    patientId: arumugamId,
+    patientId: rameshId,
     encounterId: testEncounterId,
     rawOcrText: 'Patient had appendectomy on 2024-05-10.',
   });
@@ -531,7 +531,7 @@ async function runTestSuite() {
   // 49. Task #24 Lab Interpretation Regression
   const labInterp = interpretLabObservation({
     id: 'lab_test_1',
-    patientId: arumugamId,
+    patientId: rameshId,
     encounterId: testEncounterId,
     documentId: 'd1111111-1111-4111-8111-000000000001',
     testName: 'HbA1c',
@@ -553,8 +553,8 @@ async function runTestSuite() {
   assert(labInterp.classification === 'high', 'Test 49: Task #24 Lab interpretation regression passed');
 
   // 50. Source data unchanged checks
-  const { data: originalMeds } = await supabase.from('clinical_medications').select('id').eq('patient_id', arumugamId);
-  const { data: originalLabs } = await supabase.from('clinical_lab_results').select('id').eq('patient_id', arumugamId);
+  const { data: originalMeds } = await supabase.from('clinical_medications').select('id').eq('patient_id', rameshId);
+  const { data: originalLabs } = await supabase.from('clinical_lab_results').select('id').eq('patient_id', rameshId);
   assert(Boolean(originalMeds && originalMeds.length >= 4), 'Test 50: clinical_medications rows remain untouched');
   assert(Boolean(originalLabs && originalLabs.length >= 4), 'Test 51: clinical_lab_results rows remain untouched');
 
@@ -564,7 +564,7 @@ async function runTestSuite() {
     { sourceType: 'diagnosis', sourceId: 'd2', eventDate: '2026-01-01', value: 'Hypertension', status: 'historical', verificationStatus: 'verified', provenance: {} },
   ]).conflictType === 'diagnosis_status_conflict', 'Test 52: Diagnosis status difference classified');
 
-  assert(resolveCandidateGroup(arumugamId, 'diag:hypertension', [
+  assert(resolveCandidateGroup(rameshId, 'diag:hypertension', [
     { sourceType: 'diagnosis', sourceId: 'd1', eventDate: '2025-01-01', value: 'Hypertension', status: 'verified', verificationStatus: 'verified', provenance: {} },
     { sourceType: 'diagnosis', sourceId: 'd2', eventDate: '2026-01-01', value: 'Hypertension', status: 'historical', verificationStatus: 'verified', provenance: {} },
   ], { conflictType: 'diagnosis_status_conflict', severity: 'low', explanation: 'Diff', isDuplicate: false, isTemporalDifference: true, hasUncertainty: false }).resolutionStatus === 'resolved_as_non_conflict', 'Test 53: Diagnosis status difference across dates resolved as non conflict');

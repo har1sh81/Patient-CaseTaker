@@ -14,7 +14,7 @@ INSERT INTO public.encounters (
   ('c1111111-1111-4111-8111-000000000011', 'a1111111-1111-4111-8111-000000000011', 'completed', 'kiosk_voice_touch', 'hi', 'ayush', 'summary', '{"step_index": 5}'::jsonb, NOW() - INTERVAL '1 hour', NOW() - INTERVAL '1 hour' + INTERVAL '15 minutes'),
   ('c1111111-1111-4111-8111-000000000012', 'a1111111-1111-4111-8111-000000000012', 'completed', 'kiosk_voice_touch', 'en', 'standard', 'summary', '{"step_index": 5}'::jsonb, NOW() - INTERVAL '2 hours', NOW() - INTERVAL '2 hours' + INTERVAL '20 minutes'),
 
-  -- Arumugam Kandasamy (Patient 1) - Longitudinal encounters
+  -- Ramesh Kumar (Patient 1) - Longitudinal encounters
   ('c1111111-1111-4111-8111-000000000101', 'a1111111-1111-4111-8111-000000000001', 'completed', 'kiosk_voice_touch', 'ta', 'standard', 'summary', '{"step_index": 5}'::jsonb, NOW() - INTERVAL '6 months', NOW() - INTERVAL '6 months' + INTERVAL '20 minutes'),
   ('c1111111-1111-4111-8111-000000000102', 'a1111111-1111-4111-8111-000000000001', 'completed', 'kiosk_voice_touch', 'ta', 'standard', 'summary', '{"step_index": 5}'::jsonb, NOW() - INTERVAL '1 year', NOW() - INTERVAL '1 year' + INTERVAL '25 minutes'),
 
@@ -60,7 +60,7 @@ ON CONFLICT (id) DO UPDATE SET
 INSERT INTO public.conversation_answers (
   id, encounter_id, question_id, section, source_language, raw_text, normalized_english_text, input_method
 ) VALUES
-  -- FLAGSHIP CASE 1: Arumugam Kandasamy (Encounter c1111111-1111-4111-8111-000000000001 - Tamil, 15 answers)
+  -- FLAGSHIP CASE 1: Ramesh Kumar (Encounter c1111111-1111-4111-8111-000000000001 - Tamil, 15 answers)
   ('f1111111-1111-4111-8111-000000000001', 'c1111111-1111-4111-8111-000000000001', 'q_chief_complaint', 'chief_complaint', 'ta', 'எனக்கு இரண்டு நாட்களாக மார்பில் வலி இருக்கிறது.', 'I have had chest pain for two days.', 'voice'),
   ('f1111111-1111-4111-8111-000000000002', 'c1111111-1111-4111-8111-000000000001', 'q_location', 'symptom_characteristics', 'ta', 'நெஞ்சின் நடுவிலும் இடது பக்கத்திலும் பாரமாக அழுத்துவது போல் இருக்கிறது.', 'It feels heavy and pressing in the center and left side of my chest.', 'voice'),
   ('f1111111-1111-4111-8111-000000000003', 'c1111111-1111-4111-8111-000000000001', 'q_severity', 'symptom_characteristics', 'ta', 'வலி 10-ல் 7 அளவு கடுமையானதாக இருக்கிறது.', 'The pain severity is about 7 out of 10.', 'touch'),
@@ -216,7 +216,7 @@ ON CONFLICT (id) DO UPDATE SET
 INSERT INTO public.clinical_symptoms (
   id, encounter_id, patient_id, symptom_name, symptom_name_native, body_site, severity_score, duration_text, onset_date, character_quality, aggravating_factors, relieving_factors, source_id, provenance_source, verification_status
 ) VALUES
-  -- Arumugam Kandasamy (Flagship Case 1)
+  -- Ramesh Kumar (Flagship Case 1)
   ('f3333333-1111-4111-8111-000000000001', 'c1111111-1111-4111-8111-000000000001', 'a1111111-1111-4111-8111-000000000001', 'Chest Pain', 'மார்பு வலி', 'Chest - Substernal/Left', 7, '2 days', CURRENT_DATE - 2, 'Pressure / Heavy heaviness', 'Exertion, walking fast', 'Rest, sitting down', 'e1111111-3333-4111-8111-000000000001', 'patient_reported', 'unverified'),
   ('f3333333-1111-4111-8111-000000000002', 'c1111111-1111-4111-8111-000000000001', 'a1111111-1111-4111-8111-000000000001', 'Shortness of Breath', 'மூச்சுத் திணறல்', 'Respiratory / Chest', 6, '2 days', CURRENT_DATE - 2, 'Exertional dyspnea', 'Walking, climbing stairs', 'Rest', 'e1111111-3333-4111-8111-000000000001', 'patient_reported', 'unverified'),
   ('f3333333-1111-4111-8111-000000000003', 'c1111111-1111-4111-8111-000000000001', 'a1111111-1111-4111-8111-000000000001', 'Diaphoresis / Sweating', 'அதிக வேர்வை', 'Full Body', 5, '2 days', CURRENT_DATE - 2, 'Profuse cold sweating', 'Chest pain episodes', 'Rest', 'e1111111-3333-4111-8111-000000000001', 'patient_reported', 'unverified'),
@@ -270,7 +270,7 @@ INSERT INTO public.clinical_symptoms (
   ('f3333333-1111-4111-8111-000000000221', 'c1111111-1111-4111-8111-000000000012', 'a1111111-1111-4111-8111-000000000012', 'Right Upper Abdominal Discomfort', 'Abdominal Discomfort', 'Liver / RUQ', 4, '1 month', CURRENT_DATE - 30, 'Vague heaviness after heavy meals', 'Alcohol, fast food', 'Rest', NULL, 'patient_reported', 'unverified'),
   ('f3333333-1111-4111-8111-000000000222', 'c1111111-1111-4111-8111-000000000012', 'a1111111-1111-4111-8111-000000000012', 'Fatigue / Lethargy', 'Fatigue', 'Systemic', 4, '1 month', CURRENT_DATE - 30, 'Post-meal fatigue and slothfulness', 'Heavy lunch', 'Light walking', NULL, 'patient_reported', 'unverified'),
 
-  -- Additional Longitudinal Symptoms for Arumugam & Rajesh (Encounter 101, 102, 301, 302)
+  -- Additional Longitudinal Symptoms for Ramesh & Rajesh (Encounter 101, 102, 301, 302)
   ('f3333333-1111-4111-8111-000000000301', 'c1111111-1111-4111-8111-000000000101', 'a1111111-1111-4111-8111-000000000001', 'Mild Exertional Breathlessness', 'மூச்சு வாங்குதல்', 'Chest', 4, '6 months ago', CURRENT_DATE - 180, 'Breathlessness only on steep climbing', 'Stairs', 'Rest', NULL, 'patient_reported', 'unverified'),
   ('f3333333-1111-4111-8111-000000000302', 'c1111111-1111-4111-8111-000000000102', 'a1111111-1111-4111-8111-000000000001', 'Occasional Palpitations', 'படபடப்பு', 'Heart / Chest', 4, '1 year ago', CURRENT_DATE - 365, 'Sensation of fast heartbeat', 'Tea / Coffee', 'Deep breathing', NULL, 'patient_reported', 'unverified'),
   ('f3333333-1111-4111-8111-000000000303', 'c1111111-1111-4111-8111-000000000301', 'a1111111-1111-4111-8111-000000000003', 'Mild Dry Mouth', 'सूखा मुंह', 'Mouth', 3, '6 months ago', CURRENT_DATE - 180, 'Dryness after waking up', 'Inadequate water intake', 'Water intake', NULL, 'patient_reported', 'unverified'),
@@ -344,7 +344,7 @@ INSERT INTO public.clinical_medications (
   ('f5555555-1111-4111-8111-000000000241', 'c1111111-1111-4111-8111-000000000011', 'a1111111-1111-4111-8111-000000000011', 'Cetirizine', 'सिटीरिज़िन', '10 mg', 'Once daily at night (HS)', 'Oral', 'active', NULL, 'patient_reported', 'unverified', NULL, NULL),
   ('f5555555-1111-4111-8111-000000000242', 'c1111111-1111-4111-8111-000000000011', 'a1111111-1111-4111-8111-000000000011', 'Anu Taila Nasya Drop', 'अनु तेल', '2 drops', 'Twice daily each nostril', 'Nasal', 'active', NULL, 'patient_reported', 'unverified', NULL, NULL),
 
-  -- Longitudinal Historical Meds for Rajesh (301, 302) & Arumugam (101, 102)
+  -- Longitudinal Historical Meds for Rajesh (301, 302) & Ramesh (101, 102)
   ('f5555555-1111-4111-8111-000000000301', 'c1111111-1111-4111-8111-000000000301', 'a1111111-1111-4111-8111-000000000003', 'Metformin', 'मेटफॉर्मिन', '500 mg', 'Twice daily', 'Oral', 'discontinued', NULL, 'abdm_imported', 'doctor_verified', 'Dr. V. K. Gupta, MD', NOW() - INTERVAL '6 months'),
   ('f5555555-1111-4111-8111-000000000302', 'c1111111-1111-4111-8111-000000000302', 'a1111111-1111-4111-8111-000000000003', 'Glibenclamide', 'ग्लीबेन्क्लामाइड', '5 mg', 'Once daily', 'Oral', 'discontinued', NULL, 'abdm_imported', 'doctor_verified', 'Dr. V. K. Gupta, MD', NOW() - INTERVAL '1 year'),
   ('f5555555-1111-4111-8111-000000000311', 'c1111111-1111-4111-8111-000000000101', 'a1111111-1111-4111-8111-000000000001', 'Amlodipine', 'ஆம்லோடிபைன்', '5 mg', 'Once daily', 'Oral', 'active', NULL, 'abdm_imported', 'doctor_verified', 'Dr. R. Swaminathan, MD', NOW() - INTERVAL '6 months'),
@@ -378,7 +378,7 @@ INSERT INTO public.clinical_lab_results (
   ('f6666666-1111-4111-8111-000000000302', 'c1111111-1111-4111-8111-000000000301', 'a1111111-1111-4111-8111-000000000003', 'Fasting Blood Glucose', '152', 'mg/dL', '70 - 99', true, CURRENT_DATE - 180, NULL, 'abdm_imported', 'reviewed'),
   ('f6666666-1111-4111-8111-000000000303', 'c1111111-1111-4111-8111-000000000302', 'a1111111-1111-4111-8111-000000000003', 'HbA1c', '7.2', '%', '< 5.7', true, CURRENT_DATE - 365, NULL, 'abdm_imported', 'reviewed'),
 
-  -- Arumugam Kandasamy (Flagship Case 1)
+  -- Ramesh Kumar (Flagship Case 1)
   ('f6666666-1111-4111-8111-000000000101', 'c1111111-1111-4111-8111-000000000001', 'a1111111-1111-4111-8111-000000000001', 'Random Blood Sugar', '184', 'mg/dL', '< 140', true, CURRENT_DATE - 2, 'e1111111-3333-4111-8111-000000000001', 'abdm_imported', 'reviewed'),
   ('f6666666-1111-4111-8111-000000000102', 'c1111111-1111-4111-8111-000000000001', 'a1111111-1111-4111-8111-000000000001', 'Hemoglobin', '13.8', 'g/dL', '13.0 - 17.0', false, CURRENT_DATE - 2, 'e1111111-3333-4111-8111-000000000001', 'abdm_imported', 'reviewed'),
   ('f6666666-1111-4111-8111-000000000103', 'c1111111-1111-4111-8111-000000000001', 'a1111111-1111-4111-8111-000000000001', 'Serum Urea', '34', 'mg/dL', '15 - 45', false, CURRENT_DATE - 2, 'e1111111-3333-4111-8111-000000000001', 'abdm_imported', 'reviewed'),
@@ -407,7 +407,7 @@ INSERT INTO public.clinical_lab_results (
   ('f6666666-1111-4111-8111-000000000221', 'c1111111-1111-4111-8111-000000000011', 'a1111111-1111-4111-8111-000000000011', 'Absolute Eosinophil Count (AEC)', '520', 'cells/cu.mm', '40 - 440', true, CURRENT_DATE - 15, NULL, 'abdm_imported', 'reviewed'),
   ('f6666666-1111-4111-8111-000000000222', 'c1111111-1111-4111-8111-000000000011', 'a1111111-1111-4111-8111-000000000011', 'Total IgE Level', '310', 'IU/mL', '< 100', true, CURRENT_DATE - 15, NULL, 'abdm_imported', 'reviewed'),
 
-  -- Extra Longitudinal Lab Records for Arumugam 101, 102
+  -- Extra Longitudinal Lab Records for Ramesh 101, 102
   ('f6666666-1111-4111-8111-000000000311', 'c1111111-1111-4111-8111-000000000101', 'a1111111-1111-4111-8111-000000000001', 'HbA1c', '7.4', '%', '< 5.7', true, CURRENT_DATE - 180, NULL, 'abdm_imported', 'reviewed'),
   ('f6666666-1111-4111-8111-000000000312', 'c1111111-1111-4111-8111-000000000102', 'a1111111-1111-4111-8111-000000000001', 'Fasting Blood Glucose', '142', 'mg/dL', '70 - 99', true, CURRENT_DATE - 365, NULL, 'abdm_imported', 'reviewed'),
   ('f6666666-1111-4111-8111-000000000321', 'c1111111-1111-4111-8111-000000000111', 'a1111111-1111-4111-8111-000000000011', 'Hemoglobin', '12.4', 'g/dL', '12.0 - 15.5', false, CURRENT_DATE - 150, NULL, 'abdm_imported', 'reviewed')
