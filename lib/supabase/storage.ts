@@ -1,4 +1,4 @@
-import { supabase } from './index';
+import { createAdminClient } from './server';
 
 export interface FilePayload {
   name: string;
@@ -46,7 +46,7 @@ export class SupabaseStorage implements StorageService {
     const extension = file.type === 'application/pdf' ? 'pdf' : file.type.split('/')[1] || 'jpg';
     const storagePath = `${patientId}/${sessionId}/${documentId}.${extension}`;
 
-    const { error } = await supabase.storage
+    const { error } = await (await createAdminClient()).storage
       .from(this.bucketName)
       .upload(storagePath, file.buffer, {
         contentType: file.type,
@@ -61,7 +61,7 @@ export class SupabaseStorage implements StorageService {
   }
 
   async deleteDocument(storagePath: string): Promise<void> {
-    const { error } = await supabase.storage
+    const { error } = await (await createAdminClient()).storage
       .from(this.bucketName)
       .remove([storagePath]);
 
@@ -71,7 +71,7 @@ export class SupabaseStorage implements StorageService {
   }
 
   async getDocumentUrl(storagePath: string): Promise<string> {
-    const { data, error } = await supabase.storage
+    const { data, error } = await (await createAdminClient()).storage
       .from(this.bucketName)
       .createSignedUrl(storagePath, 3600); // 1 hour expiration
 
@@ -83,7 +83,7 @@ export class SupabaseStorage implements StorageService {
   }
 
   async downloadDocument(storagePath: string): Promise<Buffer> {
-    const { data, error } = await supabase.storage
+    const { data, error } = await (await createAdminClient()).storage
       .from(this.bucketName)
       .download(storagePath);
 
@@ -97,7 +97,7 @@ export class SupabaseStorage implements StorageService {
 
   async cleanupSessionDocuments(sessionId: string): Promise<void> {
     // List all files in the bucket, then delete matching session files
-    const { data, error } = await supabase.storage
+    const { data, error } = await (await createAdminClient()).storage
       .from(this.bucketName)
       .list('', { limit: 100 });
 
@@ -105,7 +105,7 @@ export class SupabaseStorage implements StorageService {
 
     for (const folder of data) {
       if (folder.name) {
-        const { data: subData } = await supabase.storage
+        const { data: subData } = await (await createAdminClient()).storage
           .from(this.bucketName)
           .list(folder.name);
         
@@ -115,7 +115,7 @@ export class SupabaseStorage implements StorageService {
             .map((f) => `${folder.name}/${f.name}`);
           
           if (filesToDelete.length > 0) {
-            await supabase.storage.from(this.bucketName).remove(filesToDelete);
+            await (await createAdminClient()).storage.from(this.bucketName).remove(filesToDelete);
           }
         }
       }
