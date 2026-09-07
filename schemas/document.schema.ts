@@ -28,7 +28,7 @@ export const MedicalDocumentSchema = z.object({
   documentDate: z.string().optional(),
   uploadStatus: ProcessingStatusSchema,
   uploadedAt: z.string(),
-  provenance: DataProvenanceSchema,
+  provenance: DataProvenanceSchema.optional(),
 });
 
 export const OCRRequestSchema = z.object({

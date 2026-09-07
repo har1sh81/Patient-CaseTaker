@@ -700,6 +700,9 @@ export class SupabaseRepository implements DatabaseService {
       dbPayload.encounter_id = dbPayload.session_id;
       delete dbPayload.session_id;
     }
+    // Remove properties that are not in the database schema
+    delete dbPayload.provenance;
+    delete dbPayload.document_date;
     try {
       const { data, error } = await (await createAdminClient())
         .from('medical_documents')
