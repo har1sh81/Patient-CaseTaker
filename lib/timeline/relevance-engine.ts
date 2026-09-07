@@ -18,7 +18,7 @@ const MEDICAL_SYNONYMS: Record<string, string[]> = {
 };
 
 export function extractComplaintContext(answers: ConversationAnswer[]): ComplaintContext | null {
-  const complaintAnswer = answers.find(
+  let complaintAnswer = answers.find(
     a => a.questionId === 'reason_for_visit' ||
          a.questionId === 'chief_complaint' ||
          a.questionId === 'initial_problem' ||
@@ -30,6 +30,16 @@ export function extractComplaintContext(answers: ConversationAnswer[]): Complain
   const severityAnswer = answers.find(
     a => a.questionId === 'pain_scale' || a.questionId === 'severity'
   );
+
+  if (!complaintAnswer && answers.length > 0) {
+    // Fallback: in dynamic adaptive interviews, the first question is always the chief complaint
+    const sortedAnswers = [...answers].sort((a, b) => {
+      const tA = new Date(a.answeredAt || (a as any).created_at || 0).getTime();
+      const tB = new Date(b.answeredAt || (b as any).created_at || 0).getTime();
+      return tA - tB;
+    });
+    complaintAnswer = sortedAnswers[0];
+  }
 
   if (!complaintAnswer) return null;
 

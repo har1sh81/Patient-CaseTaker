@@ -19,7 +19,13 @@ export async function GET(request: Request) {
 
     if (abhaReference) {
       let patient = null;
-      try { patient = await db.getPatientByAbha(abhaReference); } catch (e) { console.warn('[Lookup API] Error:', e); }
+      try {
+        console.log('[Lookup API] Searching for ABHA:', abhaReference);
+        patient = await db.getPatientByAbha(abhaReference);
+        console.log('[Lookup API] Result:', patient);
+      } catch (e) {
+        console.warn('[Lookup API] Error:', e);
+      }
       if (!patient) {
         return NextResponse.json({ success: false, error: 'Patient record not found for this ABHA ID' }, { status: 404 });
       }

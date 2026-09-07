@@ -1,11 +1,11 @@
 {
-  "id": "scenario_ayush",
+  "id": "11111111-1111-4000-8000-111111111113",
   "name": "AYUSH Ayurvedic Consultation Case",
   "description": "Ayurvedic intake scenario containing Prakriti (Vata-Pitta) and Agni (Manda) diagnostics.",
   "mode": "ayush",
   "estimatedDemoDurationMinutes": 6,
   "patient": {
-    "id": "pat_03",
+    "id": "00000000-0000-4000-8000-000000000003",
     "identification": {
       "hospitalNumber": "HSP-100247",
       "abhaReference": "ABHA-003"
@@ -21,9 +21,9 @@
     "createdAt": "2026-08-26T15:30:00Z"
   },
   "consent": {
-    "id": "con_03",
-    "patientId": "pat_03",
-    "sessionId": "ses_03",
+    "id": "22222222-2222-4000-8000-222222222223",
+    "patientId": "00000000-0000-4000-8000-000000000003",
+    "sessionId": "11111111-1111-4000-8000-111111111113",
     "consentVersion": "1.0",
     "permissions": {
       "intakeCollection": true,
@@ -38,12 +38,12 @@
     "source": "touchscreen"
   },
   "session": {
-    "id": "ses_03",
-    "patientId": "pat_03",
+    "id": "11111111-1111-4000-8000-111111111113",
+    "patientId": "00000000-0000-4000-8000-000000000003",
     "status": "active",
     "language": "hi",
     "departmentMode": "ayush",
-    "consentId": "con_03",
+    "consentId": "22222222-2222-4000-8000-222222222223",
     "startedAt": "2026-08-26T15:31:00Z",
     "expiresAt": "2026-08-26T16:01:00Z",
     "currentStep": "interview",

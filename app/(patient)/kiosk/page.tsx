@@ -148,7 +148,7 @@ export default function KioskPage() {
         queryParam = `mobileNumber=${value}`;
       }
 
-      const res = await fetch(`/api/kiosk/lookup?${queryParam}`);
+      const res = await fetch(`/api/kiosk/lookup?${queryParam}&t=${Date.now()}`);
       const data = await res.json();
 
       if (data.success && data.patient) {

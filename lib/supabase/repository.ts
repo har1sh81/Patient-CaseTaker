@@ -73,6 +73,32 @@ export function keysToCamel(obj: any): any {
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
+/**
+ * `conversation_answers` exists in two schema versions.  The original kiosk
+ * schema stores `raw_value`/`normalized_value` and `session_id`; the current
+ * foundational schema stores `raw_text`/`normalized_english_text` and
+ * `encounter_id`.  Keep the application model stable while reading either.
+ */
+function dbToConversationAnswer(row: Record<string, any>): ConversationAnswer {
+  const camelRow = keysToCamel(row) as Record<string, any>;
+  const inputMethod = camelRow.inputMethod || 'keyboard';
+
+  return ConversationAnswerSchema.parse({
+    ...camelRow,
+    sessionId: camelRow.sessionId || camelRow.encounterId,
+    rawValue: camelRow.rawValue ?? camelRow.rawText ?? '',
+    normalizedValue: camelRow.normalizedValue ?? camelRow.normalizedEnglishText,
+    transcript: camelRow.transcript ?? camelRow.rawText,
+    inputMethod,
+    provenance: camelRow.provenance || {
+      source: inputMethod === 'voice' ? 'patient_voice' : inputMethod === 'keyboard' ? 'patient_text' : 'patient_touch',
+      sourceId: camelRow.sourceId,
+    },
+    answeredAt: camelRow.answeredAt || camelRow.createdAt || new Date().toISOString(),
+    editedByPatient: camelRow.editedByPatient ?? false,
+  });
+}
+
 export function patientToDb(patient: Patient): Record<string, unknown> {
   return {
     id: patient.id,
@@ -116,7 +142,7 @@ export function dbToPatient(row: Record<string, unknown>, externalIdentifiers?: 
       fullName: String(row.full_name),
       dateOfBirth: row.date_of_birth ? String(row.date_of_birth) : undefined,
       age: typeof row.age === 'number' ? row.age : undefined,
-      gender: row.gender ? (String(row.gender) as 'male' | 'female' | 'other' | 'prefer_not_to_say') : undefined,
+      gender: row.gender ? (String(row.gender).toLowerCase() as 'male' | 'female' | 'other' | 'prefer_not_to_say') : undefined,
     },
     createdAt: String(row.created_at),
     updatedAt: row.updated_at ? String(row.updated_at) : undefined,
@@ -255,7 +281,7 @@ export interface DatabaseService {
 export class SupabaseRepository implements DatabaseService {
   async createPatient(patient: Patient): Promise<Patient> {
     PatientSchema.parse(patient);
-    const client = await createClient();
+    const client = await createAdminClient();
     const fullDbPayload = patientToDb(patient);
 
     let data: any = null;
@@ -346,12 +372,14 @@ export class SupabaseRepository implements DatabaseService {
     if (!isUuid) return null;
 
     try {
-      const client = await createClient();
+      const client = await createAdminClient();
       const { data, error } = await client
         .from('patients')
         .select()
         .eq('id', id)
         .maybeSingle();
+
+      console.log('[getPatient] data:', data, 'error:', error);
 
       if (error || !data) return null;
 
@@ -366,15 +394,23 @@ export class SupabaseRepository implements DatabaseService {
         // ignore
       }
 
-      return PatientSchema.parse(dbToPatient(data, extIds));
-    } catch {
+      console.log('[getPatient] extIds:', extIds);
+      
+      try {
+        return PatientSchema.parse(dbToPatient(data, extIds));
+      } catch (err) {
+        console.error('[getPatient] PatientSchema parse failed:', err);
+        return null;
+      }
+    } catch (err) {
+      console.error('[getPatient] outer catch:', err);
       return null;
     }
   }
 
   async getPatientByHospitalNumber(hospitalNumber: string): Promise<Patient | null> {
     try {
-      const client = await createClient();
+      const client = await createAdminClient();
 
       try {
         const { data: extData } = await client
@@ -407,22 +443,25 @@ export class SupabaseRepository implements DatabaseService {
 
   async getPatientByAbha(abhaReference: string): Promise<Patient | null> {
     try {
-      const client = await createClient();
+      const client = await createAdminClient();
 
       try {
-        const { data: extData } = await client
+        const { data: extData, error: extError } = await client
           .from('patient_external_identifiers')
           .select('patient_id')
           .in('identifier_type', ['abha_number', 'abha_address'])
           .eq('identifier_value', abhaReference)
           .maybeSingle();
 
+        console.log('[getPatientByAbha] extData:', extData, 'extError:', extError);
+
         if (extData?.patient_id) {
           const patient = await this.getPatient(extData.patient_id);
+          console.log('[getPatientByAbha] patient from getPatient:', patient);
           if (patient) return patient;
         }
-      } catch {
-        // ignore
+      } catch (err) {
+        console.error('[getPatientByAbha] outer catch:', err);
       }
 
       const { data, error } = await client
@@ -431,16 +470,19 @@ export class SupabaseRepository implements DatabaseService {
         .eq('abha_reference', abhaReference)
         .maybeSingle();
 
+      console.log('[getPatientByAbha] fallback data:', data, 'error:', error);
+
       if (error || !data) return null;
       return PatientSchema.parse(dbToPatient(data));
-    } catch {
+    } catch (err) {
+      console.error('[getPatientByAbha] top level catch:', err);
       return null;
     }
   }
 
   async getPatientByMobile(mobileNumber: string): Promise<Patient | null> {
     try {
-      const client = await createClient();
+      const client = await createAdminClient();
 
       try {
         const { data, error } = await client
@@ -470,7 +512,7 @@ export class SupabaseRepository implements DatabaseService {
   async saveConsent(consent: Consent): Promise<Consent> {
     ConsentSchema.parse(consent);
     const dbPayload = keysToSnake(consent);
-    const { data, error } = await (await createClient())
+    const { data, error } = await (await createAdminClient())
       .from('consents')
       .upsert(dbPayload)
       .select()
@@ -481,7 +523,7 @@ export class SupabaseRepository implements DatabaseService {
   }
 
   async getConsent(id: string): Promise<Consent | null> {
-    const { data, error } = await (await createClient())
+    const { data, error } = await (await createAdminClient())
       .from('consents')
       .select()
       .eq('id', id)
@@ -495,7 +537,7 @@ export class SupabaseRepository implements DatabaseService {
   async createSession(session: IntakeSession): Promise<IntakeSession> {
     IntakeSessionSchema.parse(session);
     const dbPayload = keysToSnake(session);
-    const { data, error } = await (await createClient())
+    const { data, error } = await (await createAdminClient())
       .from('intake_sessions')
       .insert(dbPayload)
       .select()
@@ -506,7 +548,7 @@ export class SupabaseRepository implements DatabaseService {
   }
 
   async getSession(id: string): Promise<IntakeSession | null> {
-    const { data, error } = await (await createClient())
+    const { data, error } = await (await createAdminClient())
       .from('intake_sessions')
       .select()
       .eq('id', id)
@@ -518,7 +560,7 @@ export class SupabaseRepository implements DatabaseService {
   }
 
   async getSessionsByStatus(status: string): Promise<IntakeSession[]> {
-    const { data, error } = await (await createClient())
+    const { data, error } = await (await createAdminClient())
       .from('intake_sessions')
       .select()
       .eq('status', status);
@@ -534,7 +576,7 @@ export class SupabaseRepository implements DatabaseService {
     delete dbPayload.handoff_snapshot_id;
     delete dbPayload.updated_at; // column doesn't exist on intake_sessions
 
-    const { data, error } = await (await createClient())
+    const { data, error } = await (await createAdminClient())
       .from('intake_sessions')
       .update(dbPayload)
       .eq('id', id)
@@ -546,7 +588,7 @@ export class SupabaseRepository implements DatabaseService {
   }
 
   async cleanupSession(sessionId: string): Promise<void> {
-    const client = await createClient();
+    const client = await createAdminClient();
     // Best-effort cleanup — don't crash if columns are missing
     try {
       await client.from('conversation_messages').delete().eq('session_id', sessionId);
@@ -566,7 +608,7 @@ export class SupabaseRepository implements DatabaseService {
   async saveMessage(message: ConversationMessage): Promise<ConversationMessage> {
     ConversationMessageSchema.parse(message);
     const dbPayload = keysToSnake(message);
-    const { data, error } = await (await createClient())
+    const { data, error } = await (await createAdminClient())
       .from('conversation_messages')
       .upsert(dbPayload)
       .select()
@@ -577,7 +619,7 @@ export class SupabaseRepository implements DatabaseService {
   }
 
   async getSessionMessages(sessionId: string): Promise<ConversationMessage[]> {
-    const { data, error } = await (await createClient())
+    const { data, error } = await (await createAdminClient())
       .from('conversation_messages')
       .select()
       .eq('session_id', sessionId)
@@ -595,9 +637,17 @@ export class SupabaseRepository implements DatabaseService {
       dbPayload.encounter_id = dbPayload.session_id;
       delete dbPayload.session_id;
     }
+    dbPayload.raw_text = String(answer.rawValue ?? answer.transcript ?? '');
+    dbPayload.normalized_english_text = answer.normalizedValue == null ? null : String(answer.normalizedValue);
+    dbPayload.source_language = 'en';
+    dbPayload.source_id = null;
+    delete dbPayload.raw_value;
+    delete dbPayload.normalized_value;
+    delete dbPayload.transcript;
+    delete dbPayload.provenance;
     
     try {
-      const { data, error } = await (await createClient())
+      const { data, error } = await (await createAdminClient())
         .from('conversation_answers')
         .upsert(dbPayload)
         .select()
@@ -611,7 +661,7 @@ export class SupabaseRepository implements DatabaseService {
         }
         throw new Error(`saveAnswer failed: ${error.message}`);
       }
-      return ConversationAnswerSchema.parse(keysToCamel(data));
+      return dbToConversationAnswer(data);
     } catch (e: any) {
       console.warn('[saveAnswer] Error (non-fatal):', e?.message);
       return answer;
@@ -620,20 +670,14 @@ export class SupabaseRepository implements DatabaseService {
 
   async getSessionAnswers(sessionId: string): Promise<ConversationAnswer[]> {
     try {
-      const { data, error } = await (await createClient())
+      const { data, error } = await (await createAdminClient())
         .from('conversation_answers')
         .select()
         .eq('encounter_id', sessionId)
         .order('answered_at', { ascending: true });
 
       if (!error && data) {
-        return data.map((row) => {
-          const camelRow: any = keysToCamel(row);
-          if (camelRow.encounterId && !camelRow.sessionId) {
-            camelRow.sessionId = camelRow.encounterId;
-          }
-          return ConversationAnswerSchema.parse(camelRow);
-        });
+        return data.map(dbToConversationAnswer);
       }
     } catch { /* ignore */ }
     return [];
@@ -642,7 +686,7 @@ export class SupabaseRepository implements DatabaseService {
   async deleteAnswers(answerIds: string[]): Promise<void> {
     if (!answerIds || answerIds.length === 0) return;
     try {
-      await (await createClient())
+      await (await createAdminClient())
         .from('conversation_answers')
         .delete()
         .in('id', answerIds);
@@ -657,7 +701,7 @@ export class SupabaseRepository implements DatabaseService {
       delete dbPayload.session_id;
     }
     try {
-      const { data, error } = await (await createClient())
+      const { data, error } = await (await createAdminClient())
         .from('medical_documents')
         .upsert(dbPayload)
         .select()
@@ -679,7 +723,7 @@ export class SupabaseRepository implements DatabaseService {
 
   async getDocument(id: string): Promise<MedicalDocument | null> {
     try {
-      const { data, error } = await (await createClient())
+      const { data, error } = await (await createAdminClient())
         .from('medical_documents')
         .select()
         .eq('id', id)
@@ -699,7 +743,7 @@ export class SupabaseRepository implements DatabaseService {
 
   async getSessionDocuments(sessionId: string): Promise<MedicalDocument[]> {
     try {
-      const client = await createClient();
+      const client = await createAdminClient();
       // Try session_id first (legacy), then encounter_id (foundational)
       const { data, error } = await client
         .from('medical_documents')
@@ -721,7 +765,7 @@ export class SupabaseRepository implements DatabaseService {
 
   async deleteDocument(documentId: string): Promise<void> {
     try {
-      await (await createClient())
+      await (await createAdminClient())
         .from('medical_documents')
         .delete()
         .eq('id', documentId);
@@ -739,7 +783,7 @@ export class SupabaseRepository implements DatabaseService {
         extracted_json: { pages: response.pages, status: response.status, error: response.error },
         confidence_score: response.confidence === 'high' ? 0.95 : response.confidence === 'medium' ? 0.75 : 0.5,
       };
-      const client = await createClient();
+      const client = await createAdminClient();
       
       // Delete existing to avoid duplicate since there is no unique constraint on document_id
       await client.from('document_extractions').delete().eq('document_id', response.documentId);
@@ -756,7 +800,7 @@ export class SupabaseRepository implements DatabaseService {
 
   async getOcrResponse(documentId: string): Promise<OCRResponse | null> {
     try {
-      const { data, error } = await (await createClient())
+      const { data, error } = await (await createAdminClient())
         .from('document_extractions')
         .select()
         .eq('document_id', documentId)
@@ -792,7 +836,7 @@ export class SupabaseRepository implements DatabaseService {
         confidence_score: extraction.confidence === 'high' ? 0.95 : extraction.confidence === 'medium' ? 0.75 : 0.5,
       };
       
-      const client = await createClient();
+      const client = await createAdminClient();
       await client.from('document_extractions').delete().eq('document_id', extraction.documentId);
       
       await client
@@ -808,7 +852,7 @@ export class SupabaseRepository implements DatabaseService {
 
   async getExtraction(documentId: string): Promise<DocumentExtractionResult | null> {
     try {
-      const { data, error } = await (await createClient())
+      const { data, error } = await (await createAdminClient())
         .from('document_extractions')
         .select()
         .eq('document_id', documentId)
@@ -825,7 +869,7 @@ export class SupabaseRepository implements DatabaseService {
     ClinicalHistorySchema.parse(history);
     try {
       const dbPayload = keysToSnake(history);
-      const { data, error } = await (await createClient())
+      const { data, error } = await (await createAdminClient())
         .from('clinical_histories')
         .upsert(dbPayload)
         .select()
@@ -844,7 +888,7 @@ export class SupabaseRepository implements DatabaseService {
 
   async getClinicalHistory(sessionId: string): Promise<ClinicalHistory | null> {
     try {
-      const { data, error } = await (await createClient())
+      const { data, error } = await (await createAdminClient())
         .from('clinical_histories')
         .select()
         .eq('session_id', sessionId)
@@ -859,7 +903,7 @@ export class SupabaseRepository implements DatabaseService {
 
   async getHistoricalSymptoms(patientId: string): Promise<any[]> {
     try {
-      const { data, error } = await (await createClient())
+      const { data, error } = await (await createAdminClient())
         .from('clinical_symptoms')
         .select('*')
         .eq('patient_id', patientId);
@@ -874,7 +918,7 @@ export class SupabaseRepository implements DatabaseService {
 
   async getHistoricalMedications(patientId: string): Promise<any[]> {
     try {
-      const { data, error } = await (await createClient())
+      const { data, error } = await (await createAdminClient())
         .from('clinical_medications')
         .select('*')
         .eq('patient_id', patientId);
@@ -889,7 +933,7 @@ export class SupabaseRepository implements DatabaseService {
 
   async getHistoricalDiagnoses(patientId: string): Promise<any[]> {
     try {
-      const { data, error } = await (await createClient())
+      const { data, error } = await (await createAdminClient())
         .from('clinical_diagnoses')
         .select('*')
         .eq('patient_id', patientId);
@@ -906,7 +950,7 @@ export class SupabaseRepository implements DatabaseService {
     MedicalTimelineSchema.parse(timeline);
     try {
       const dbPayload = keysToSnake(timeline);
-      const { data, error } = await (await createClient())
+      const { data, error } = await (await createAdminClient())
         .from('medical_timelines')
         .upsert(dbPayload)
         .select()
@@ -925,7 +969,7 @@ export class SupabaseRepository implements DatabaseService {
 
   async getTimeline(sessionId: string): Promise<MedicalTimeline | null> {
     try {
-      const { data, error } = await (await createClient())
+      const { data, error } = await (await createAdminClient())
         .from('medical_timelines')
         .select()
         .eq('session_id', sessionId)
@@ -943,6 +987,7 @@ export class SupabaseRepository implements DatabaseService {
     try {
       // Live schema: id(UUID), encounter_id(UUID), category, severity, flag_label, message, source_rule_id, requires_clinical_review, acknowledged_by_doctor
       const dbPayload = {
+        encounter_id: flag.sessionId,
         category: flag.category,
         severity: flag.severity,
         flag_label: flag.label,
@@ -950,7 +995,7 @@ export class SupabaseRepository implements DatabaseService {
         source_rule_id: flag.ruleId || null,
         requires_clinical_review: flag.requiresClinicalReview,
       };
-      const { data, error } = await (await createClient())
+      const { data, error } = await (await createAdminClient())
         .from('attention_flags')
         .insert(dbPayload)
         .select()
@@ -976,7 +1021,7 @@ export class SupabaseRepository implements DatabaseService {
     // attention_flags table uses encounter_id (UUID), not session_id (TEXT)
     // Best-effort: try both
     try {
-      const client = await createClient();
+      const client = await createAdminClient();
       const { data, error } = await client
         .from('attention_flags')
         .select()
@@ -1006,7 +1051,7 @@ export class SupabaseRepository implements DatabaseService {
 
   async acknowledgeFlag(id: string): Promise<void> {
     try {
-      await (await createClient())
+      await (await createAdminClient())
         .from('attention_flags')
         .update({ acknowledged_by_doctor: true })
         .eq('id', id);
@@ -1017,7 +1062,7 @@ export class SupabaseRepository implements DatabaseService {
 
   async resolveConflict(flagId: string, _decision: string, _doctorId: string): Promise<AttentionFlag> {
     try {
-      const { data } = await (await createClient())
+      const { data } = await (await createAdminClient())
         .from('attention_flags')
         .update({ acknowledged_by_doctor: true })
         .eq('id', flagId)
@@ -1071,7 +1116,7 @@ export class SupabaseRepository implements DatabaseService {
   async saveCorrection(correction: PatientCorrection): Promise<PatientCorrection> {
     PatientCorrectionSchema.parse(correction);
     const dbPayload = keysToSnake(correction);
-    const { data, error } = await (await createClient())
+    const { data, error } = await (await createAdminClient())
       .from('patient_corrections')
       .upsert(dbPayload)
       .select()
@@ -1082,7 +1127,7 @@ export class SupabaseRepository implements DatabaseService {
   }
 
   async getSessionCorrections(sessionId: string): Promise<PatientCorrection[]> {
-    const { data, error } = await (await createClient())
+    const { data, error } = await (await createAdminClient())
       .from('patient_corrections')
       .select()
       .eq('session_id', sessionId);
@@ -1094,7 +1139,7 @@ export class SupabaseRepository implements DatabaseService {
   async saveExportRecord(record: ExportRecord): Promise<ExportRecord> {
     ExportRecordSchema.parse(record);
     const dbPayload = keysToSnake(record);
-    const { data, error } = await (await createClient())
+    const { data, error } = await (await createAdminClient())
       .from('export_records')
       .upsert(dbPayload)
       .select()
@@ -1105,7 +1150,7 @@ export class SupabaseRepository implements DatabaseService {
   }
 
   async getExportRecords(sessionId: string): Promise<ExportRecord[]> {
-    const { data, error } = await (await createClient())
+    const { data, error } = await (await createAdminClient())
       .from('export_records')
       .select()
       .eq('session_id', sessionId);
@@ -1120,7 +1165,7 @@ export class SupabaseRepository implements DatabaseService {
     dbPayload.id = report.reportId;
     delete dbPayload.report_id;
 
-    const { data, error } = await (await createClient())
+    const { data, error } = await (await createAdminClient())
       .from('clinical_reports')
       .upsert(dbPayload)
       .select()
@@ -1133,7 +1178,7 @@ export class SupabaseRepository implements DatabaseService {
   }
 
   async getReport(id: string): Promise<ClinicalHistoryReport | null> {
-    const { data, error } = await (await createClient())
+    const { data, error } = await (await createAdminClient())
       .from('clinical_reports')
       .select()
       .eq('id', id)
@@ -1147,7 +1192,7 @@ export class SupabaseRepository implements DatabaseService {
   }
 
   async getReportBySession(sessionId: string): Promise<ClinicalHistoryReport | null> {
-    const { data, error } = await (await createClient())
+    const { data, error } = await (await createAdminClient())
       .from('clinical_reports')
       .select()
       .eq('session_id', sessionId)
@@ -1164,7 +1209,7 @@ export class SupabaseRepository implements DatabaseService {
 
   async updateClinicalReport(sessionId: string, data: Partial<ClinicalHistoryReport>): Promise<ClinicalHistoryReport> {
     const dbPayload = keysToSnake(data);
-    const { data: result, error } = await (await createClient())
+    const { data: result, error } = await (await createAdminClient())
       .from('clinical_reports')
       .update(dbPayload)
       .eq('session_id', sessionId)
@@ -1176,7 +1221,7 @@ export class SupabaseRepository implements DatabaseService {
   }
 
   async finalizeSession(sessionId: string): Promise<void> {
-    const { error } = await (await createClient())
+    const { error } = await (await createAdminClient())
       .from('intake_sessions')
       .update({ status: 'finalized' })
       .eq('id', sessionId);
@@ -1221,7 +1266,7 @@ export class SupabaseRepository implements DatabaseService {
   async getSessionAuditLogs(sessionId: string): Promise<AuditLog[]> {
     try {
       // audit_logs has no session_id column — query all and filter by metadata
-      const { data, error } = await (await createClient())
+      const { data, error } = await (await createAdminClient())
         .from('audit_logs')
         .select();
 
@@ -1248,9 +1293,10 @@ export class SupabaseRepository implements DatabaseService {
 
       // Best-effort cleanup — don't crash if columns are missing
       try { await adminClient.from('audit_logs').delete().neq('id', '00000000-0000-0000-0000-000000000000'); } catch { /* ignore */ }
-      try { await adminClient.from('export_records').delete().in('session_id', ['scenario_standard', 'scenario_attention', 'scenario_ayush']); } catch { /* ignore */ }
-      try { await adminClient.from('intake_sessions').delete().in('id', ['scenario_standard', 'scenario_attention', 'scenario_ayush']); } catch { /* ignore */ }
-      try { await adminClient.from('consents').delete().in('id', ['consent_golden', 'consent_02', 'consent_03']); } catch { /* ignore */ }
+      try { await adminClient.from('export_records').delete().in('session_id', ['scenario_standard', 'scenario_attention', 'scenario_ayush', '11111111-1111-4000-8000-111111111111', '11111111-1111-4000-8000-111111111112', '11111111-1111-4000-8000-111111111113']); } catch { /* ignore */ }
+      try { await adminClient.from('intake_sessions').delete().in('id', ['scenario_standard', 'scenario_attention', 'scenario_ayush', '11111111-1111-4000-8000-111111111111', '11111111-1111-4000-8000-111111111112', '11111111-1111-4000-8000-111111111113']); } catch { /* ignore */ }
+      try { await adminClient.from('patients').delete().in('id', ['00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000002', '00000000-0000-4000-8000-000000000003']); } catch { /* ignore */ }
+      try { await adminClient.from('consents').delete().in('id', ['consent_golden', 'consent_02', 'consent_03', '22222222-2222-4000-8000-222222222221', '22222222-2222-4000-8000-222222222222', '22222222-2222-4000-8000-222222222223']); } catch { /* ignore */ }
     } catch {
       console.warn('[resetDemoData] Error — continuing anyway');
     }
