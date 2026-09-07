@@ -718,8 +718,11 @@ export class SupabaseRepository implements DatabaseService {
       if (!data) {
         throw new Error('[saveDocument] Supabase returned no document');
       }
-      
-      return MedicalDocumentSchema.parse(keysToCamel(data));
+      const camelData: any = keysToCamel(data);
+      if (camelData.encounterId && !camelData.sessionId) {
+        camelData.sessionId = camelData.encounterId;
+      }
+      return MedicalDocumentSchema.parse(camelData);
     } catch (e: any) {
       console.error('[saveDocument] Error:', e?.message);
       throw e;
