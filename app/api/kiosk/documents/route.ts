@@ -79,8 +79,7 @@ export async function POST(req: NextRequest) {
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    // Using Date.now() for unique id to avoid eslint purity issues with Math.random()
-    const documentId = `doc_${Date.now().toString(36)}_${randomUUID().slice(0, 8)}`;
+    const documentId = randomUUID();
     const filePayload = {
       name: file.name,
       type: file.type,
