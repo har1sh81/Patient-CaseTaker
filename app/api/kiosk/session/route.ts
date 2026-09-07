@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { db } from '../../../../lib/supabase/db-service';
 import { Consent, IntakeSession } from '../../../../types';
-import { createClient } from '../../../../lib/supabase/server';
+import { createClient, createAdminClient } from '../../../../lib/supabase/server';
+import crypto from 'crypto';
 
 const isMockEnabled = process.env.NEXT_PUBLIC_MOCK_SERVICES_ENABLED === 'true';
 
@@ -75,7 +76,7 @@ export async function POST(request: Request) {
     }
 
     // 2. Initialize Intake Session (without consentId first to prevent foreign key violation)
-    const sessionId = `ses_${Math.random().toString(36).substring(2, 11)}`;
+    const sessionId = crypto.randomUUID();
     const consentId = `con_${sessionId.substring(4)}`;
 
     const session: IntakeSession = {
@@ -98,6 +99,21 @@ export async function POST(request: Request) {
       },
     };
     await db.createSession(session);
+
+    // Ensure a foundational encounter exists so that the dynamic interview engine can save conversation answers
+    const adminSupabase = await createAdminClient();
+    const { error: encError } = await adminSupabase.from('encounters').insert({
+      id: sessionId,
+      patient_id: existingPatient.id,
+      status: 'in_progress',
+      intake_mode: 'kiosk_touch',
+      language_code: language || 'en',
+      department_mode: departmentMode === 'ayush' ? 'ayush' : 'standard',
+      current_step: 'consent'
+    });
+    if (encError) {
+      console.warn('[Session Route] Failed to create foundational encounter:', encError);
+    }
 
     // 3. Save Consent details
     const consent: Consent = {

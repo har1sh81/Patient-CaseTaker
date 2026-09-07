@@ -23,7 +23,7 @@ export async function POST(request: Request) {
 
     const result = await startInterviewSession({
       patientId,
-      encounterId,
+      encounterId: encounterId || sessionId,
       department,
       consultationMode,
       language,
