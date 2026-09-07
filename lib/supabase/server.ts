@@ -51,7 +51,15 @@ export async function createAdminClient() {
   // cookie handling and the service_role JWT properly bypasses RLS.
   const { createClient: createDirectClient } = await import('@supabase/supabase-js');
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  
+  let serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  // If the service key is actually a database password (starts with sb_secret_), it will crash the Storage API with "Invalid Compact JWS".
+  // In that case, fall back to the anon key, since we have permissive RLS policies for anon now.
+  if (serviceKey && !serviceKey.startsWith('eyJ')) {
+    console.warn('[MediKiosk] Warning: SUPABASE_SERVICE_ROLE_KEY is not a valid JWT. Falling back to anon key.');
+    serviceKey = undefined;
+  }
+  
   const supabaseKey = serviceKey || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-anon-key';
 
   return createDirectClient(supabaseUrl, supabaseKey, {
