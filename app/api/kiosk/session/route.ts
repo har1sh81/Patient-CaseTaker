@@ -86,7 +86,7 @@ export async function POST(request: Request) {
       departmentMode: departmentMode || 'standard',
       // consentId is left blank initially to avoid FK constraint violation
       startedAt: new Date().toISOString(),
-      expiresAt: new Date(Date.now() + 30 * 60000).toISOString(), // 30 mins lifetime
+      expiresAt: new Date(Date.now() + 120 * 60000).toISOString(), // 120 mins lifetime for easier testing
       currentStep: 'consent',
       progress: {
         completedSections: [],

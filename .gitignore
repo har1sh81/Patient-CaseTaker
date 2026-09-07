@@ -47,7 +47,7 @@ next-env.d.ts
 /.playwright-cache/
 
 # temporary scratch directory
-/scratch/
+/scratch/ 
 
 # supabase local CLI state
 supabase/.temp/
