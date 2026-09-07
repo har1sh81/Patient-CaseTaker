@@ -179,7 +179,7 @@ async function runTests() {
   const req14 = new Request('http://localhost:3000/api/patients/identify', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ identifierType: 'abha_number', identifierValue: 'DEMO-ABHA-918273645001' }),
+    body: JSON.stringify({ identifierType: 'abha_number', identifierValue: 'ABHA-001' }),
   });
   const res14 = await identifyPatient(req14);
   const body14 = await res14.json();

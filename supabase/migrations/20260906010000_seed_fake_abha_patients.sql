@@ -36,7 +36,7 @@ INSERT INTO public.patient_external_identifiers (
   id, patient_id, identifier_type, identifier_value, issuer, verification_status, metadata
 ) VALUES
   -- Patient 1: ABHA Number + ABHA Address + Hospital Number (Verified)
-  ('b1111111-1111-4111-8111-000000000101', 'a1111111-1111-4111-8111-000000000001', 'abha_number', 'DEMO-ABHA-918273645001', 'NDHM_ABDM_DEMO', 'verified', '{"auth_methods": ["OTP", "DEMOGRAPHIC"]}'::jsonb),
+  ('b1111111-1111-4111-8111-000000000101', 'a1111111-1111-4111-8111-000000000001', 'abha_number', 'ABHA-001', 'NDHM_ABDM_DEMO', 'verified', '{"auth_methods": ["OTP", "DEMOGRAPHIC"]}'::jsonb),
   ('b1111111-1111-4111-8111-000000000102', 'a1111111-1111-4111-8111-000000000001', 'abha_address', 'arumugam.k@abdm.demo', 'NDHM_ABDM_DEMO', 'verified', '{"primary": true}'::jsonb),
   ('b1111111-1111-4111-8111-000000000103', 'a1111111-1111-4111-8111-000000000001', 'hospital_number', 'HOSP-OPD-2026-0101', 'GH_CHENNAI_OPD', 'verified', '{"unit": "General Medicine"}'::jsonb),
 

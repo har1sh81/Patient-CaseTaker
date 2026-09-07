@@ -236,7 +236,7 @@ async function runVitalsTests() {
   assert((diagCheck || []).length === 0 || (diagCheck || []).length >= 0, '26. No diagnosis creation');
 
   // 27. Task #5 regression (Patient ID resolution)
-  const { data: matchedId } = await supabase.from('patient_external_identifiers').select('patient_id').eq('identifier_type', 'abha_number').eq('identifier_value', 'DEMO-ABHA-918273645001').single();
+  const { data: matchedId } = await supabase.from('patient_external_identifiers').select('patient_id').eq('identifier_type', 'abha_number').eq('identifier_value', 'ABHA-001').single();
   assert(matchedId?.patient_id === arumugamPatientId, '27. Task #5 regression');
 
   // 28. Task #6 regression (Consent data model)

@@ -18,7 +18,7 @@ const TEST_CASES: TestCase[] = [
     name: '1. Valid ABHA Number (Arumugam Kandasamy)',
     body: {
       identifierType: 'abha_number',
-      identifierValue: 'DEMO-ABHA-918273645001',
+      identifierValue: 'ABHA-001',
     },
     expectedStatus: 200,
     expectedPatientId: 'a1111111-1111-4111-8111-000000000001',
@@ -70,7 +70,7 @@ const TEST_CASES: TestCase[] = [
   {
     name: '6. Missing identifierType (400 Bad Request)',
     body: {
-      identifierValue: 'DEMO-ABHA-918273645001',
+      identifierValue: 'ABHA-001',
     },
     expectedStatus: 400,
     expectedCode: 'INVALID_REQUEST',
