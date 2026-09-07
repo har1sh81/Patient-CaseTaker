@@ -708,16 +708,18 @@ export class SupabaseRepository implements DatabaseService {
         .single();
 
       if (error) {
-        if (error.message?.includes('column') || error.message?.includes('does not exist')) {
-          console.warn('[saveDocument] Schema mismatch — returning input as-is');
-          return doc;
-        }
+        console.error('[saveDocument] Supabase error:', error);
         throw new Error(`saveDocument failed: ${error.message}`);
       }
+      
+      if (!data) {
+        throw new Error('[saveDocument] Supabase returned no document');
+      }
+      
       return MedicalDocumentSchema.parse(keysToCamel(data));
     } catch (e: any) {
-      console.warn('[saveDocument] Error (non-fatal):', e?.message);
-      return doc;
+      console.error('[saveDocument] Error:', e?.message);
+      throw e;
     }
   }
 
@@ -742,25 +744,29 @@ export class SupabaseRepository implements DatabaseService {
   }
 
   async getSessionDocuments(sessionId: string): Promise<MedicalDocument[]> {
-    try {
-      const client = await createAdminClient();
-      // Try session_id first (legacy), then encounter_id (foundational)
-      const { data, error } = await client
-        .from('medical_documents')
-        .select()
-        .eq('encounter_id', sessionId);
+    const client = await createAdminClient();
+    
+    // Fallback: If `encounter_id` schema check fails, try `session_id` directly, 
+    // or just let the caller get the error. 
+    // The user suggested using standard query + throw error instead of silent `[]`.
+    const { data, error } = await client
+      .from('medical_documents')
+      .select('*')
+      .eq('encounter_id', sessionId)
+      .order('uploaded_at', { ascending: true });
 
-      if (!error && data && data.length > 0) {
-        return data.map((row) => {
-          const camelRow: any = keysToCamel(row);
-          if (camelRow.encounterId && !camelRow.sessionId) {
-            camelRow.sessionId = camelRow.encounterId;
-          }
-          return MedicalDocumentSchema.parse(camelRow);
-        });
+    if (error) {
+      console.error('[getSessionDocuments] Supabase error:', error);
+      throw new Error(`getSessionDocuments failed: ${error.message}`);
+    }
+
+    return (data || []).map((row) => {
+      const camelRow: any = keysToCamel(row);
+      if (camelRow.encounterId && !camelRow.sessionId) {
+        camelRow.sessionId = camelRow.encounterId;
       }
-    } catch { /* ignore */ }
-    return [];
+      return MedicalDocumentSchema.parse(camelRow);
+    });
   }
 
   async deleteDocument(documentId: string): Promise<void> {

@@ -38,7 +38,7 @@ function DocumentsContent() {
       if (docRes.ok && docData.success) {
         setDocuments(docData.documents || []);
       } else {
-        if (docData.status === 403 || docData.status === 404) {
+        if (docRes.status === 403 || docRes.status === 404) {
           router.push('/kiosk');
         } else {
           setErrorMsg(docData.error || 'Failed to load documents');
