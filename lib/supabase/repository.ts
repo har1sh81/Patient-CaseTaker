@@ -86,9 +86,9 @@ function dbToConversationAnswer(row: Record<string, any>): ConversationAnswer {
   return ConversationAnswerSchema.parse({
     ...camelRow,
     sessionId: camelRow.sessionId || camelRow.encounterId,
-    rawValue: camelRow.rawValue ?? camelRow.rawText ?? '',
-    normalizedValue: camelRow.normalizedValue ?? camelRow.normalizedEnglishText,
-    transcript: camelRow.transcript ?? camelRow.rawText,
+    rawValue: camelRow.rawValue ?? camelRow.rawText ?? camelRow.answerText ?? '',
+    normalizedValue: camelRow.normalizedValue ?? camelRow.normalizedEnglishText ?? camelRow.answerText,
+    transcript: camelRow.transcript ?? camelRow.rawText ?? camelRow.answerText,
     inputMethod,
     provenance: camelRow.provenance || {
       source: inputMethod === 'voice' ? 'patient_voice' : inputMethod === 'keyboard' ? 'patient_text' : 'patient_touch',
@@ -290,7 +290,7 @@ export class SupabaseRepository implements DatabaseService {
     try {
       const res = await client
         .from('patients')
-        .insert(fullDbPayload)
+        .upsert(fullDbPayload)
         .select()
         .single();
       data = res.data;
@@ -313,7 +313,7 @@ export class SupabaseRepository implements DatabaseService {
       };
       const retryResult = await client
         .from('patients')
-        .insert(cleanPayload)
+        .upsert(cleanPayload)
         .select()
         .single();
 
