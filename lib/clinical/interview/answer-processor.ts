@@ -31,7 +31,7 @@ export async function processInterviewAnswer(
     const { error: ansErr } = await adminSupabase.from('conversation_answers').insert({
       encounter_id: state.encounterId,
       question_id: input.questionId,
-      section: state.department || 'general',
+      section: state.turnCount === 0 ? 'chief_complaint' : 'hpi',
       source_language: state.language || 'en',
       raw_text: answerString,
       normalized_english_text: input.nativeTranscript || answerString,
